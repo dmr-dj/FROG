@@ -9,7 +9,7 @@ program test_fonctions
 !~   use Parametrisation, only : Bool_layer_temp,Forcage_Month_day,Bool_Swe_Snw,Bool_Model_Snow                        [TBRMD]
 !~   use Fonction_implicit, only : Implicit_snow, Implicit                                                             [TBRMD]
 
-  use Parametrisation, only: z_num, gridNoMax
+  use Parametrisation, only: lecture_namelist, z_num, gridNoMax
 
   !dmr [2024-06-28] Functions used in the main
   use Principal, only : Vamper_init,Lecture_forcing, Vamper_step
@@ -53,6 +53,10 @@ program test_fonctions
   ll=1
 
   !dmr [2024-06-28] [ADDING COMMENTS]
+
+  ! mbv&afq -- reading namelist
+  call lecture_namelist
+
   !dmr Discretization routines
 
   !dmr Inputs to t_disc:
@@ -141,10 +145,10 @@ program test_fonctions
 
   call Lecture_forcing(z_num,T_air,swe_f_t,snow_dp_t,rho_snow_t,T_snw_t,Temp(:,gridNo),dim_temp,dim_swe)
 
-!~   write(*,*) "[MAIN] D: ", D
-!~   write(*,*) "[MAIN] forcing: ", dim_temp, dim_swe
+  write(*,*) "[MAIN] D: ", D
+  write(*,*) "[MAIN] forcing: ", dim_temp, dim_swe
   !write(*,*) dz
-!~   write(*,*) "[MAIN] 1|Temp: ",Temp
+  write(*,*) "[MAIN] 1|Temp: ",Temp
 
   t_step = dim_temp
 

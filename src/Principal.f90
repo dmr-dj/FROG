@@ -117,6 +117,7 @@ contains
 
   subroutine Lecture_forcing(z_num,T_air,swe_f_t,snw_dp_t,rho_snow_t,T_snw,Temp,dim_temp,dim_swe)
     
+    use Parametrisation, only: Tempsolinit, Tempairmonth, Tempairday, Tempsnowmonth ,Tempsnowday 
     
     integer, intent(in) :: z_num
     real, dimension(z_num),intent(inout) :: Temp
@@ -129,36 +130,27 @@ contains
     dim_swe = 0
     dim_temp = 0
     
-    write(*,*) "parameters == ", EQ_tr, EQ1_EQ2, Daily, Bool_Bessi
-
-    if (EQ_Tr == 0)then
-
-
-      if(EQ1_EQ2==2 .and. z_num ==51)then
-         open(newunit=unit_nb_3,file="Donnee/Temp_soil_0.txt",status="old",action='read') 
-      else
-         open(newunit=unit_nb_3,file="Donnee/Temp_soil_0_z101.txt",status="old",action='read') 
-      end if
-
-      
-# if Daily == 0
-         open(newunit=unit_nb_2,file="Donnee/Snow_EQ.txt",status="old",action='read')
-         open(newunit=unit_nb_1,file="Donnee/Temp_Bayevla.txt",status="old",action='read')
-# else
-         open(newunit=unit_nb_2,file="Donnee/Snow_fresh_day.txt",status="old",action='read')
-         open(newunit=unit_nb_1,file="Donnee/Temperature_moyenne_jour.txt",status="old",action='read')
-# endif
-
-
-    elseif(EQ_Tr==1)then
-
-       open(newunit=unit_nb_3,file="Init_Svalbard/Ts_Sv_2.0_0.5_0.2.txt",&
-status="old",action='read')
-       open(newunit=unit_nb_1,file="Donnee/T_snw_d.txt",status="old",action='read')
-       open(newunit=unit_nb_2,file="Donnee/Snow_tot.txt",status="old",action='read')
-
-    end if
-
+    write(*,*) "[Condition] boucle:," ,Forcage_Month_day
+   
+    
+  	open(newunit=unit_nb_3,file=Tempsolinit,status="old",action='read')
+        WRITE(*,*) "READ "//Tempsolinit
+	
+	if (Forcage_Month_day .eq. 1)then
+	  open(newunit=unit_nb_1,file=Tempairday,status="old",action='read')
+          open(newunit=unit_nb_2,file=Tempsnowday,status="old",action='read')
+          WRITE(*,*) "READ "//Tempairday
+          WRITE(*,*) "READ "//Tempsnowday
+	else
+	  open(newunit=unit_nb_1,file=Tempairmonth,status="old",action='read')
+          open(newunit=unit_nb_2,file=Tempsnowmonth,status="old",action='read')
+          WRITE(*,*) "READ "//Tempairmonth
+          WRITE(*,*) "READ "//Tempsnowmonth
+	end if   
+	
+	
+    !stop ici 
+    
     if (Bool_Bessi==1)then
 
        open(newunit=unit_nb_4,file="Donnee/Snow_dp_1998.txt",status="old",action='read')
@@ -168,7 +160,7 @@ status="old",action='read')
 
     !open(newunit=unit_nb_6,file="Donnee/T_snw.txt",status="old",action='read')
     
-    if(EQ1_EQ2==2)then
+   ! if(EQ1_EQ2==2)then
        
        do kk=1,z_num 
           read(unit_nb_3,*) Temp(kk)
@@ -180,7 +172,7 @@ status="old",action='read')
 
        close(unit_nb_3)
 
-    end if
+   ! end if
 
     
     do
@@ -264,6 +256,8 @@ status="old",action='read')
   subroutine Vamper_step(T_air,swe_f_t,Temp,Tb,Cp,Kp,n,organic_ind,glacial_ind,nb_lines,dim_temp,dim_swe,z_num,dz,dt,t_step, &
                          porf,pori,t_deb,rho_snow_t,snw_dp_t,T_snw_t,D, spy, t_num)
 
+    use Parametrisation, only: namerun
+    
     integer, intent(inout) ::  organic_ind, nb_lines, dim_swe, dim_temp, t_step,t_deb
     real, intent(in) :: dt, Tb
     integer, intent(in) :: z_num
@@ -290,7 +284,8 @@ status="old",action='read')
     
      if (Bool_layer_temp==1)then
 
-       open(newunit=u_n_ml,file="Results/Tl_multilayers.txt", status="replace",action='write') 
+        open(newunit=u_n_ml,file="Results/"//trim(namerun)//".txt", status="replace",action='write')
+        !open(newunit=u_n_ml,file="Results/toto.txt", status="replace",action='write')
 
        DO zzz = LBOUND(indx_min,DIM=1), UBOUND(indx_min,DIM=1)
           indx_min(zzz) = minloc(abs(D-fixed_levs(zzz)), DIM=1)
@@ -361,7 +356,7 @@ status="old",action='read')
 
     do ll=1,t_num
 
-       write(*,*) "Time step:: ", ll," / ", t_num
+       ! write(*,*) "Time step:: ", ll," / ", t_num
 
        snw_old = snw_tot
 

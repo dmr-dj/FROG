@@ -1,0 +1,96 @@
+! mbv  Namelist parametres 
+&Param
+! Name of the experiment
+  namerun = "Dversionnew" ! Name of the run
+!Time
+  TotTime = 100           !temps total en année
+  Timestep = 1              !nombre de jour entre chaque pas de temps 
+  t_fin = 0		    ! inutile ?
+  YearType = 360            !nombre de jour par an
+  Forcage_Month_day =0      ! (1) Daily or (0) monthly forcing
+
+!Glacial_index  !à sortir ?
+  Bool_glacial =  0         ! 0 non 1 glacial index 
+  alpha = -13               ! multiplicateur temp pour glacial index 
+
+!Sol  
+  PorosityType = 3          !(1) linéaire, (autre) exponentiellement décroissante en fonction de la profondeur
+  Bool_Organic = 1          ! prise en compte de la couche organique ou non (1 ou 0)
+  Porosity_soil = 0.1       ! porosité du sol
+  organic_depth = 0.025     ! profondeur de la couche organique
+  n_organic = 0.1           ! porosité de la couche organique
+  n_soil_bot = 0.1          ! porosité en bas de la couche de sol
+  q_quartz = 0.0            ! pourcentage de quartz dans le sol
+  Gfx = 65.0                ! flux géothermique de la terre (a modifier peut être)
+
+!Neige
+  Bool_Snow = 1             ! forçage en neige ou non (1 ou 0)
+  Bool_Swe_Snw = 1          ! (1) Snow forcing, (0) Swe forcing
+  Bool_Model_Snow = 1       ! (1) Usinsg snow model to find snow_depth, (0) Forcing with snow_depth
+  Bool_Bessi = 2            ! (1) prend en compte modele bessi et (2) ignore bessi important de ne pas l'utiliser ne marche 
+  s_l_max = 2               ! nombre de couche de neige (marche que avec 1)
+
+!Param simulation 
+  z_num = 101               !nombre de couches étudiée
+  GridType = 1              !(1) Log-generated, (2) Linear-generated 
+  gridNoMax = 1             !dmr spatial index, no assumption of the spatial arrangement
+  Bool_layer_temp = 1       ! Creation of .txt with the temperature of the soil at different layer
+  Depth = 1000.0            !profondeur de la modélisation
+  T_init = 0.0              !température initiale a la surface
+
+
+!jsp où classer ca 
+  Bool_delta = 0            ! inutile 
+  Bool_geometric = 1        ! utile dans routine thermalconductivity ligne 86 a quoi ca correspond ?
+
+
+!type de run à supprimer 
+  EQ_Tr = 0                 ! Equilibrum run (0) or Transient run (1) -> using different forcing Temperature and snow
+  EQ1_EQ2 = 2               ! EQ1(1) initial temperature calculated with the Geothermal heat flux. EQ2 initial temperature read in a file .txt
+
+/
+
+! mbv Namelist des constantes physiques 
+&Physique
+!Densité matières (kg/m³)
+  rho_snow_freeze = 350.0   ! densité de la neige
+  rho_water = 1000.0        ! densité de l'eau
+  rho_ice = 917.0           ! densité de la glace
+  rho_organic = 1300.0      ! densité de la matière organique
+  rho_soil = 1600.0         ! densité du sol
+  rho_snow_fresh = 150.0    ! densité de la neige fraiche
+
+!Capacité thermique massique (J/(K*kg))
+  C_water = 4180.0          ! Capacité thermique massique de l'eau
+  C_ice = 2100.0            ! Capacité thermique massique de la glace
+  C_organic = 1920.0        ! Capacité thermique massique de la matière organique
+  C_dry_soil = 850.0        ! Capacité thermique massique du sol
+
+!Conductivité thermique (W/(m*K))
+  K_other_minerals = 2.0    ! Conductivité thermique des autres minéraux
+  K_quartz = 7.7            ! conductivité thermique du quartz
+  K_organic = 0.25          ! conductivité thermique de la matière organique
+  K_ice = 2.24              ! conductivité thermique de la glace
+  K_fluids = 0.56           ! conductivité thermique des fluides
+
+!Neige
+  T_freeze = 0.0            !température où l'eau est considérée comme gelée
+  freezing_range = 2.0      ! Temperature at wich the snow start to melt
+
+!Autre
+  gravity = 9.81            ! accéleration gravitationnelle 
+  Latent_heat = 333700.0    ! en J/kg
+/
+
+&Tempdata 
+  Tempsolinit = "Donnee/Temp_soil_0_z101.txt"   !Entree sol Principal l40
+  Tempairday ="Donnee/Temperature_moyenne_jour.txt"  ! Forcage air t° de surface par mois 
+  Tempairmonth = "Donnee/Temp_Bayevla.txt"  ! Forcage air t° de surface par jours 
+  Tempsnowmonth = "Donnee/Snow_EQ.txt"   !Snow temp par mois 
+  Tempsnowday ="Donnee/Snow_fresh_day.txt" !Snow temp par jours 
+/
+
+
+
+
+
