@@ -7,7 +7,8 @@ module Parametrisation
 
   character(len=100) :: namerun
   integer :: TotTime         !temps total en année
-  integer :: Timestep           !nombre de jour entre chaque pas de temps
+  integer :: nb_day_per_month           !
+  integer :: nb_mon_per_year
   integer :: t_fin
   integer :: YearType         !nombre de jour par an
   integer :: z_num            !nombre de couches étudiée
@@ -92,7 +93,7 @@ contains
     CHARACTER(len=1), PARAMETER :: tab=char(9)
     CHARACTER(len=3), PARAMETER :: spa=""//tab//tab//tab
 
-    NAMELIST /Param/ namerun,TotTime,Timestep,t_fin,YearType,Forcage_Month_day,Bool_glacial,alpha,PorosityType, &
+    NAMELIST /Param/ namerun,TotTime,nb_day_per_month,nb_mon_per_year, t_fin,YearType,Bool_glacial,alpha,PorosityType, &
                      Bool_Organic,Porosity_soil,organic_depth,n_organic,n_soil_bot, q_quartz,Gfx,Bool_Snow,     &
                      Bool_Swe_Snw,Bool_Model_Snow,Bool_Bessi,s_l_max,z_num,GridType,gridNoMax,Bool_layer_temp,  &
                      Depth,T_init,Bool_delta,Bool_geometric, EQ_Tr, EQ1_EQ2
@@ -129,7 +130,7 @@ contains
 
     write(*,*) "namerun"//spa, namerun
     write(*,*) "TotTime"//spa, TotTime         !temps total en année
-    write(*,*) "Timestep"//spa, Timestep           !nombre de jour entre chaque pas de temps
+    write(*,*) "nb_day_per_month"//spa, nb_day_per_month           !nombre de jour entre chaque pas de temps
     write(*,*) "t_fin"//spa, t_fin
     write(*,*) "YearType"//spa, YearType         !nombre de jour par an
     write(*,*) "z_num"//spa, z_num            !nombre de couches étudiée
@@ -142,7 +143,6 @@ contains
     write(*,*) "Bool_delta"//spa, Bool_delta        !
     write(*,*) "Bool_glacial"//spa, Bool_glacial          ! Using glacial index to modify air temperature
     write(*,*) "Bool_layer_temp"//spa, Bool_layer_temp       ! Creation of .txt with the temperature of the soil at different layer
-    write(*,*) "Forcage_Month_day"//spa, Forcage_Month_day     ! (1) Daily or (0) monthly forcing
     write(*,*) "Bool_Swe_Snw"//spa, Bool_Swe_Snw          ! (1) Snow forcing, (0) Swe forcing
     write(*,*) "Bool_Model_Snow"//spa, Bool_Model_Snow       ! (1) Usinsg snow model to find snow_depth, (0) Forcing with snow_depth
     write(*,*) "Bool_Bessi"//spa, Bool_Bessi

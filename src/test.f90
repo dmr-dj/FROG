@@ -2,6 +2,7 @@
 
 program test_fonctions
 
+# include "constant.h"
 
 !~   use Fonction_init, only: !dmr unused                                                                              [TBRMD]
 !~   use Parametrisation, only : z_num,TotTime,Timestep,YearType,z_num,Depth,GridType,PorosityType,T_init,Bool_glacial [TBRMD] 
@@ -21,6 +22,10 @@ program test_fonctions
   use Para_fonctions, only : t_disc, z_disc
 
   use Model_snow, only : snw_average_swe, snw_proc, snw_average_snw, snw_average_snw_tot
+
+#if ( CARBON == 1 )
+  use Carbon, only : carbon_first_init, carbon_init
+#endif
 
   implicit none
   
@@ -44,6 +49,19 @@ program test_fonctions
                                        ,snow_dp_t & !dmr [SPAT_VAR] snow depth over time forcing ??? 
                                        ,rho_snow_t& !dmr [SPAT_VAR] density of snow over time forcing ???
                                        ,T_snw_t     !dmr [SPAT_VAR] temperature of snow over time forcing ???
+
+#if ( CARBON == 1 ) 
+                                       ! nb and mbv CARBON GLOBAL VARIABLES 
+    real,dimension(:,:), allocatable  :: deepSOM_a, deepSOM_s, deepSOM_p, fc
+    real                              :: max_cryoturb_alt, min_cryoturb_alt
+    real                              :: ALT ! active layer thickness !gridNoMax
+    real                              :: altmax_lastyear
+    real                              :: clay
+    real                              :: diff_k_const, bio_diff_k_const
+    real, dimension(:) , allocatable  :: zf_soil
+    REAL                              :: bioturbation_depth 
+    integer :: end_year
+#endif
 
   integer :: gridNo = 1 ! index for spatial loops
 
@@ -102,6 +120,19 @@ program test_fonctions
   allocate(pori(1:z_num,1:gridNoMax)) !dmr SPAT_VAR
   allocate(porf(1:z_num,1:gridNoMax)) !dmr SPAT_VAR
 
+#if ( CARBON == 1 ) 
+  !nb and mbv Carbon cycle
+  allocate(deepSOM_a(1:z_num,1:gridNoMax))
+  allocate(deepSOM_s(1:z_num,1:gridNoMax))
+  allocate(deepSOM_p(1:z_num,1:gridNoMax))
+  allocate(fc(1:z_num,1:gridNoMax))
+  allocate(zf_soil(1:z_num))
+
+
+  !nb and mbv Carbon cycle
+  call carbon_first_init(dt, max_cryoturb_alt, min_cryoturb_alt, diff_k_const, bio_diff_k_const, bioturbation_depth &
+       , D, dz, zf_soil , ALT, altmax_lastyear)
+#endif
 
   do gridNo = 1, gridNoMax
 
@@ -121,6 +152,12 @@ program test_fonctions
   !dmr intent(out)               organic_ind = depth of the organic layer? integer value in vertical index
   !dmr intent(out)               Tb = Temperature Bottom, lower boundary condition ... computed from GeoHeatFlow
   call Vamper_init(dz,D,Temp(:,gridNo),time_gi,glacial_ind,nb_lines,Kp(:,gridNo),Cp(:,gridNo),n(:,gridNo),organic_ind,Tb)
+
+#if ( CARBON == 1 ) 
+  !nb and mbv
+  !Initialisation for carbon cycle variables
+  call carbon_init(deepSOM_a(:,gridNo), deepSOM_s(:,gridNo), deepSOM_p(:,gridNo),  fc(:,gridNo), clay) !ALT,
+#endif
 
   !dmr [2024-06-28] [ADDING COMMENTS]
   !dmr This subroutine will be reading the forcing from external files. There is a suite of options as to how the forcing is done.
@@ -147,7 +184,7 @@ program test_fonctions
 
   write(*,*) "[MAIN] D: ", D
   write(*,*) "[MAIN] forcing: ", dim_temp, dim_swe
-  !write(*,*) dz
+  write(*,*) "[Prof]", dz
   write(*,*) "[MAIN] 1|Temp: ",Temp
 
   t_step = dim_temp
@@ -175,11 +212,18 @@ program test_fonctions
   !dmr intent(in)    (dim_temp)  rho_snow_t    / DENSITY of snow forcing
   !dmr intent(in)    (dim_temp)  T_snw_t       / TEMP of snow forcing
   !dmr intent(in)    (nb_lines)  glacial_ind   / glacial index modifier
-  
+
   call Vamper_step(T_air,swe_f_t,Temp(:,gridNo),Tb,Cp(:,gridNo),Kp(:,gridNo),n(:,gridNo),organic_ind &
                   ,glacial_ind,nb_lines,dim_temp,dim_swe,z_num,dz,dt,t_step                          &
-                  ,porf(:,gridNo),pori(:,gridNo),t_deb,rho_snow_t,snow_dp_t,T_snw_t,D, spy, t_num)
+                  ,porf(:,gridNo),pori(:,gridNo),t_deb,rho_snow_t,snow_dp_t,T_snw_t,D, spy, t_num    &
+#if ( CARBON == 0 )   
+                   )
+#else
 
+                  ,end_year , deepSOM_a, deepSOM_s, deepSOM_p, fc, clay                               &
+                  ,diff_k_const, bio_diff_k_const, min_cryoturb_alt, max_cryoturb_alt, zf_soil       &  
+                  ,bioturbation_depth, ALT, altmax_lastyear)
+#endif
 
   write(*,*) "[MAIN] 2|Temp: ",Temp(:,gridNo)
 

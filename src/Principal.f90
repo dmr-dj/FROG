@@ -1,7 +1,7 @@
 module Principal
 
 
-  use Parametrisation, only : z_num,TotTime,Timestep,YearType,Depth,GridType,PorosityType,T_init,Bool_glacial 
+  use Parametrisation, only : z_num,TotTime,nb_mon_per_year,YearType,Depth,GridType,PorosityType,T_init,Bool_glacial 
   use Parametrisation, only : Bool_Organic,organic_depth,Gfx, T_freeze, EQ_Tr, EQ1_EQ2, Bool_delta,t_fin, alpha
   use Parametrisation, only : Bool_layer_temp,Forcage_Month_day,Bool_Swe_Snw,Bool_Model_Snow,Bool_Bessi,s_l_max
   use Fonction_temp, only : AppHeatCapacity, ThermalConductivity, Permafrost_Depth
@@ -94,7 +94,7 @@ contains
 
     Tb = Temp(z_num)                         ! Lower boundary condition 
     
-    !write(*,*) Temp
+    write(*,*) "[PRinc ] Tb, Temp" , Tb ,Temp
 
     do ll = 1,2 !dmr WhatIs ll ? 
        
@@ -130,23 +130,23 @@ contains
     dim_swe = 0
     dim_temp = 0
     
-    write(*,*) "[Condition] boucle:," ,Forcage_Month_day
+   ! write(*,*) "[Condition] boucle:," ,Forcage_Month_day
    
     
   	open(newunit=unit_nb_3,file=Tempsolinit,status="old",action='read')
-        WRITE(*,*) "READ "//Tempsolinit
+        !WRITE(*,*) "READ "//Tempsolinit
 	
-	if (Forcage_Month_day .eq. 1)then
+#if ( DAILY == 1 ) 
 	  open(newunit=unit_nb_1,file=Tempairday,status="old",action='read')
           open(newunit=unit_nb_2,file=Tempsnowday,status="old",action='read')
-          WRITE(*,*) "READ "//Tempairday
-          WRITE(*,*) "READ "//Tempsnowday
-	else
+          !WRITE(*,*) "READ "//Tempairday
+          !WRITE(*,*) "READ "//Tempsnowday
+#else
 	  open(newunit=unit_nb_1,file=Tempairmonth,status="old",action='read')
           open(newunit=unit_nb_2,file=Tempsnowmonth,status="old",action='read')
-          WRITE(*,*) "READ "//Tempairmonth
-          WRITE(*,*) "READ "//Tempsnowmonth
-	end if   
+         ! WRITE(*,*) "READ "//Tempairmonth
+          !WRITE(*,*) "READ "//Tempsnowmonth
+#endif   
 	
 	
     !stop ici 
@@ -166,9 +166,9 @@ contains
           read(unit_nb_3,*) Temp(kk)
        end do
 
-       do kk=1,z_num 
-          Temp(kk) = Temp(kk) 
-       end do  
+       !do kk=1,z_num 
+       !   Temp(kk) = Temp(kk) 
+       !end do  
 
        close(unit_nb_3)
 
@@ -252,12 +252,23 @@ contains
   end subroutine Lecture_forcing
 
 
-
   subroutine Vamper_step(T_air,swe_f_t,Temp,Tb,Cp,Kp,n,organic_ind,glacial_ind,nb_lines,dim_temp,dim_swe,z_num,dz,dt,t_step, &
-                         porf,pori,t_deb,rho_snow_t,snw_dp_t,T_snw_t,D, spy, t_num)
+                         porf,pori,t_deb,rho_snow_t,snw_dp_t,T_snw_t,D, spy, t_num                                           &
+#if ( CARBON == 0 )
+                          )
+#else
+                  ,end_year , deepSOM_a, deepSOM_s, deepSOM_p, fc, clay                         &
+                  ,diff_k_const, bio_diff_k_const, min_cryoturb_alt, max_cryoturb_alt, zf_soil &
+                  ,bioturbation_depth, ALT, altmax_lastyear)
+
+#endif
 
     use Parametrisation, only: namerun
-    
+
+#if ( CARBON == 1 )
+    use Carbon, only : carbon_init, compute_alt, carbon_redistribute, decomposition, cryoturbation
+#endif    
+
     integer, intent(inout) ::  organic_ind, nb_lines, dim_swe, dim_temp, t_step,t_deb
     real, intent(in) :: dt, Tb
     integer, intent(in) :: z_num
@@ -269,6 +280,10 @@ contains
     real,dimension(dim_temp),intent(in) :: T_air,snw_dp_t,rho_snow_t,T_snw_t
     real,dimension(nb_lines),intent(in) :: glacial_ind
     real, dimension(z_num),intent(inout) :: Temp
+#if ( CARBON == 1 )
+    integer                              :: compteur_time_step !nb of day or month of the year
+    integer                              :: end_year !=0 if not end of year, =1 if end of year
+#endif
 
     integer :: kk, ll, indice_tab, s_l_t,ind_snw
     real :: T_soil, T_glacial, swe_tot,snw_tot,rho_snow,swe_f,frac_snw,k_s,Cp_snow,snw_old,dz_snow,Per_depth
@@ -279,9 +294,21 @@ contains
 
 ! dmr&mbv --- Added for cleaner output at given fixed levels
     integer, dimension(10)            :: indx_min
-    real   , dimension(10), parameter :: fixed_levs = [ 0.0, 1.0, 2.0, 5.0, 50.0, 100.0, 200.0, 500.0, 750.0, 1000.0 ]
-    integer :: zzz
-    
+    real   , dimension(10), parameter :: fixed_levs = [ 0.0, 0.01, 0.05, 0.10, 0.20, 0.30, 0.40, 500.0, 750.0, 1000.0 ]
+    integer :: zzz , index_claque , tempmens , ALLTT
+
+#if ( CARBON == 1 )
+!nb and mbv Carbon cycle
+    real                                  :: ALT, altmax_lastyear
+    real, dimension(z_num)                :: Temp_positive
+    real, dimension(z_num), intent(inout) :: deepSOM_a, deepSOM_s, deepSOM_p, fc
+    real                                  :: clay
+    real, intent(in)                      :: diff_k_const, bio_diff_k_const
+    real, intent(in)                      :: min_cryoturb_alt, max_cryoturb_alt
+    real, dimension(z_num) , intent(in)   :: zf_soil
+    real, intent(in)                      :: bioturbation_depth
+#endif    
+
      if (Bool_layer_temp==1)then
 
         open(newunit=u_n_ml,file="Results/"//trim(namerun)//".txt", status="replace",action='write')
@@ -299,7 +326,7 @@ contains
     snw_old = 0
     ind_snw = 0
     s_l_t = 1
-    write(*,*) "[PRINC] organic_ind: ", organic_ind
+    !write(*,*) "[PRINC] organic_ind: ", organic_ind
     
     do kk =1,s_l_max
 
@@ -351,12 +378,38 @@ contains
 !
 !#endif
 ! [TOREMOVE]
-
+     ! ICI 
+   ! open(newunit=tempmens, file="Results/testmoismens.txt", status="replace")
+   ! open(newunit=ALLTT, file="Results/testaltmens.txt", status="replace")
+    
     !write(*,*) n
 
+#if ( CARBON == 1 )
+!nb and mbv
+    end_year=0
+    compteur_time_step=0
+#endif
+
+!boucle temporelle
     do ll=1,t_num
 
        ! write(*,*) "Time step:: ", ll," / ", t_num
+
+#if ( CARBON == 1 )
+       !nb and mbv for carbon cycle, is it the end of the year?
+       compteur_time_step=compteur_time_step+1
+#if ( DAILY == 1 )
+       if (compteur_time_step.eq.YearType) then !nomber of days per year
+#else
+       if (compteur_time_step.eq.nb_mon_per_year) then !nomber of months per year
+#endif
+           end_year=1
+           compteur_time_step=0
+       else
+           end_year=0
+       endif
+#endif
+
 
        snw_old = snw_tot
 
@@ -466,17 +519,43 @@ glacial_ind(indice_tab-1))/100.0)
        
        !write(*,*) Kp
 
+#if ( CARBON == 1 )
+       ! nb and mbv carbon cycle call
+       ! at the end of each year computes the actve layer thickness, needed for redistribution
+       call compute_alt(Temp, Temp_positive, ALT, compteur_time_step, end_year, altmax_lastyear, D)
+       !write(*,*) 'ALT', ALT
+       ! redistribute carbon from biosphere model
+       call carbon_redistribute(Temp, deepSOM_a, deepSOM_s, deepSOM_p, dz, ALT)
+       ! computes the decomposition in permafrost as a function of temperature (later : humidity and soil type?)
+       !! ICI verifier D pour zi_soil?
+       call decomposition(Temp, D, dt, deepSOM_a, deepSOM_s, deepSOM_p, clay)
+       ! cryoturbation et bioturbation
+       !! ICI chercher zi_soil et zf_soil dans VAMPER ?? D ???
+       call cryoturbation(Temp, deepSOM_a, deepSOM_s, deepSOM_p, altmax_lastyear, max_cryoturb_alt, &
+            min_cryoturb_alt, D, zf_soil, diff_k_const, bio_diff_k_const, dt,         &
+            bioturbation_depth)
+       write(ALLTT,*) ALT
+#endif
+
+       !MBV test write temp par mois 
+      ! if (mod(ll,30).eq.0) then 
+         write(tempmens,*) (Temp(index_claque),                                &
+                          index_claque=LBOUND(Temp,dim=1), UBOUND(Temp, dim=1))
+       !endif 
     end do
 
     t_deb = t_deb - floor(t_step/365.0)
 
     if (Bool_glacial.eq.1) then !dmr indice_tab is undefined if Bool_glacial is not 1
-      write(*,*) "[PRINC] indice_tab,t_num,organic_ind: ", indice_tab,t_num,organic_ind
+    !  write(*,*) "[PRINC] indice_tab,t_num,organic_ind: ", indice_tab,t_num,organic_ind
     endif
    
     close(u_n_ml)
-   
+    close(ALLTT) 
 
+    close(tempmens)
+
+  
   end subroutine Vamper_step
 
   

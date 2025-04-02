@@ -1,6 +1,6 @@
 module Para_fonctions
 
-use Parametrisation, only : Forcage_Month_Day
+! use Parametrisation, only : Forcage_Month_Day
 
 implicit none
 
@@ -17,7 +17,7 @@ contains
 
   subroutine t_disc(dt,spy,t_num)   !fonctionnelle!
 
-    use Parametrisation, only: TotTime,Timestep,YearType
+    use Parametrisation, only: TotTime,nb_day_per_month,YearType
     
     Implicit none
 
@@ -34,23 +34,23 @@ contains
 
     
     model_secs = real(TotTime)*60.0*60.0*24.0*yrs2days
-#if Daily == 0
-       dt = real(Timestep)*60.0*60.0*24.0
+#if ( DAILY == 0 )
+       dt = real(nb_day_per_month)*60.0*60.0*24.0
 #else
        dt = 60.0*60.0*24.0
 #endif
     t_num = floor(model_secs/dt)
 
 
-    if (timestep == 15) then
-       spy = 24
-    elseif (timestep == 30) then
-       spy = 12
-    elseif (timestep == 1) then
-       spy = 360
-    else
-       spy = 1
-    end if
+    !if (nb_day_per_month == 15) then
+     !  spy = 24
+    !elseif (nb_day_per_month == 30) then
+     ! spy = 12
+    !elseif (nb_day_per_month == 1) then
+     !  spy = 360
+    !else
+     !  spy = 1
+    !end if
 
   end subroutine t_disc
     
