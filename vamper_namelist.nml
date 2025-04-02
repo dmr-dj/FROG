@@ -1,13 +1,14 @@
 ! mbv  Namelist parametres 
 &Param
 ! Name of the experiment
-  namerun = "Dversionnew" ! Name of the run
+  namerun = "Boike08psoil" ! Name of the run
 !Time
-  TotTime = 100           !temps total en année
-  Timestep = 1              !nombre de jour entre chaque pas de temps 
-  t_fin = 0		    ! inutile ?
-  YearType = 360            !nombre de jour par an
-  Forcage_Month_day =0      ! (1) Daily or (0) monthly forcing
+  TotTime = 17               !temps total en année
+  nb_day_per_month = 30     !nombre de jour dans un mois 
+  nb_mon_per_year = 12      !nombre de mois par an
+  t_fin = 0		    ! inutile 
+  YearType = 360            !nombre de jour par an le fichier d'entrée quotidien à 365
+  !tbd Forcage_Month_day = 0     ! (1) Daily or (0) monthly forcing dans un flag 
 
 !Glacial_index  !à sortir ?
   Bool_glacial =  0         ! 0 non 1 glacial index 
@@ -36,7 +37,7 @@
   gridNoMax = 1             !dmr spatial index, no assumption of the spatial arrangement
   Bool_layer_temp = 1       ! Creation of .txt with the temperature of the soil at different layer
   Depth = 1000.0            !profondeur de la modélisation
-  T_init = 0.0              !température initiale a la surface
+  T_init = -7.0             !température initiale a la surface
 
 
 !jsp où classer ca 
@@ -84,7 +85,8 @@
 
 &Tempdata 
   Tempsolinit = "Donnee/Temp_soil_0_z101.txt"   !Entree sol Principal l40
-  Tempairday ="Donnee/Temperature_moyenne_jour.txt"  ! Forcage air t° de surface par mois 
+  Tempairday ="Donnee/Temperature_moyenne_jour.txt"  ! Forcage air t° de surface par mois
+!  Tempairday ="Donnee/Boikedata.txt" !  Forcage data boike sur 20ans à 1cm de profondeur 
   Tempairmonth = "Donnee/Temp_Bayevla.txt"  ! Forcage air t° de surface par jours 
   Tempsnowmonth = "Donnee/Snow_EQ.txt"   !Snow temp par mois 
   Tempsnowday ="Donnee/Snow_fresh_day.txt" !Snow temp par jours 
