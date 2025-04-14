@@ -4,21 +4,15 @@ program test_fonctions
 
 # include "constant.h"
 
-!~   use Fonction_init, only: !dmr unused                                                                              [TBRMD]
-!~   use Parametrisation, only : z_num,TotTime,Timestep,YearType,z_num,Depth,GridType,PorosityType,T_init,Bool_glacial [TBRMD] 
-!~   use Parametrisation, only : Bool_Organic,organic_depth,Gfx, T_freeze, EQ_Tr, EQ1_EQ2, Bool_delta,t_fin, alpha     [TBRMD]
-!~   use Parametrisation, only : Bool_layer_temp,Forcage_Month_day,Bool_Swe_Snw,Bool_Model_Snow                        [TBRMD]
-!~   use Fonction_implicit, only : Implicit_snow, Implicit                                                             [TBRMD]
-
   use Parametrisation, only: lecture_namelist, z_num, gridNoMax
 
   !dmr [2024-06-28] Functions used in the main
   use Principal, only : Vamper_init,Lecture_forcing, Vamper_step
-  
+
   use Fonction_temp, only : AppHeatCapacity, ThermalConductivity
   use Fonction_init, only : Porosity_init, GeoHeatFlow, Glacial_index
-  
-  
+
+
   use Para_fonctions, only : t_disc, z_disc
 
   use Model_snow, only : snw_average_swe, snw_proc, snw_average_snw, snw_average_snw_tot
@@ -27,31 +21,33 @@ program test_fonctions
   use Carbon, only : carbon_first_init, carbon_init
 #endif
 
+  use grids_more, only: INIT_maskGRID, get_forcing
+
   implicit none
-  
+
   integer :: kk, ll,organic_ind,spy, nb_lines,t_num,dim_temp,dim_swe,t_step,t_deb
   real,dimension(:),allocatable :: time_gi, glacial_ind ! dmr glacial indexes, to be checked with Amaury
   real :: Tb,dt
-                                        ! SPATIAL GLOBAL VARIABLES                                       
+                                        ! SPATIAL GLOBAL VARIABLES
   real, dimension(:,:),allocatable::    Temp      & !dmr [SPAT_VAR], soil temperature over the vertical // prognostic
-                                       ,Kp        & !dmr [CNTST]     heat conductivity constant over the depth, current value is 2                                       
+                                       ,Kp        & !dmr [CNTST]     heat conductivity constant over the depth, current value is 2
                                        ,n         & !dmr [SPAT_VAR], porosity on the vertical
                                        ,Cp        & !dmr [SPAT_VAR]  specific heat capacity
                                        ,pori      & !dmr [???  TBC]
                                        ,porf        !dmr [???  TBC]
-                                       
-                                       ! GEOMETRY VARIABLES                                       
+
+                                       ! GEOMETRY VARIABLES
   real, dimension(:),allocatable::      dz        & !dmr [VERTCL]    thickness of the layers
                                        ,D         & !dmr [VERTCL]    depth of the layers
                                        ! FORCING VARIABLES
-                                       ,T_air     & !dmr [SPAT_VAR], surface air temperature // forcing                                       
+                                       ,T_air     & !dmr [SPAT_VAR], surface air temperature // forcing
                                        ,swe_f_t   & !dmr [SPAT_VAR]  SWE forcing, allocated to (1:dim_swe) and values read in external text file (unit_nb_2)
-                                       ,snow_dp_t & !dmr [SPAT_VAR] snow depth over time forcing ??? 
+                                       ,snow_dp_t & !dmr [SPAT_VAR] snow depth over time forcing ???
                                        ,rho_snow_t& !dmr [SPAT_VAR] density of snow over time forcing ???
                                        ,T_snw_t     !dmr [SPAT_VAR] temperature of snow over time forcing ???
 
-#if ( CARBON == 1 ) 
-                                       ! nb and mbv CARBON GLOBAL VARIABLES 
+#if ( CARBON == 1 )
+                                       ! nb and mbv CARBON GLOBAL VARIABLES
     real,dimension(:,:), allocatable  :: deepSOM_a, deepSOM_s, deepSOM_p, fc
     real                              :: max_cryoturb_alt, min_cryoturb_alt
     real                              :: ALT ! active layer thickness !gridNoMax
@@ -59,12 +55,16 @@ program test_fonctions
     real                              :: clay
     real                              :: diff_k_const, bio_diff_k_const
     real, dimension(:) , allocatable  :: zf_soil
-    REAL                              :: bioturbation_depth 
+    REAL                              :: bioturbation_depth
     integer :: end_year
 #endif
 
   integer :: gridNo = 1 ! index for spatial loops
 
+
+  call INIT_maskGRID()
+  call get_forcing()
+  READ(*,*)
 
   t_deb = 0
   kk=1
@@ -90,24 +90,24 @@ program test_fonctions
   !dmr intent(in)                Timestep contains 1, 15 or 30 (from branching values)
   !dmr                                    30 seems to define monthly => spy = 12 and dt = real(Timestep)*60.0*60.0*24.0 in seconds
   !dmr                                    15 defines? [NOTA UNCLEAR] / spy = 24 that is two steps per months ???
-  !dmr                                     1 defines a form of daily, with spy = 360 and dt as above. Why is there a Daily switch? [NOTA UNCLEAR] 
+  !dmr                                     1 defines a form of daily, with spy = 360 and dt as above. Why is there a Daily switch? [NOTA UNCLEAR]
   !dmr intent(in)                YearType defines the number of days in years, 360 or 365
 !~   call t_disc(TotTime,Timestep,YearType,dt,spy,t_num)
 !dmr [2024-06-28] [TBRMD]
 
 
   !dmr Inputs to z_disc:
-  !dmr 
-  !dmr intent(out) (allocatable) dz thickness of the layer considered 
+  !dmr
+  !dmr intent(out) (allocatable) dz thickness of the layer considered
   !dmr intent(out) (allocatable) D = depth of the layer considered
 
   call z_disc(dz, D)
-  
+
 !dmr [2024-06-28] Removed dependency to internal constants here. These intent(in) are parameters
 
   !dmr intent(in)                Depth maximum depth, in meters, from the parametrisation file, now 1000 meters
-  !dmr intent(in)                Gridtype if 2 : linspace else: logspace 
-  !dmr intent(in)                z_num number of vertical layers, 51 or (now) 101 
+  !dmr intent(in)                Gridtype if 2 : linspace else: logspace
+  !dmr intent(in)                z_num number of vertical layers, 51 or (now) 101
 !~   call z_disc(z_num, Depth, GridType, dz, D)
 !dmr [2024-06-28] [TBRMD]
 
@@ -115,12 +115,12 @@ program test_fonctions
 
   allocate(Kp(1:z_num-1,1:gridNoMax)) !dmr SPAT_VAR
   allocate(Cp(1:z_num,1:gridNoMax))   !dmr SPAT_VAR
-  allocate(Temp(1:z_num,1:gridNoMax)) !dmr SPAT_VAR  
+  allocate(Temp(1:z_num,1:gridNoMax)) !dmr SPAT_VAR
   allocate(n(1:z_num,1:gridNoMax))    !dmr SPAT_VAR
   allocate(pori(1:z_num,1:gridNoMax)) !dmr SPAT_VAR
   allocate(porf(1:z_num,1:gridNoMax)) !dmr SPAT_VAR
 
-#if ( CARBON == 1 ) 
+#if ( CARBON == 1 )
   !nb and mbv Carbon cycle
   allocate(deepSOM_a(1:z_num,1:gridNoMax))
   allocate(deepSOM_s(1:z_num,1:gridNoMax))
@@ -148,12 +148,12 @@ program test_fonctions
   !dmr intent(out)               nb_lines = number of lines in the glacial index file, read in that file
   !dmr intent(out)               Kp = heat conductivity constant over the depth, current value is 2
   !dmr intent(out)               Cp = specific heat capacity
-  !dmr intent(out)               n -> allocated in Porosity_init to z_num, contains porosity profile [NOTA: BAD_NAME] 
+  !dmr intent(out)               n -> allocated in Porosity_init to z_num, contains porosity profile [NOTA: BAD_NAME]
   !dmr intent(out)               organic_ind = depth of the organic layer? integer value in vertical index
   !dmr intent(out)               Tb = Temperature Bottom, lower boundary condition ... computed from GeoHeatFlow
   call Vamper_init(dz,D,Temp(:,gridNo),time_gi,glacial_ind,nb_lines,Kp(:,gridNo),Cp(:,gridNo),n(:,gridNo),organic_ind,Tb)
 
-#if ( CARBON == 1 ) 
+#if ( CARBON == 1 )
   !nb and mbv
   !Initialisation for carbon cycle variables
   call carbon_init(deepSOM_a(:,gridNo), deepSOM_s(:,gridNo), deepSOM_p(:,gridNo),  fc(:,gridNo), clay) !ALT,
@@ -163,14 +163,14 @@ program test_fonctions
   !dmr This subroutine will be reading the forcing from external files. There is a suite of options as to how the forcing is done.
   !dmr Basically, it needs to fill in:
   !dmr
-  !dmr 
-  
+  !dmr
+
   !dmr intent(inout) (z_num)     Temp         Temperature of the soil for each layer, read in external file unit_nb_3, one timestep (initial?)
 
   !dmr intent(out)               dim_swe      Length of the SWE forcing, calculated from the length of the input text file
   !dmr intent(out) (allocatable) swe_f_t      SWE forcing, allocated to (1:dim_swe) and values read in external text file (unit_nb_2)
 
-  !dmr intent(out)               dim_temp     Length of the temp forcing, calculated from the length of the input text file      
+  !dmr intent(out)               dim_temp     Length of the temp forcing, calculated from the length of the input text file
   !dmr intent(out) (allocatable) T_air        temperature of the air forcing, allocated to (1:dim_temp) and read in external file (unit_nb_1)
 
 
@@ -191,11 +191,11 @@ program test_fonctions
 
   !do kk = 1,800
 
-  
+
   !dmr [2024-06-28] [ADDING COMMENTS]
   !dmr Main stepping of the VAMPER model
   !dmr
-  
+
   !dmr intent(inout) (z_num)     dz
   !dmr intent(inout) (z_num)     n
   !dmr intent(inout) (z_num)     porf
@@ -203,11 +203,11 @@ program test_fonctions
   !dmr intent(inout) (z_num)     Kp            / Conductivité thermique, dépend de la température
   !dmr intent(inout) (z_num)     Cp
   !dmr intent(inout) (z_num)     D
-  !dmr intent(inout) (z_num)     Temp          / Amaury dixit: température à l'initialisation puis température du sol calculée 
-  
+  !dmr intent(inout) (z_num)     Temp          / Amaury dixit: température à l'initialisation puis température du sol calculée
+
   !dmr intent(in)    (dim_swe)   swe_f_t       / SWE forcing data
   !dmr intent(in)    (dim_temp)  T_air         / Air temperature forcing data
-    
+
   !dmr intent(in)    (dim_temp)  snw_dp_t      / SNOW depth forcing
   !dmr intent(in)    (dim_temp)  rho_snow_t    / DENSITY of snow forcing
   !dmr intent(in)    (dim_temp)  T_snw_t       / TEMP of snow forcing
@@ -216,12 +216,12 @@ program test_fonctions
   call Vamper_step(T_air,swe_f_t,Temp(:,gridNo),Tb,Cp(:,gridNo),Kp(:,gridNo),n(:,gridNo),organic_ind &
                   ,glacial_ind,nb_lines,dim_temp,dim_swe,z_num,dz,dt,t_step                          &
                   ,porf(:,gridNo),pori(:,gridNo),t_deb,rho_snow_t,snow_dp_t,T_snw_t,D, spy, t_num    &
-#if ( CARBON == 0 )   
+#if ( CARBON == 0 )
                    )
 #else
 
                   ,end_year , deepSOM_a, deepSOM_s, deepSOM_p, fc, clay                               &
-                  ,diff_k_const, bio_diff_k_const, min_cryoturb_alt, max_cryoturb_alt, zf_soil       &  
+                  ,diff_k_const, bio_diff_k_const, min_cryoturb_alt, max_cryoturb_alt, zf_soil       &
                   ,bioturbation_depth, ALT, altmax_lastyear)
 #endif
 
@@ -232,9 +232,9 @@ program test_fonctions
   deallocate(snow_dp_t)
   deallocate(rho_snow_t)
   deallocate(T_snw_t)
-  
+
   enddo ! loop on gridNo
 
   write(*,*) "ok"
-  
+
  end program test_fonctions
