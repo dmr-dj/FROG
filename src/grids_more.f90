@@ -39,7 +39,7 @@
       INTEGER                     , DIMENSION(:,:), ALLOCATABLE :: two_to_oneDims
       INTEGER                     , DIMENSION(:)  , ALLOCATABLE :: one_to_twoDims_i, one_to_twoDims_j
 
-      INTEGER                                                   :: nb_unmaskedp
+      INTEGER                                     , PUBLIC      :: nb_unmaskedp
 
 ! --- temporary file names that will need to be filled in
 

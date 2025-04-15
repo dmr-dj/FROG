@@ -4,7 +4,7 @@ program test_fonctions
 
 # include "constant.h"
 
-  use parameter_mod, only: lecture_namelist, z_num, gridNoMax
+  use parameter_mod, only: z_num, gridNoMax, dt, t_num, D, dz
 
   !dmr [2024-06-28] Functions used in the main
   use Principal, only : Vamper_init,Lecture_forcing, Vamper_step
@@ -13,7 +13,7 @@ program test_fonctions
   use Fonction_init, only : Porosity_init, GeoHeatFlow, Glacial_index
 
 
-  use Para_fonctions, only : t_disc, z_disc
+  ! use Para_fonctions, only : z_disc ! t_disc,
 
   use Model_snow, only : snw_average_swe, snw_proc, snw_average_snw, snw_average_snw_tot
 
@@ -26,9 +26,9 @@ program test_fonctions
 
   implicit none
 
-  integer :: kk, ll,organic_ind,spy, nb_lines,t_num,dim_temp,dim_swe,t_step,t_deb
+  integer :: kk, ll,organic_ind,spy, nb_lines,dim_temp,dim_swe,t_step,t_deb ! ,t_num
   real,dimension(:),allocatable :: time_gi, glacial_ind ! dmr glacial indexes, to be checked with Amaury
-  real :: Tb,dt
+  real :: Tb ! ,dt moved to parameter_mod
                                         ! SPATIAL GLOBAL VARIABLES
   real, dimension(:,:),allocatable::    Temp      & !dmr [SPAT_VAR], soil temperature over the vertical // prognostic
                                        ,Kp        & !dmr [CNTST]     heat conductivity constant over the depth, current value is 2
@@ -37,11 +37,9 @@ program test_fonctions
                                        ,pori      & !dmr [???  TBC]
                                        ,porf        !dmr [???  TBC]
 
-                                       ! GEOMETRY VARIABLES
-  real, dimension(:),allocatable::      dz        & !dmr [VERTCL]    thickness of the layers
-                                       ,D         & !dmr [VERTCL]    depth of the layers
+  real, dimension(:),allocatable::     &
                                        ! FORCING VARIABLES
-                                       ,T_air     & !dmr [SPAT_VAR], surface air temperature // forcing
+                                        T_air     & !dmr [SPAT_VAR], surface air temperature // forcing
                                        ,swe_f_t   & !dmr [SPAT_VAR]  SWE forcing, allocated to (1:dim_swe) and values read in external text file (unit_nb_2)
                                        ,snow_dp_t & !dmr [SPAT_VAR] snow depth over time forcing ???
                                        ,rho_snow_t& !dmr [SPAT_VAR] density of snow over time forcing ???
@@ -74,10 +72,10 @@ program test_fonctions
   kk=1
   ll=1
 
-  !dmr [2024-06-28] [ADDING COMMENTS]
+!~   !dmr [2024-06-28] [ADDING COMMENTS]
 
-  ! mbv&afq -- reading namelist
-  call lecture_namelist
+!~   ! mbv&afq -- reading namelist
+!~   call lecture_namelist
 
   !dmr Discretization routines
 
@@ -87,7 +85,7 @@ program test_fonctions
   !dmr intent(out)               spy       probably the number of steps per year from above
   !dmr intent(out)               dt        dt is the delta time step of the model, in seconds
 
-  call t_disc(dt,spy,t_num)
+!~   call t_disc(dt,spy,t_num)
 
 !dmr [2024-06-28] Removed dependency to internal constants here. These intent(in) are parameters
   !dmr intent(in)                TotTime  defines the number of years (to run I presume)
@@ -100,12 +98,7 @@ program test_fonctions
 !dmr [2024-06-28] [TBRMD]
 
 
-  !dmr Inputs to z_disc:
-  !dmr
-  !dmr intent(out) (allocatable) dz thickness of the layer considered
-  !dmr intent(out) (allocatable) D = depth of the layer considered
 
-  call z_disc(dz, D)
 
 !dmr [2024-06-28] Removed dependency to internal constants here. These intent(in) are parameters
 
@@ -115,7 +108,7 @@ program test_fonctions
 !~   call z_disc(z_num, Depth, GridType, dz, D)
 !dmr [2024-06-28] [TBRMD]
 
-  write(*,*) "[MAIN] spy: ", spy, t_num
+!~   write(*,*) "[MAIN] spy: ", spy, t_num
 
   allocate(Kp(1:z_num-1,1:gridNoMax)) !dmr SPAT_VAR
   allocate(Cp(1:z_num,1:gridNoMax))   !dmr SPAT_VAR
@@ -187,11 +180,14 @@ program test_fonctions
   call Lecture_forcing(z_num,T_air,swe_f_t,snow_dp_t,rho_snow_t,T_snw_t,Temp(:,gridNo),dim_temp,dim_swe)
 
   write(*,*) "[MAIN] D: ", D
+  write(*,*) "[MAIN] t_num:", t_num
   write(*,*) "[MAIN] forcing: ", dim_temp, dim_swe
   write(*,*) "[Prof]", dz
   write(*,*) "[MAIN] 1|Temp: ",Temp
 
   t_step = dim_temp
+
+  READ(*,*)
 
   !do kk = 1,800
 

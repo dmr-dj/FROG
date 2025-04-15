@@ -39,7 +39,8 @@
 
      function INITIALIZE_VAMP() result(is_a_success)
 
-       use grids_more, only: INIT_maskGRID
+       use grids_more, only: INIT_maskGRID, nb_unmaskedp
+       use parameter_mod, only: read_namelist, set_numbergridpoints, t_disc, z_disc
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       BY REFERENCE VARIABLES
@@ -57,9 +58,19 @@
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
         ! Function to initialize the domain (SPATIAL / Unique point)
+        !   -> sets nb_unmaskedp the number of unmasked points, i.e. nb of computation points
         call INIT_maskGRID()
 
+        call set_numbergridpoints(nb_unmaskedp)
 
+        ! Read the namelist to define most global constants
+        call read_namelist
+
+        ! Time initialization
+        call t_disc
+
+        ! Vertical discretization
+        call z_disc
 
      end function INITIALIZE_VAMP
 

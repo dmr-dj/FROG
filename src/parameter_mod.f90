@@ -1,10 +1,35 @@
-module parameter_mod
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
+!   Copyright 2024 Didier M. Roche (a.k.a. dmr)
+
+!   Licensed under the Apache License, Version 2.0 (the "License");
+!   you may not use this file except in compliance with the License.
+!   You may obtain a copy of the License at
+
+!       http://www.apache.org/licenses/LICENSE-2.0
+
+!   Unless required by applicable law or agreed to in writing, software
+!   distributed under the License is distributed on an "AS IS" BASIS,
+!   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+!   See the License for the specific language governing permissions and
+!   limitations under the License.
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+MODULE parameter_mod
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+
+  use, intrinsic :: iso_fortran_env, only: stdin=>input_unit, stdout=>output_unit, stderr=>error_unit
 
   implicit none
 
   public !dmr here can be fully public, these are only parameter constants
 
+  private :: pretty_print_namelist, linspace, logspace
 
   integer, parameter  :: str_len = 256
 
@@ -83,21 +108,214 @@ module parameter_mod
   character(len=str_len) :: Tempsnowmonth
   character(len=str_len) :: Tempsnowday
 
-contains
 
-  subroutine lecture_namelist
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!dmr   Moved some global variables from different places here
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-    implicit none
+        ! TIME DEFINITIONS
+
+   integer, private :: nb_daysperyear
+   real, public     :: dt
+   integer, public  :: t_num
+
+        ! VERTICAL DIMENSION VARIABLES
+   real, dimension(:),allocatable::  dz , D  !dmr [VERTCL] thickness of the layers, depth of the layers
+
+
+CONTAINS
+
+
+ subroutine set_numbergridpoints(gridpts)
+
+ integer, intent(in) :: gridpts
+
+   gridNoMax = gridpts
+
+ end subroutine set_numbergridpoints
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+! dmr   time discretization routine
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+  subroutine t_disc
+
+!~     use parameter_mod, only: TotTime,nb_day_per_month,YearType
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       BY REFERENCE VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       LOCAL VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+    real :: model_secs
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       MAIN BODY OF THE ROUTINE
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+
+    if (YearType == 360) then ! defined in the main namelist
+       nb_daysperyear = 360
+    else
+       nb_daysperyear = 365
+    end if
+
+    !dmr defines the total run steps in seconds (whole run or coupling interval)
+    model_secs = real(TotTime)*60.0*60.0*24.0*nb_daysperyear
+
+    !dmr defines the timestep for the model in seconds
+#if ( DAILY == 0 )
+    dt = real(nb_day_per_month)*60.0*60.0*24.0
+#else
+    dt = 60.0*60.0*24.0
+#endif
+
+    !dmr defines the number of timesteps for the whole run (or coupling interval ...)
+    t_num = floor(model_secs/dt)
+
+  end subroutine t_disc
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+! dmr   vertical discretization routine
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+  subroutine z_disc
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       BY REFERENCE VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       LOCAL VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+    real, dimension(:), allocatable :: D_temp
+    integer :: kk
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       MAIN BODY OF THE ROUTINE
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+    allocate(dz(1:z_num))
+    allocate(D(1:z_num))
+    allocate(D_temp(1:z_num+1))
+
+    if ( GridType == 2 ) then
+        call linspace(real(0),Depth,z_num+1,D)
+    else
+        call logspace(real(-2),log10(Depth),z_num+1,D_temp)
+    end if
+
+
+    do kk = 1, z_num
+        dz(kk)=D_temp(kk+1)-D_temp(kk)
+    end do
+
+
+    D(1)=dz(1)
+
+
+    do kk = 2, z_num
+        D(kk)=D(kk-1) + dz(kk)
+    end do
+
+  end subroutine z_disc
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+! dmr   Routine permettant de créer un tableau de n valeur logarithmiquement espacé entre 10^deb et 10^fin !
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+  subroutine logspace(d_val, f_val, num, res)  !fonctionnelle!
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       BY REFERENCE VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+    real,                             intent(in) :: d_val, f_val
+    integer,                          intent(in) :: num
+    real, dimension(:), allocatable, intent(out) :: res
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       LOCAL VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+    integer :: i
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       MAIN BODY OF THE ROUTINE
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+    allocate(res(1:num))
+
+    do i = 1, num
+        res(i) = 10.0 ** (d_val + (f_val - d_val) * real(i - 1) / real(num - 1))
+    end do
+
+
+  end subroutine logspace
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+! dmr   Routine permettant de créer un tableau de n valeur espacées linéairement entre deb et fin  !
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+  subroutine linspace(d_val, f_val, num, res)
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       BY REFERENCE VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+    real,                             intent(in) :: d_val, f_val
+    integer,                          intent(in) :: num
+    real, dimension(:), allocatable, intent(out) :: res
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       LOCAL VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+    integer :: i
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       MAIN BODY OF THE ROUTINE
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+    allocate(res(1:num))
+
+
+    do i = 1, num
+        res(i) = (d_val + (f_val - d_val) * real(i - 1) / real(num - 1))
+    end do
+
+
+  end subroutine linspace
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+  subroutine read_namelist
+
 
 !déclaration des variables
 
-    INTEGER :: rc,fu, stderr, fo
-    CHARACTER(len= 19)  :: file_path ="vamper_namelist.nml", file_path_chck = "vamper_namelist.chk"
-    CHARACTER(len=30) :: to_print
+    INTEGER :: rc,fu
+    CHARACTER(len= 19)  :: file_path ="vamper_namelist.nml"
+
 
     NAMELIST /Param/ namerun,TotTime,nb_day_per_month,nb_mon_per_year, t_fin,YearType,Bool_glacial,alpha,PorosityType, &
                      Bool_Organic,Porosity_soil,organic_depth,n_organic,n_soil_bot, q_quartz,Gfx,Bool_Snow,     &
-                     Bool_Swe_Snw,Bool_Model_Snow,Bool_Bessi,s_l_max,z_num,GridType,gridNoMax,Bool_layer_temp,  &
+                     Bool_Swe_Snw,Bool_Model_Snow,Bool_Bessi,s_l_max,z_num,GridType,Bool_layer_temp,  &
                      Depth,T_init,Bool_delta,Bool_geometric, EQ_Tr, EQ1_EQ2
 
     NAMELIST /Physique/ rho_snow_freeze,rho_water,rho_ice,rho_organic,rho_soil,rho_snow_fresh,C_water,C_ice, &
@@ -128,6 +346,22 @@ contains
     IF (rc /= 0) WRITE (stderr, '("Error: invalid Namelist format")')
 
     CLOSE (fu)
+
+    call pretty_print_namelist
+
+  end subroutine read_namelist
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+  subroutine pretty_print_namelist
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+    INTEGER           :: fo, rc
+    CHARACTER(len=30) :: to_print
+
+    CHARACTER(len=19) :: file_path_chck = "vamper_namelist.chk"
+
 
     ! Write out a file to check the parameters that have been read
 
@@ -248,10 +482,9 @@ contains
 
     close(fo)
 
-  end subroutine lecture_namelist
+  end subroutine pretty_print_namelist
 
-
-end module parameter_mod
+END MODULE parameter_mod
 
 
 
