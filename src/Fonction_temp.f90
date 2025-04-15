@@ -2,8 +2,8 @@
 
 module Fonction_temp
 
-  use Parametrisation, only : C_ice,C_dry_soil,C_organic,C_water,freezing_range,Latent_Heat,rho_ice,z_num,K_fluids
-  use Parametrisation, only :rho_organic,rho_soil,rho_water,K_other_minerals,K_organic,K_quartz,q_quartz,Bool_geometric,K_ice
+  use parameter_mod, only : C_ice,C_dry_soil,C_organic,C_water,freezing_range,Latent_Heat,rho_ice,z_num,K_fluids
+  use parameter_mod, only :rho_organic,rho_soil,rho_water,K_other_minerals,K_organic,K_quartz,q_quartz,Bool_geometric,K_ice
 
   implicit none
 

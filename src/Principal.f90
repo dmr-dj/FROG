@@ -1,9 +1,9 @@
 module Principal
 
 
-  use Parametrisation, only : z_num,TotTime,nb_mon_per_year,YearType,Depth,GridType,PorosityType,T_init,Bool_glacial 
-  use Parametrisation, only : Bool_Organic,organic_depth,Gfx, T_freeze, EQ_Tr, EQ1_EQ2, Bool_delta,t_fin, alpha
-  use Parametrisation, only : Bool_layer_temp,Forcage_Month_day,Bool_Swe_Snw,Bool_Model_Snow,Bool_Bessi,s_l_max
+  use parameter_mod, only : z_num,TotTime,nb_mon_per_year,YearType,Depth,GridType,PorosityType,T_init,Bool_glacial 
+  use parameter_mod, only : Bool_Organic,organic_depth,Gfx, T_freeze, EQ_Tr, EQ1_EQ2, Bool_delta,t_fin, alpha
+  use parameter_mod, only : Bool_layer_temp,Forcage_Month_day,Bool_Swe_Snw,Bool_Model_Snow,Bool_Bessi,s_l_max
   use Fonction_temp, only : AppHeatCapacity, ThermalConductivity, Permafrost_Depth
   use Fonction_init, only : Porosity_init, GeoHeatFlow, Glacial_index
   use Para_fonctions, only : t_disc, z_disc
@@ -27,7 +27,7 @@ contains
 
   subroutine Vamper_init(dz,D,Temp,time_gi,glacial_ind,nb_lines,Kp,Cp,n,organic_ind,Tb)
 
-    use Parametrisation, only: z_num
+    use parameter_mod, only: z_num
 
 !~     integer, intent(in) :: z_num                                     [TBRMD]
     
@@ -117,7 +117,7 @@ contains
 
   subroutine Lecture_forcing(z_num,T_air,swe_f_t,snw_dp_t,rho_snow_t,T_snw,Temp,dim_temp,dim_swe)
     
-    use Parametrisation, only: Tempsolinit, Tempairmonth, Tempairday, Tempsnowmonth ,Tempsnowday 
+    use parameter_mod, only: Tempsolinit, Tempairmonth, Tempairday, Tempsnowmonth ,Tempsnowday 
     
     integer, intent(in) :: z_num
     real, dimension(z_num),intent(inout) :: Temp
@@ -263,7 +263,7 @@ contains
 
 #endif
 
-    use Parametrisation, only: namerun
+    use parameter_mod, only: namerun
 
 #if ( CARBON == 1 )
     use Carbon, only : carbon_init, compute_alt, carbon_redistribute, decomposition, cryoturbation

@@ -1,4 +1,4 @@
-module Parametrisation
+module parameter_mod
 
 
   implicit none
@@ -251,7 +251,7 @@ contains
   end subroutine lecture_namelist
 
 
-end module Parametrisation
+end module parameter_mod
 
 
 

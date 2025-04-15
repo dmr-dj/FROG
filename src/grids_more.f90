@@ -43,7 +43,7 @@
 
 ! --- temporary file names that will need to be filled in
 
-      CHARACTER(len=str_len) :: mask_file = "tas_ewembi_1979-2016-r128x64-maskocean.nc4" ! "mask_ocean_r128x64.nc"
+      CHARACTER(len=str_len) :: mask_file = "mask_ocean_r128x64.nc" ! "mask_ocean_r128x64.nc"
 
       CHARACTER(len=str_len) :: forc_tas_file = "tas_ewembi_1979-2016-r128x64-maskocean.nc4"
 

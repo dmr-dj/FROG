@@ -1,7 +1,5 @@
 module Para_fonctions
 
-! use Parametrisation, only : Forcage_Month_Day
-
 implicit none
 
 # include "constant.h"
@@ -17,7 +15,7 @@ contains
 
   subroutine t_disc(dt,spy,t_num)   !fonctionnelle!
 
-    use Parametrisation, only: TotTime,nb_day_per_month,YearType
+    use parameter_mod, only: TotTime,nb_day_per_month,YearType
     
     Implicit none
 
@@ -60,7 +58,7 @@ contains
 
   subroutine z_disc(dz, D)     !fonctionnelle!
 
-    use Parametrisation, only: z_num, Depth, GridType
+    use parameter_mod, only: z_num, Depth, GridType
     
     Implicit none 
 

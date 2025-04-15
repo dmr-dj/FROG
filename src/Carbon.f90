@@ -15,7 +15,7 @@ contains
   !initialise all the variables before the horizontal and time loops
   ! initialize carbon timestep
 
-    use Parametrisation, only: nb_day_per_month, YearType, z_num
+    use parameter_mod, only: nb_day_per_month, YearType, z_num
 
     REAL, intent(out)                 :: dt !time step in seconds
     REAL, intent(out)                 :: max_cryoturb_alt
@@ -58,7 +58,7 @@ contains
   subroutine carbon_init(deepSOM_a, deepSOM_s, deepSOM_p,  fc, clay)
   ! initialize the carbon variables to 0
 
-    use Parametrisation, only: z_num
+    use parameter_mod, only: z_num
 
     !! carbon pools: indices
     INTEGER, PARAMETER :: iactive = 1      !! Index for active carbon pool (unitless)
@@ -100,7 +100,7 @@ contains
   subroutine compute_alt(Temp, Temp_positive, ALT, compteur_time_step, end_year, altmax_lastyear, D)
   ! computes alt (active layer thickness) each year
 
-    use Parametrisation, only: z_num, YearType, nb_day_per_month
+    use parameter_mod, only: z_num, YearType, nb_day_per_month
 
     real, dimension(z_num), intent(in)                  ::   Temp
     real, dimension(z_num), intent(inout)               :: Temp_positive
@@ -165,7 +165,7 @@ contains
   ! initialize the carbon in the active layer by redistributing carbon 
   ! from litter and soil from vecode
 
-    use Parametrisation, only: z_num   ! nombre d'horizons (couches)
+    use parameter_mod, only: z_num   ! nombre d'horizons (couches)
 
     real, dimension(z_num),intent(in)              :: Temp
     real,                      intent(in)          :: ALT
@@ -221,7 +221,7 @@ contains
   !This routine calculates soil organic matter decomposition
   !decomposition depending on temperature, humidity, soil texture
 
-    use Parametrisation, only: z_num
+    use parameter_mod, only: z_num
 
     !! carbon pools: indices
     INTEGER, PARAMETER :: iactive = 1      !! Index for active carbon pool (unitless)
@@ -387,7 +387,7 @@ contains
        bioturbation_depth)
   ! Vertical mixing by cryoturbation with a diffusion scheme
 
-    use Parametrisation, only: z_num, YearType ! nombre de jours par an
+    use parameter_mod, only: z_num, YearType ! nombre de jours par an
 
     real, dimension(z_num), intent(in)    ::Temp !, h_pori
     REAL, DIMENSION(z_num), intent(inout) :: deepSOM_a, deepSOM_s, deepSOM_p

@@ -4,7 +4,7 @@ program test_fonctions
 
 # include "constant.h"
 
-  use Parametrisation, only: lecture_namelist, z_num, gridNoMax
+  use parameter_mod, only: lecture_namelist, z_num, gridNoMax
 
   !dmr [2024-06-28] Functions used in the main
   use Principal, only : Vamper_init,Lecture_forcing, Vamper_step
@@ -21,7 +21,8 @@ program test_fonctions
   use Carbon, only : carbon_first_init, carbon_init
 #endif
 
-  use grids_more, only: INIT_maskGRID, get_forcing
+  use grids_more, only: get_forcing
+  use main_lib_VAMPER, only: INITIALIZE_VAMP
 
   implicit none
 
@@ -60,9 +61,12 @@ program test_fonctions
 #endif
 
   integer :: gridNo = 1 ! index for spatial loops
+  logical :: well_done = .FALSE.
 
 
-  call INIT_maskGRID()
+  well_done = INITIALIZE_VAMP()
+
+!~   call INIT_maskGRID()
   call get_forcing()
   READ(*,*)
 
