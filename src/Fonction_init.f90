@@ -3,7 +3,6 @@
 module Fonction_init
 
   use parameter_mod, only : n_organic, Porosity_soil, z_num
-!~   use Para_fonctions, only: indice_minimum
 
   implicit none
 

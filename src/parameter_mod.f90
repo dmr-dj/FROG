@@ -485,23 +485,3 @@ CONTAINS
   end subroutine pretty_print_namelist
 
 END MODULE parameter_mod
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
