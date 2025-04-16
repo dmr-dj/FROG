@@ -5,8 +5,7 @@ module Principal
   use parameter_mod, only : Bool_Organic,organic_depth,Gfx, T_freeze, EQ_Tr, EQ1_EQ2, Bool_delta,t_fin, alpha
   use parameter_mod, only : Bool_layer_temp,Forcage_Month_day,Bool_Swe_Snw,Bool_Model_Snow,Bool_Bessi,s_l_max
   use Fonction_temp, only : AppHeatCapacity, ThermalConductivity, Permafrost_Depth
-!~   use Fonction_init, only : GeoHeatFlow ! Porosity_init, , Glacial_index
-  ! use Para_fonctions, only : z_disc !t_disc,  [NOTUSED]
+
   use Model_snow, only : snw_average_swe, snw_proc, snw_average_snw, snw_average_snw_tot
   use Fonction_implicit, only : Implicit_snow, Implicit_T
 
@@ -20,100 +19,9 @@ module Principal
   integer :: layer_temp23,layer_temp53,layer_temp93,layer_temp143,layer_temp250,layer_temp350,layer_temp550,layer_temp900
   integer :: unit_nb_1,unit_nb_2,unit_nb_3,unit_nb_4,unit_nb_5,unit_nb_6
 
-# include "constant.h"
+#include "constant.h"
 
 contains
-
-!~   subroutine Vamper_init(dz,D,Temp,time_gi,glacial_ind,nb_lines,Kp,Cp,n,organic_ind,Tb)
-
-!~     use parameter_mod, only: z_num
-
-!~     integer, intent(in) :: z_num                                     [TBRMD]
-
-!~     real, dimension(z_num),intent(in)          :: dz,D ! geometry of the layers
-!~     real, dimension(z_num),intent(out)         :: Cp   ! Cp constant that is not constant but computed
-!~     real, dimension(z_num-1),intent(out)       :: Kp   ! Kp constant ? [TO_BE_CLARIFIED]
-
-!~     real, dimension(:),allocatable,intent(out) :: time_gi,glacial_ind
-!~     real, dimension(:),intent(out)             :: n,Temp
-
-!~     real, intent(out) :: Tb
-!~     integer, intent(out) :: nb_lines
-!~     integer, intent(out) :: organic_ind ! depth of the organic layer
-
-!~     real, dimension(z_num-1) ::  h_n, h_pori, h_porf
-!~     real, dimension(z_num) :: porf,pori
-!~     integer :: kk,ll
-
-    !dmr [2024-06-28] CALCULATION OF POROSITY in the vertical
-    !dmr
-    !dmr [NOTA]  The organic layer will be spatial in space, so "n" should be spatial in space in the end, also organic_ind and organic_depth
-    !dmr         Input could be a map of organic_depth
-    !dmr
-    !dmr intent(in)                PorosityType == 1 or 2 [TO_BE_CLARIFIED]
-    !dmr intent(in)                Bool_Organic == 1 use organic layer, else not
-    !dmr intent(in)                organic_depth = depth of organic layer (I guess), in meters
-    !dmr intent(in) (z_num)        D depth of the layer considered in meters
-    !dmr intent(out) (allocatable) n = porosity of each layer in the vertical
-    !dmr intent(out)               organic_ind, index in vertical of the end of organic layer (1:organic_ind)
-!~     call Porosity_init(PorosityType, D, Bool_Organic, organic_depth, n, organic_ind )  !CALCULATION OF POROSITY
-
-    !dmr [NOTA] The code below seems to be used to increase the value of n (Porosity ?) if Depth is greater than 1.4 meter ...
-    !write(*,*) n
-
-    !do kk=1,z_num
-       !if(D(kk)>1.4)then
-       !   n(kk) = n(kk) + 0.5
-       !end if
-    !end do
-
-
-!~     if (Bool_glacial == 1)then
-
-!~        call Glacial_index(time_gi,glacial_ind,nb_lines)    ! GLACIAL INDEX FOR THE FORCING OF TEMPERATURE
-
-!~     else
-
-!~        allocate(glacial_ind(1:1))
-!~        glacial_ind(1) = 0
-
-!~     end if
-
-!~     !dmr [NOTA] For now it seems that Kp is constant, are there reasons to have it spatially or vertically variable?
-!~     do kk=1,UBOUND(Kp,DIM=1) !dmr Kp is size z_num-1
-!~        Kp(kk)=2
-!~     end do
-
-    !dmr [2024-06-28] CALCULATION OF HeatFlow
-    !dmr
-
-!dmr [TBRMD] already allocated    allocate(Temp(z_num))
-
-!~     call GeoHeatFlow(Gfx, Kp, dz, T_init, Temp)
-
-!~     Tb = Temp(z_num)                         ! Lower boundary condition
-
-!~     write(*,*) "[PRinc ] Tb, Temp" , Tb ,Temp
-!~     read(*,*)
-
-!~     do ll = 1,2 !dmr WhatIs ll ?
-
-!~        call AppHeatCapacity(z_num,Temp,T_freeze,n, organic_ind, Cp, porf, pori)         !Calculation of heat capacity of soil
-
-!~        do kk=1,z_num-1
-
-!~           h_pori(kk) = (pori(kk) + pori(kk+1))/2
-!~           h_porf(kk) = (porf(kk) + porf(kk+1))/2
-!~           h_n(kk) = (n(kk) + n(kk+1))/2
-!~           call ThermalConductivity(kk,h_n(kk),h_pori(kk),h_porf(kk), organic_ind, Temp(kk), Kp(kk))    !Calculation of thermal condutivity of soil
-
-!~        end do
-
-!~     end do
-
-
-!~   end subroutine Vamper_init
-
 
   subroutine Lecture_forcing(z_num,T_air,swe_f_t,snw_dp_t,rho_snow_t,T_snw,Temp,dim_temp,dim_swe)
 
