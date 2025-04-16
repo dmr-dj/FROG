@@ -14,7 +14,7 @@ module Principal
 
   private !dmr making sure local variables are local, hence private
 
-  public :: Vamper_init, Lecture_forcing, Vamper_step
+  public :: Lecture_forcing, Vamper_step ! Vamper_init,
 
   integer :: u_n_ml
   integer :: layer_temp23,layer_temp53,layer_temp93,layer_temp143,layer_temp250,layer_temp350,layer_temp550,layer_temp900
@@ -24,26 +24,26 @@ module Principal
 
 contains
 
-  subroutine Vamper_init(dz,D,Temp,time_gi,glacial_ind,nb_lines,Kp,Cp,n,organic_ind,Tb)
+!~   subroutine Vamper_init(dz,D,Temp,time_gi,glacial_ind,nb_lines,Kp,Cp,n,organic_ind,Tb)
 
-    use parameter_mod, only: z_num
+!~     use parameter_mod, only: z_num
 
 !~     integer, intent(in) :: z_num                                     [TBRMD]
 
-    real, dimension(z_num),intent(in)          :: dz,D ! geometry of the layers
-    real, dimension(z_num),intent(out)         :: Cp   ! Cp constant that is not constant but computed
-    real, dimension(z_num-1),intent(out)       :: Kp   ! Kp constant ? [TO_BE_CLARIFIED]
+!~     real, dimension(z_num),intent(in)          :: dz,D ! geometry of the layers
+!~     real, dimension(z_num),intent(out)         :: Cp   ! Cp constant that is not constant but computed
+!~     real, dimension(z_num-1),intent(out)       :: Kp   ! Kp constant ? [TO_BE_CLARIFIED]
 
-    real, dimension(:),allocatable,intent(out) :: time_gi,glacial_ind
-    real, dimension(:),intent(out)             :: n,Temp
+!~     real, dimension(:),allocatable,intent(out) :: time_gi,glacial_ind
+!~     real, dimension(:),intent(out)             :: n,Temp
 
-    real, intent(out) :: Tb
-    integer, intent(out) :: nb_lines
-    integer, intent(out) :: organic_ind ! depth of the organic layer
+!~     real, intent(out) :: Tb
+!~     integer, intent(out) :: nb_lines
+!~     integer, intent(out) :: organic_ind ! depth of the organic layer
 
-    real, dimension(z_num-1) ::  h_n, h_pori, h_porf
-    real, dimension(z_num) :: porf,pori
-    integer :: kk,ll
+!~     real, dimension(z_num-1) ::  h_n, h_pori, h_porf
+!~     real, dimension(z_num) :: porf,pori
+!~     integer :: kk,ll
 
     !dmr [2024-06-28] CALCULATION OF POROSITY in the vertical
     !dmr
@@ -91,28 +91,28 @@ contains
 
 !~     call GeoHeatFlow(Gfx, Kp, dz, T_init, Temp)
 
-    Tb = Temp(z_num)                         ! Lower boundary condition
+!~     Tb = Temp(z_num)                         ! Lower boundary condition
 
-    write(*,*) "[PRinc ] Tb, Temp" , Tb ,Temp
-    read(*,*)
+!~     write(*,*) "[PRinc ] Tb, Temp" , Tb ,Temp
+!~     read(*,*)
 
-    do ll = 1,2 !dmr WhatIs ll ?
+!~     do ll = 1,2 !dmr WhatIs ll ?
 
-       call AppHeatCapacity(z_num,Temp,T_freeze,n, organic_ind, Cp, porf, pori)         !Calculation of heat capacity of soil
+!~        call AppHeatCapacity(z_num,Temp,T_freeze,n, organic_ind, Cp, porf, pori)         !Calculation of heat capacity of soil
 
-       do kk=1,z_num-1
+!~        do kk=1,z_num-1
 
-          h_pori(kk) = (pori(kk) + pori(kk+1))/2
-          h_porf(kk) = (porf(kk) + porf(kk+1))/2
-          h_n(kk) = (n(kk) + n(kk+1))/2
-          call ThermalConductivity(kk,h_n(kk),h_pori(kk),h_porf(kk), organic_ind, Temp(kk), Kp(kk))    !Calculation of thermal condutivity of soil
+!~           h_pori(kk) = (pori(kk) + pori(kk+1))/2
+!~           h_porf(kk) = (porf(kk) + porf(kk+1))/2
+!~           h_n(kk) = (n(kk) + n(kk+1))/2
+!~           call ThermalConductivity(kk,h_n(kk),h_pori(kk),h_porf(kk), organic_ind, Temp(kk), Kp(kk))    !Calculation of thermal condutivity of soil
 
-       end do
+!~        end do
 
-    end do
+!~     end do
 
 
-  end subroutine Vamper_init
+!~   end subroutine Vamper_init
 
 
   subroutine Lecture_forcing(z_num,T_air,swe_f_t,snw_dp_t,rho_snow_t,T_snw,Temp,dim_temp,dim_swe)

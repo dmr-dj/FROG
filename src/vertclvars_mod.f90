@@ -23,9 +23,7 @@
 
     PRIVATE
 
-
      PUBLIC :: vertclvars_init
-
 
      CONTAINS
 
@@ -34,10 +32,11 @@
 ! dmr   Computes the 1-D characteristics, inputs/outputs ar for one column or one point
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-     SUBROUTINE vertclvars_init(Gfx_loc, Tinit_loc, Kp_loc, organic_ind_loc, porosity_profvertcl, temperature_profvertcl)
+     SUBROUTINE vertclvars_init(Gfx_loc, Tinit_loc, Kp_loc, Cp_loc, organic_ind_loc, porosity_profvertcl, temperature_profvertcl)
 
        use parameter_mod, only: PorosityType, D, Bool_Organic, organic_depth, organic_ind, z_num
-       use parameter_mod, only: dz
+       use parameter_mod, only: dz, T_freeze
+       use Fonction_temp, only: AppHeatCapacity, ThermalConductivity
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       BY REFERENCE VARIABLES
@@ -47,14 +46,19 @@
 
 
        real, dimension(1:z_num),   intent(out) :: porosity_profvertcl, temperature_profvertcl   ! vertical 1-D porosity and temp profile
-       real, dimension(1:z_num-1), intent(out) :: Kp_loc                                        ! Kp constant at present
+       real, dimension(1:z_num-1), intent(out) :: Kp_loc                                        ! Kp first constant, then computed
+       real, dimension(1:z_num-1), intent(out) :: Cp_loc                                        ! Kp first constant, then computed
        integer,                    intent(out) :: organic_ind_loc                               ! indx of the bottom of organic layer
+
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       LOCAL VARIABLES
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-       integer                         :: kk
+       integer                  :: kk, ll
+       real, dimension(z_num-1) :: h_n, h_pori, h_porf
+       real, dimension(z_num)   :: porf,pori
+
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       MAIN BODY OF THE ROUTINE
@@ -88,6 +92,28 @@
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
        call GeoHeatFlow(Gfx_loc, Kp_loc, dz, Tinit_loc, temperature_profvertcl)
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!dmr    Then computes Cp and porf, pori and thermal conductivity of soil Kp
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+
+       do ll = 1,2 !dmr WhatIs ll <- Repeating the steps two times?
+
+                                          !Calculation of heat capacity of soil, Cp, porf & pori are intent(out)
+          call AppHeatCapacity(z_num,temperature_profvertcl,T_freeze,porosity_profvertcl, organic_ind_loc, Cp_loc, porf, pori)
+
+          do kk=1,z_num-1
+
+             h_pori(kk) = (pori(kk) + pori(kk+1))/2
+             h_porf(kk) = (porf(kk) + porf(kk+1))/2
+             h_n(kk) = (porosity_profvertcl(kk) + porosity_profvertcl(kk+1))/2
+                                          !Calculation of the thermal condutivity of soil, Kp is the only intent(out)
+             call ThermalConductivity(kk,h_n(kk),h_pori(kk),h_porf(kk), organic_ind_loc, temperature_profvertcl(kk), Kp_loc(kk))
+
+          end do
+
+       end do
 
 
      END SUBROUTINE vertclvars_init
@@ -206,31 +232,27 @@
      END SUBROUTINE Porosity_init
 
 
-  subroutine indice_minimum(tab, taille, ind_min)
+     SUBROUTINE indice_minimum(tab, taille, ind_min)
 
-    implicit none
+       implicit none
 
-    integer, intent(in) :: taille
-    real, dimension(:), intent(in) :: tab
-    integer, intent(out) :: ind_min
+       integer, intent(in) :: taille
+       real, dimension(:), intent(in) :: tab
+       integer, intent(out) :: ind_min
 
-    integer :: kk
+       integer :: kk
 
-    ind_min = 1
+       ind_min = 1
 
-    do kk = 2,taille,1
+       do kk = 2,taille,1
 
-       if(tab(kk)<tab(ind_min)) then
+          if(tab(kk)<tab(ind_min)) then
+             ind_min = kk
+          end if
 
-          ind_min = kk
+       end do
 
-       end if
-
-    end do
-
-
-
-  end subroutine indice_minimum
+     END SUBROUTINE indice_minimum
 
 
     END MODULE vertclvars_mod

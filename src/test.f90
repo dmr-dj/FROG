@@ -7,7 +7,7 @@ program test_fonctions
   use parameter_mod, only: z_num, gridNoMax, dt, t_num, D, dz
 
   !dmr [2024-06-28] Functions used in the main
-  use Principal, only : Vamper_init,Lecture_forcing, Vamper_step
+  use Principal, only : Lecture_forcing, Vamper_step ! Vamper_init,
 
   use Fonction_temp, only : AppHeatCapacity, ThermalConductivity
 !~   use Fonction_init, only : GeoHeatFlow ! Porosity_init, , Glacial_index
@@ -106,7 +106,7 @@ program test_fonctions
   !dmr intent(out)               n -> allocated in Porosity_init to z_num, contains porosity profile [NOTA: BAD_NAME]
   !dmr intent(out)               organic_ind = depth of the organic layer? integer value in vertical index
   !dmr intent(out)               Tb = Temperature Bottom, lower boundary condition ... computed from GeoHeatFlow
-  call Vamper_init(dz,D,Temp(:,gridNo),time_gi,glacial_ind,nb_lines,Kp(:,gridNo),Cp(:,gridNo),n(:,gridNo),organic_ind,Tb)
+!~   call Vamper_init(dz,D,Temp(:,gridNo),time_gi,glacial_ind,nb_lines,Kp(:,gridNo),Cp(:,gridNo),n(:,gridNo),organic_ind,Tb)
 
 #if ( CARBON == 1 )
   !nb and mbv

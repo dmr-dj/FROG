@@ -77,7 +77,9 @@
         call spatialvars_allocate
 
         ! Initialization of spatial variables (2D : z_num,gridpoints)
-
+        ! [NOTA] spatialvars_init needs a T_init and a GeoHFlux ...
+        !        need to read them before if to be spatialized
+        !        For now [2025-04-16], fixed to constants in parameter_mod
         call spatialvars_init
 
      end function INITIALIZE_VAMP

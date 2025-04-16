@@ -31,8 +31,7 @@
                                                 ,n         & !dmr [SPAT_VAR], porosity on the vertical
                                                 ,Cp        & !dmr [SPAT_VAR]  specific heat capacity
                                                 ,pori      & !dmr [???  TBC]
-                                                ,porf      & !dmr [???  TBC]
-                                                ,Kp_SV
+                                                ,porf        !dmr [???  TBC]
 
      real, dimension(:), allocatable, PUBLIC :: GeoHFlux   &
                                                ,Tinit_SV
@@ -74,7 +73,6 @@
        allocate(Cp(1:z_num,1:gridNoMax))   !dmr SPAT_VAR
        allocate(pori(1:z_num,1:gridNoMax)) !dmr SPAT_VAR
        allocate(porf(1:z_num,1:gridNoMax)) !dmr SPAT_VAR
-       allocate(Kp_SV(1:z_num,1:gridNoMax))
 
        allocate(GeoHFlux(1:gridNoMax))
        allocate(Tinit_SV(1:gridNoMax))
@@ -117,7 +115,8 @@
 
             !dmr Initialization of all columns, one by one
         do gridp = 1, gridNoMax
-          call vertclvars_init(GeoHFlux(gridp), Tinit_SV(gridp), Kp_SV(:,gridp), orgalayer_indx(gridp), n(:,gridp), Temp(:,gridp))
+          call vertclvars_init(GeoHFlux(gridp), Tinit_SV(gridp), Kp(:,gridp),Cp(:,gridp), orgalayer_indx(gridp), n(:,gridp) &
+                             , Temp(:,gridp))
         enddo
 
 
