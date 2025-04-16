@@ -2,7 +2,7 @@
 
 program test_fonctions
 
-# include "constant.h"
+#include "constant.h"
 
   use parameter_mod, only: z_num, gridNoMax, dt, t_num, D, dz
 
@@ -10,7 +10,7 @@ program test_fonctions
   use Principal, only : Vamper_init,Lecture_forcing, Vamper_step
 
   use Fonction_temp, only : AppHeatCapacity, ThermalConductivity
-  use Fonction_init, only : Porosity_init, GeoHeatFlow, Glacial_index
+!~   use Fonction_init, only : GeoHeatFlow ! Porosity_init, , Glacial_index
 
 
   ! use Para_fonctions, only : z_disc ! t_disc,
@@ -24,18 +24,21 @@ program test_fonctions
   use grids_more, only: get_forcing
   use main_lib_VAMPER, only: INITIALIZE_VAMP
 
+
+  use spatialvars_mod, only: Temp, Kp, Cp, n, porf, pori
+
   implicit none
 
   integer :: kk, ll,organic_ind,spy, nb_lines,dim_temp,dim_swe,t_step,t_deb ! ,t_num
   real,dimension(:),allocatable :: time_gi, glacial_ind ! dmr glacial indexes, to be checked with Amaury
   real :: Tb ! ,dt moved to parameter_mod
-                                        ! SPATIAL GLOBAL VARIABLES
-  real, dimension(:,:),allocatable::    Temp      & !dmr [SPAT_VAR], soil temperature over the vertical // prognostic
-                                       ,Kp        & !dmr [CNTST]     heat conductivity constant over the depth, current value is 2
-                                       ,n         & !dmr [SPAT_VAR], porosity on the vertical
-                                       ,Cp        & !dmr [SPAT_VAR]  specific heat capacity
-                                       ,pori      & !dmr [???  TBC]
-                                       ,porf        !dmr [???  TBC]
+!~                                         ! SPATIAL GLOBAL VARIABLES
+!~   real, dimension(:,:),allocatable::    Temp      & !dmr [SPAT_VAR], soil temperature over the vertical // prognostic
+!~                                        ,Kp        & !dmr [CNTST]     heat conductivity constant over the depth, current value is 2
+!~                                        ,n         & !dmr [SPAT_VAR], porosity on the vertical
+!~                                        ,Cp        & !dmr [SPAT_VAR]  specific heat capacity
+!~                                        ,pori      & !dmr [???  TBC]
+!~                                        ,porf        !dmr [???  TBC]
 
   real, dimension(:),allocatable::     &
                                        ! FORCING VARIABLES
@@ -71,51 +74,6 @@ program test_fonctions
   t_deb = 0
   kk=1
   ll=1
-
-!~   !dmr [2024-06-28] [ADDING COMMENTS]
-
-!~   ! mbv&afq -- reading namelist
-!~   call lecture_namelist
-
-  !dmr Discretization routines
-
-  !dmr Inputs to t_disc:
-  !dmr
-  !dmr intent(out)               t_num     the number of timesteps to perform from:     t_num = floor(model_secs/dt)
-  !dmr intent(out)               spy       probably the number of steps per year from above
-  !dmr intent(out)               dt        dt is the delta time step of the model, in seconds
-
-!~   call t_disc(dt,spy,t_num)
-
-!dmr [2024-06-28] Removed dependency to internal constants here. These intent(in) are parameters
-  !dmr intent(in)                TotTime  defines the number of years (to run I presume)
-  !dmr intent(in)                Timestep contains 1, 15 or 30 (from branching values)
-  !dmr                                    30 seems to define monthly => spy = 12 and dt = real(Timestep)*60.0*60.0*24.0 in seconds
-  !dmr                                    15 defines? [NOTA UNCLEAR] / spy = 24 that is two steps per months ???
-  !dmr                                     1 defines a form of daily, with spy = 360 and dt as above. Why is there a Daily switch? [NOTA UNCLEAR]
-  !dmr intent(in)                YearType defines the number of days in years, 360 or 365
-!~   call t_disc(TotTime,Timestep,YearType,dt,spy,t_num)
-!dmr [2024-06-28] [TBRMD]
-
-
-
-
-!dmr [2024-06-28] Removed dependency to internal constants here. These intent(in) are parameters
-
-  !dmr intent(in)                Depth maximum depth, in meters, from the parametrisation file, now 1000 meters
-  !dmr intent(in)                Gridtype if 2 : linspace else: logspace
-  !dmr intent(in)                z_num number of vertical layers, 51 or (now) 101
-!~   call z_disc(z_num, Depth, GridType, dz, D)
-!dmr [2024-06-28] [TBRMD]
-
-!~   write(*,*) "[MAIN] spy: ", spy, t_num
-
-  allocate(Kp(1:z_num-1,1:gridNoMax)) !dmr SPAT_VAR
-  allocate(Cp(1:z_num,1:gridNoMax))   !dmr SPAT_VAR
-  allocate(Temp(1:z_num,1:gridNoMax)) !dmr SPAT_VAR
-  allocate(n(1:z_num,1:gridNoMax))    !dmr SPAT_VAR
-  allocate(pori(1:z_num,1:gridNoMax)) !dmr SPAT_VAR
-  allocate(porf(1:z_num,1:gridNoMax)) !dmr SPAT_VAR
 
 #if ( CARBON == 1 )
   !nb and mbv Carbon cycle

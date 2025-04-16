@@ -5,7 +5,7 @@ module Principal
   use parameter_mod, only : Bool_Organic,organic_depth,Gfx, T_freeze, EQ_Tr, EQ1_EQ2, Bool_delta,t_fin, alpha
   use parameter_mod, only : Bool_layer_temp,Forcage_Month_day,Bool_Swe_Snw,Bool_Model_Snow,Bool_Bessi,s_l_max
   use Fonction_temp, only : AppHeatCapacity, ThermalConductivity, Permafrost_Depth
-  use Fonction_init, only : Porosity_init, GeoHeatFlow, Glacial_index
+!~   use Fonction_init, only : GeoHeatFlow ! Porosity_init, , Glacial_index
   ! use Para_fonctions, only : z_disc !t_disc,  [NOTUSED]
   use Model_snow, only : snw_average_swe, snw_proc, snw_average_snw, snw_average_snw_tot
   use Fonction_implicit, only : Implicit_snow, Implicit_T
@@ -57,7 +57,7 @@ contains
     !dmr intent(in) (z_num)        D depth of the layer considered in meters
     !dmr intent(out) (allocatable) n = porosity of each layer in the vertical
     !dmr intent(out)               organic_ind, index in vertical of the end of organic layer (1:organic_ind)
-    call Porosity_init(PorosityType, D, Bool_Organic, organic_depth, n, organic_ind )  !CALCULATION OF POROSITY
+!~     call Porosity_init(PorosityType, D, Bool_Organic, organic_depth, n, organic_ind )  !CALCULATION OF POROSITY
 
     !dmr [NOTA] The code below seems to be used to increase the value of n (Porosity ?) if Depth is greater than 1.4 meter ...
     !write(*,*) n
@@ -69,32 +69,33 @@ contains
     !end do
 
 
-    if (Bool_glacial == 1)then
+!~     if (Bool_glacial == 1)then
 
-       call Glacial_index(time_gi,glacial_ind,nb_lines)    ! GLACIAL INDEX FOR THE FORCING OF TEMPERATURE
+!~        call Glacial_index(time_gi,glacial_ind,nb_lines)    ! GLACIAL INDEX FOR THE FORCING OF TEMPERATURE
 
-    else
+!~     else
 
-       allocate(glacial_ind(1:1))
-       glacial_ind(1) = 0
+!~        allocate(glacial_ind(1:1))
+!~        glacial_ind(1) = 0
 
-    end if
+!~     end if
 
-    !dmr [NOTA] For now it seems that Kp is constant, are there reasons to have it spatially or vertically variable?
-    do kk=1,UBOUND(Kp,DIM=1) !dmr Kp is size z_num-1
-       Kp(kk)=2
-    end do
+!~     !dmr [NOTA] For now it seems that Kp is constant, are there reasons to have it spatially or vertically variable?
+!~     do kk=1,UBOUND(Kp,DIM=1) !dmr Kp is size z_num-1
+!~        Kp(kk)=2
+!~     end do
 
     !dmr [2024-06-28] CALCULATION OF HeatFlow
     !dmr
 
 !dmr [TBRMD] already allocated    allocate(Temp(z_num))
 
-    call GeoHeatFlow(Gfx, Kp, dz, T_init, Temp)
+!~     call GeoHeatFlow(Gfx, Kp, dz, T_init, Temp)
 
     Tb = Temp(z_num)                         ! Lower boundary condition
 
     write(*,*) "[PRinc ] Tb, Temp" , Tb ,Temp
+    read(*,*)
 
     do ll = 1,2 !dmr WhatIs ll ?
 

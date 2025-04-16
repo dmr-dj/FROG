@@ -17,32 +17,35 @@
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
 
-      MODULE main_lib_VAMPER
+    MODULE spatialvars_mod
+
+    IMPLICIT NONE
+
+    PRIVATE
 
 
-      IMPLICIT NONE
+            ! SPATIAL GLOBAL VARIABLES
 
-      PRIVATE
-
-      PUBLIC :: INITIALIZE_VAMP
-
-        ! [Initialization of GRID]
-        !
-        !             -> INITIALIZE VAMP
-
-        ! [defining vertical domain]
-        !
-        !
-
-     contains
+     real, dimension(:,:),allocatable, PUBLIC  ::    Temp      & !dmr [SPAT_VAR], soil temperature over the vertical // prognostic
+                                                    ,Kp        & !dmr [CNTST]     heat conductivity constant over the depth, current value is 2
+                                                    ,n         & !dmr [SPAT_VAR], porosity on the vertical
+                                                    ,Cp        & !dmr [SPAT_VAR]  specific heat capacity
+                                                    ,pori      & !dmr [???  TBC]
+                                                    ,porf        !dmr [???  TBC]
 
 
-     function INITIALIZE_VAMP() result(is_a_success)
+     PUBLIC:: allocate_spatialvars
 
-       use grids_more,      only: INIT_maskGRID, nb_unmaskedp
-       use parameter_mod,   only: read_namelist, set_numbergridpoints, t_disc, z_disc
-       use spatialvars_mod, only: allocate_spatialvars
-       use vertclvars_mod,  only: vertclvars_init
+     CONTAINS
+
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+! dmr   Allocation of two dimensional variables (VERTCL, SPAT_VAR)
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+     SUBROUTINE allocate_spatialvars ! VERTCL, SPAT_VAR
+
+       use parameter_mod, only: gridNoMax, z_num
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       BY REFERENCE VARIABLES
@@ -53,39 +56,20 @@
 !       LOCAL VARIABLES
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-       logical :: is_a_success
-
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       MAIN BODY OF THE ROUTINE
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-        ! Function to initialize the domain (SPATIAL / Unique point)
-        !   -> sets nb_unmaskedp the number of unmasked points, i.e. nb of computation points
-        call INIT_maskGRID
 
-        call set_numbergridpoints(nb_unmaskedp)
-
-        ! Read the namelist to define most global constants
-        call read_namelist
-
-        ! Time initialization
-        call t_disc
-
-        ! Vertical discretization
-        call z_disc
-
-        ! Allocation of main variables
-        call allocate_spatialvars
-
-        ! Initialization of vertical variables (1-D over z_num)
-
-        call vertclvars_init
-
-     end function INITIALIZE_VAMP
+       allocate(Temp(1:z_num,1:gridNoMax)) !dmr SPAT_VAR
+       allocate(Kp(1:z_num-1,1:gridNoMax)) !dmr SPAT_VAR
+       allocate(n(1:z_num,1:gridNoMax))    !dmr SPAT_VAR
+       allocate(Cp(1:z_num,1:gridNoMax))   !dmr SPAT_VAR
+       allocate(pori(1:z_num,1:gridNoMax)) !dmr SPAT_VAR
+       allocate(porf(1:z_num,1:gridNoMax)) !dmr SPAT_VAR
 
 
+     END SUBROUTINE allocate_spatialvars
 
 
-
-
-      END MODULE main_lib_VAMPER
+    END MODULE spatialvars_mod

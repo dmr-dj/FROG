@@ -120,7 +120,8 @@ MODULE parameter_mod
    integer, public  :: t_num
 
         ! VERTICAL DIMENSION VARIABLES
-   real, dimension(:),allocatable::  dz , D  !dmr [VERTCL] thickness of the layers, depth of the layers
+   real, dimension(:),allocatable::  dz , D     !dmr [VERTCL] thickness of the layers, depth of the layers
+   integer                       :: organic_ind ! depth of the organic layer in layer index
 
 
 CONTAINS
