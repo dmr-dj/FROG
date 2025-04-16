@@ -26,15 +26,22 @@
 
             ! SPATIAL GLOBAL VARIABLES
 
-     real, dimension(:,:),allocatable, PUBLIC  ::    Temp      & !dmr [SPAT_VAR], soil temperature over the vertical // prognostic
-                                                    ,Kp        & !dmr [CNTST]     heat conductivity constant over the depth, current value is 2
-                                                    ,n         & !dmr [SPAT_VAR], porosity on the vertical
-                                                    ,Cp        & !dmr [SPAT_VAR]  specific heat capacity
-                                                    ,pori      & !dmr [???  TBC]
-                                                    ,porf        !dmr [???  TBC]
+     real, dimension(:,:),allocatable, PUBLIC :: Temp      & !dmr [SPAT_VAR], soil temperature over the vertical // prognostic
+                                                ,Kp        & !dmr [CNTST]     heat conductivity constant over the depth, current value is 2
+                                                ,n         & !dmr [SPAT_VAR], porosity on the vertical
+                                                ,Cp        & !dmr [SPAT_VAR]  specific heat capacity
+                                                ,pori      & !dmr [???  TBC]
+                                                ,porf      & !dmr [???  TBC]
+                                                ,Kp_SV
+
+     real, dimension(:), allocatable, PUBLIC :: GeoHFlux   &
+                                               ,Tinit_SV
 
 
-     PUBLIC:: allocate_spatialvars
+     integer, dimension(:), allocatable, PUBLIC :: orgalayer_indx
+
+
+     PUBLIC:: spatialvars_allocate, spatialvars_init
 
      CONTAINS
 
@@ -43,7 +50,7 @@
 ! dmr   Allocation of two dimensional variables (VERTCL, SPAT_VAR)
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-     SUBROUTINE allocate_spatialvars ! VERTCL, SPAT_VAR
+     SUBROUTINE spatialvars_allocate ! VERTCL, SPAT_VAR
 
        use parameter_mod, only: gridNoMax, z_num
 
@@ -67,9 +74,55 @@
        allocate(Cp(1:z_num,1:gridNoMax))   !dmr SPAT_VAR
        allocate(pori(1:z_num,1:gridNoMax)) !dmr SPAT_VAR
        allocate(porf(1:z_num,1:gridNoMax)) !dmr SPAT_VAR
+       allocate(Kp_SV(1:z_num,1:gridNoMax))
+
+       allocate(GeoHFlux(1:gridNoMax))
+       allocate(Tinit_SV(1:gridNoMax))
 
 
-     END SUBROUTINE allocate_spatialvars
+       allocate(orgalayer_indx(1:gridNoMax))
+
+
+     END SUBROUTINE spatialvars_allocate
+
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+! dmr   Allocation of two dimensional variables (VERTCL, SPAT_VAR)
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+     SUBROUTINE spatialvars_init ! VERTCL, SPAT_VAR
+
+       use parameter_mod,  only: gridNoMax, z_num
+       use vertclvars_mod, only: vertclvars_init
+
+           ! Temporary addendum [2025-04-16]
+       use parameter_mod,  only: Gfx, T_init
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       BY REFERENCE VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       LOCAL VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+       integer :: gridp
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       MAIN BODY OF THE ROUTINE
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+            !dmr [NOTA] For now, dummy init of spatial variables based on constants
+        GeoHFlux(:) = Gfx
+        Tinit_SV(:) = T_init
+
+            !dmr Initialization of all columns, one by one
+        do gridp = 1, gridNoMax
+          call vertclvars_init(GeoHFlux(gridp), Tinit_SV(gridp), Kp_SV(:,gridp), orgalayer_indx(gridp), n(:,gridp), Temp(:,gridp))
+        enddo
+
+
+     END SUBROUTINE spatialvars_init
+
 
 
     END MODULE spatialvars_mod

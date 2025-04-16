@@ -31,25 +31,29 @@
 
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
-! dmr
+! dmr   Computes the 1-D characteristics, inputs/outputs ar for one column or one point
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-     SUBROUTINE vertclvars_init ! VERTCL, SPAT_VAR
+     SUBROUTINE vertclvars_init(Gfx_loc, Tinit_loc, Kp_loc, organic_ind_loc, porosity_profvertcl, temperature_profvertcl)
 
        use parameter_mod, only: PorosityType, D, Bool_Organic, organic_depth, organic_ind, z_num
-       use parameter_mod, only: Gfx, dz, T_init
+       use parameter_mod, only: dz
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       BY REFERENCE VARIABLES
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
+       real,                       intent(in)  :: Gfx_loc, Tinit_loc                                   ! Geothermal flux and mean temperature locally
+
+
+       real, dimension(1:z_num),   intent(out) :: porosity_profvertcl, temperature_profvertcl   ! vertical 1-D porosity and temp profile
+       real, dimension(1:z_num-1), intent(out) :: Kp_loc                                        ! Kp constant at present
+       integer,                    intent(out) :: organic_ind_loc                               ! indx of the bottom of organic layer
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       LOCAL VARIABLES
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-       real, dimension(:), allocatable :: porosity_profvertcl, temperature_profvertcl   ! vertical 1-D porosity and temp profile
-       real, dimension(z_num-1)        :: Kp                                            ! Kp constant ? [TO_BE_CLARIFIED]
        integer                         :: kk
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
@@ -61,9 +65,6 @@
 !dmr    [2024-06-28] CALCULATION OF POROSITY in the vertical
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-       allocate(porosity_profvertcl(1:z_num))
-       allocate(temperature_profvertcl(1:z_num))
-
        !dmr
        !dmr intent(in)                PorosityType == 1 or 2 [TO_BE_CLARIFIED]
        !dmr intent(in)                Bool_Organic == 1 use organic layer, else not
@@ -71,22 +72,22 @@
        !dmr intent(in) (z_num)        D depth of the layer considered in meters
        !dmr intent(out) (allocatable) n = porosity of each layer in the vertical
        !dmr intent(out)               organic_ind, index in vertical of the end of organic layer (1:organic_ind)
-       call Porosity_init(PorosityType, D, Bool_Organic, organic_depth, porosity_profvertcl, organic_ind )  !CALCULATION OF POROSITY
+       call Porosity_init(PorosityType, D, Bool_Organic, organic_depth, porosity_profvertcl, organic_ind_loc)  !CALCULATION OF POROSITY
 
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !dmr    [NOTA] For now it seems that Kp is constant, are there reasons to have it spatially or vertically variable?
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-       do kk=1,UBOUND(Kp,DIM=1) !dmr Kp is size z_num-1
-         Kp(kk)=2
+       do kk=1,UBOUND(Kp_loc,DIM=1) !dmr Kp is size z_num-1
+         Kp_loc(kk)=2
        end do
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !dmr    Computes the initial vertical 1-D profile of temperature in the soil from T_init and Geoheatflow Gfx
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-       call GeoHeatFlow(Gfx, Kp, dz, T_init, temperature_profvertcl)
+       call GeoHeatFlow(Gfx_loc, Kp_loc, dz, Tinit_loc, temperature_profvertcl)
 
 
      END SUBROUTINE vertclvars_init

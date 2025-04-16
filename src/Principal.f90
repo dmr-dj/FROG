@@ -16,7 +16,6 @@ module Principal
 
   public :: Vamper_init, Lecture_forcing, Vamper_step
 
-!dmr&mbv  integer :: u_n_23,u_n_53,u_n_93,u_n_143,u_n_250,u_n_350,u_n_550,u_n_900 [TOREMOVE]
   integer :: u_n_ml
   integer :: layer_temp23,layer_temp53,layer_temp93,layer_temp143,layer_temp250,layer_temp350,layer_temp550,layer_temp900
   integer :: unit_nb_1,unit_nb_2,unit_nb_3,unit_nb_4,unit_nb_5,unit_nb_6

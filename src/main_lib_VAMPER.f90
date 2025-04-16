@@ -41,8 +41,7 @@
 
        use grids_more,      only: INIT_maskGRID, nb_unmaskedp
        use parameter_mod,   only: read_namelist, set_numbergridpoints, t_disc, z_disc
-       use spatialvars_mod, only: allocate_spatialvars
-       use vertclvars_mod,  only: vertclvars_init
+       use spatialvars_mod, only: spatialvars_allocate, spatialvars_init
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       BY REFERENCE VARIABLES
@@ -75,11 +74,11 @@
         call z_disc
 
         ! Allocation of main variables
-        call allocate_spatialvars
+        call spatialvars_allocate
 
-        ! Initialization of vertical variables (1-D over z_num)
+        ! Initialization of spatial variables (2D : z_num,gridpoints)
 
-        call vertclvars_init
+        call spatialvars_init
 
      end function INITIALIZE_VAMP
 
