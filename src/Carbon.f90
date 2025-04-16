@@ -2,16 +2,16 @@ module Carbon
 
   !use blbla, only: var
 
+    IMPLICIT NONE
 
-  Implicit none
-
+    INTEGER, PARAMETER :: iactive = 1      !! Index for active carbon pool (unitless)
+    INTEGER, PARAMETER :: islow = 2        !! Index for slow carbon pool (unitless)
+    INTEGER, PARAMETER :: ipassive = 3     !! Index for passive carbon pool (unitless)
+    INTEGER, PARAMETER :: ncarb = 3        !! Number of soil carbon pools (unitless)
 
 contains
 
-
 !--------------------------
-!~   subroutine carbon_first_init(dt, max_cryoturb_alt, min_cryoturb_alt, diff_k_const, bio_diff_k_const, &
-!~              bioturbation_depth, zi_soil, dz, zf_soil, ALT, altmax_lastyear)
   subroutine carbon_first_init
   !initialise all the variables before the horizontal and time loops
   ! initialize carbon timestep
@@ -22,31 +22,12 @@ contains
     use parameter_mod, only: zf_soil
     use parameter_mod, only: zi_soil=>D, dz
 
-!~     REAL, intent(out)                 :: dt !time step in seconds [UNUSED]
-!~     REAL, intent(out)                 :: max_cryoturb_alt
-!~     REAL, intent(out)                 :: min_cryoturb_alt
-!~     REAL                              :: cryoturbation_diff_k_in !! input time constant of cryoturbation (m^2/y)
-!~     REAL                              :: bioturbation_diff_k_in  !! input time constant of bioturbation (m^2/y)
-!~     REAL, intent(out)                 :: diff_k_const
-!~     REAL, intent(out)                 :: bio_diff_k_const
-!~     REAL                              :: one_day
-!~     REAL, intent(out)                 :: bioturbation_depth
-!~     REAL, dimension (z_num), intent(in)  :: zi_soil
-!~     REAL, dimension (z_num), intent(in)  :: dz
-!~     REAL, dimension (0:z_num), intent(out) :: zf_soil
-!~     REAL, intent(inout)               :: ALT
-!~     REAL, intent(inout)               :: altmax_lastyear
 
-!~     one_day=24*60*60
-!~     max_cryoturb_alt= 3 !m
-!~     min_cryoturb_alt=0.01 !1cm
-!~     cryoturbation_diff_k_in = .001
     diff_k_const=cryoturbation_diff_k_in/(one_day*YearType) !a verifier  si temps ok ?
-!~     bioturbation_diff_k_in = 0.0001
     bio_diff_k_const=bioturbation_diff_k_in/(one_day*YearType)
-!~     bioturbation_depth=2 !m
 
-     allocate(zf_soil(0:z_num))
+
+    allocate(zf_soil(0:z_num))
 
     ! Define the soil layers
     zf_soil(:) = 0.0
@@ -68,10 +49,7 @@ contains
     use parameter_mod, only: z_num
 
     !! carbon pools: indices
-    INTEGER, PARAMETER :: iactive = 1      !! Index for active carbon pool (unitless)
-    INTEGER, PARAMETER :: islow = 2        !! Index for slow carbon pool (unitless)
-    INTEGER, PARAMETER :: ipassive = 3     !! Index for passive carbon pool (unitless)
-    INTEGER, PARAMETER :: ncarb = 3        !! Number of soil carbon pools (unitless)
+
 
     real,dimension(z_num), intent(inout) :: deepSOM_a, deepSOM_s, deepSOM_p
     REAL, DIMENSION(ncarb,ncarb), intent(out)  :: fc                         !! flux fractions within carbon pools
@@ -230,13 +208,13 @@ contains
 
     use parameter_mod, only: z_num
 
-    !! carbon pools: indices
-    INTEGER, PARAMETER :: iactive = 1      !! Index for active carbon pool (unitless)
-    INTEGER, PARAMETER :: islow = 2        !! Index for slow carbon pool (unitless)
-    INTEGER, PARAMETER :: ipassive = 3     !! Index for passive carbon pool (unitless)
-    !INTEGER, PARAMETER :: isurface = 4     !! Index for passive carbon pool (unitless)
-    !INTEGER, PARAMETER :: ncarb = 4        !! Number of soil carbon pools (unitless)
-    INTEGER, PARAMETER :: ncarb = 3        !! Number of soil carbon pools (unitless)
+!~     !! carbon pools: indices
+!~     INTEGER, PARAMETER :: iactive = 1      !! Index for active carbon pool (unitless)
+!~     INTEGER, PARAMETER :: islow = 2        !! Index for slow carbon pool (unitless)
+!~     INTEGER, PARAMETER :: ipassive = 3     !! Index for passive carbon pool (unitless)
+!~     !INTEGER, PARAMETER :: isurface = 4     !! Index for passive carbon pool (unitless)
+!~     !INTEGER, PARAMETER :: ncarb = 4        !! Number of soil carbon pools (unitless)
+!~     INTEGER, PARAMETER :: ncarb = 3        !! Number of soil carbon pools (unitless)
 
     real, dimension(z_num),intent(in) :: Temp !, h_pori !, moist_in =humidity
     real, dimension(z_num)           :: temp_kelvin

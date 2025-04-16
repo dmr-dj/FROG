@@ -68,6 +68,11 @@
         ! Vertical discretization
         call z_disc
 
+        ! Allocation of base 1-D variables in Carbon and init constants
+#if ( CARBON == 1 )
+        call carbon_first_init
+#endif
+
         ! Allocation of main variables
         call spatialvars_allocate
 
@@ -76,11 +81,6 @@
         !        need to read them before if to be spatialized
         !        For now [2025-04-16], fixed to constants in parameter_mod
         call spatialvars_init
-
-        ! Allocation of base 1-D variables in Carbon and init constants
-#if ( CARBON == 1 )
-        call carbon_first_init
-#endif
 
         is_a_success = .TRUE.
 

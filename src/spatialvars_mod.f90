@@ -42,10 +42,11 @@
 
 
 #if ( CARBON == 1 )
-     real,dimension(:,:), allocatable, PUBLIC :: deepSOM_a & !dmr [TBD]
-                                               , deepSOM_s & !dmr [TBD]
-                                               , deepSOM_p & !dmr [TBD]
-                                               , fc          !dmr [TBD]
+     real,dimension(:,:)  , allocatable, PUBLIC :: deepSOM_a & !dmr [TBD]
+                                                 , deepSOM_s & !dmr [TBD]
+                                                 , deepSOM_p   !dmr [TBD]
+     real, dimension(:)   , allocatable, PUBLIC :: clay_SV
+     real,dimension(:,:,:), allocatable, PUBLIC :: fc_SV       !dmr [TBD]
 #endif
 
 
@@ -62,6 +63,7 @@
      SUBROUTINE spatialvars_allocate ! VERTCL, SPAT_VAR
 
        use parameter_mod, only: gridNoMax, z_num
+       use carbon       , only: ncarb
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       BY REFERENCE VARIABLES
@@ -95,7 +97,8 @@
        allocate(deepSOM_a(1:z_num,1:gridNoMax))
        allocate(deepSOM_s(1:z_num,1:gridNoMax))
        allocate(deepSOM_p(1:z_num,1:gridNoMax))
-       allocate(fc(1:z_num,1:gridNoMax))
+       allocate(fc_SV(1:ncarb,1:ncarb,1:gridNoMax))
+       allocate(clay_SV(1:gridNoMax))
 #endif
 
      END SUBROUTINE spatialvars_allocate
@@ -112,6 +115,10 @@
 
            ! Temporary addendum [2025-04-16]
        use parameter_mod,  only: Gfx, T_init
+
+#if ( CARBON == 1 )
+       use carbon        , only: carbon_init
+#endif
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       BY REFERENCE VARIABLES
@@ -134,6 +141,10 @@
         do gridp = 1, gridNoMax
           call vertclvars_init(GeoHFlux(gridp), Tinit_SV(gridp), Kp(:,gridp),Cp(:,gridp), orgalayer_indx(gridp), n(:,gridp) &
                              , Temp(:,gridp))
+
+#if ( CARBON == 1 )
+          call carbon_init(deepSOM_a(:,gridp), deepSOM_s(:,gridp), deepSOM_p(:,gridp), fc_SV(:,:,gridp), clay_SV(gridp))
+#endif
         enddo
 
 

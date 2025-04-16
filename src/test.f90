@@ -19,7 +19,7 @@ program test_fonctions
 
 #if ( CARBON == 1 )
   use parameter_mod, only: alt, altmax_lastyear, bio_diff_k_const, diff_k_const, max_cryoturb_alt, min_cryoturb_alt, zf_soil
-  use spatialvars_mod, only: deepSOM_a, deepSOM_s, deepSOM_p, fc
+  use spatialvars_mod, only: deepSOM_a, deepSOM_s, deepSOM_p, fc_SV, clay_SV
   use Carbon, only : carbon_first_init, carbon_init
 #endif
 
@@ -45,7 +45,7 @@ program test_fonctions
 
 #if ( CARBON == 1 )
 
-    real                              :: clay
+!~     real                              :: clay
     REAL                              :: bioturbation_depth
     integer                           :: end_year
 #endif
@@ -85,11 +85,11 @@ program test_fonctions
   !dmr intent(out)               Tb = Temperature Bottom, lower boundary condition ... computed from GeoHeatFlow
 !~   call Vamper_init(dz,D,Temp(:,gridNo),time_gi,glacial_ind,nb_lines,Kp(:,gridNo),Cp(:,gridNo),n(:,gridNo),organic_ind,Tb)
 
-#if ( CARBON == 1 )
-  !nb and mbv
-  !Initialisation for carbon cycle variables
-  call carbon_init(deepSOM_a(:,gridNo), deepSOM_s(:,gridNo), deepSOM_p(:,gridNo),  fc(:,gridNo), clay) !ALT,
-#endif
+!~ #if ( CARBON == 1 )
+!~   !nb and mbv
+!~   !Initialisation for carbon cycle variables
+!~   call carbon_init(deepSOM_a(:,gridNo), deepSOM_s(:,gridNo), deepSOM_p(:,gridNo),  fc(:,gridNo), clay) !ALT,
+!~ #endif
 
   !dmr [2024-06-28] [ADDING COMMENTS]
   !dmr This subroutine will be reading the forcing from external files. There is a suite of options as to how the forcing is done.
@@ -155,7 +155,7 @@ program test_fonctions
                    )
 #else
 
-                  ,end_year , deepSOM_a, deepSOM_s, deepSOM_p, fc, clay                               &
+                  ,end_year , deepSOM_a, deepSOM_s, deepSOM_p, fc_SV, clay_SV(gridNo)                &
                   ,diff_k_const, bio_diff_k_const, min_cryoturb_alt, max_cryoturb_alt, zf_soil       &
                   ,bioturbation_depth, ALT, altmax_lastyear)
 #endif
