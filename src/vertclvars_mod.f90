@@ -19,9 +19,9 @@
 
     MODULE vertclvars_mod
 
-    IMPLICIT NONE
+     IMPLICIT NONE
 
-    PRIVATE
+     PRIVATE
 
      PUBLIC :: vertclvars_init
 

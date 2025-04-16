@@ -17,22 +17,15 @@
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
 
-      MODULE main_lib_VAMPER
+    MODULE main_lib_VAMPER
 
+#include "constant.h"
 
       IMPLICIT NONE
 
       PRIVATE
 
       PUBLIC :: INITIALIZE_VAMP
-
-        ! [Initialization of GRID]
-        !
-        !             -> INITIALIZE VAMP
-
-        ! [defining vertical domain]
-        !
-        !
 
      contains
 
@@ -42,7 +35,9 @@
        use grids_more,      only: INIT_maskGRID, nb_unmaskedp
        use parameter_mod,   only: read_namelist, set_numbergridpoints, t_disc, z_disc
        use spatialvars_mod, only: spatialvars_allocate, spatialvars_init
-
+#if ( CARBON == 1 )
+       use carbon,          only: carbon_first_init
+#endif
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       BY REFERENCE VARIABLES
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
@@ -82,11 +77,40 @@
         !        For now [2025-04-16], fixed to constants in parameter_mod
         call spatialvars_init
 
+        ! Allocation of base 1-D variables in Carbon and init constants
+#if ( CARBON == 1 )
+        call carbon_first_init
+#endif
+
+        is_a_success = .TRUE.
+
      end function INITIALIZE_VAMP
 
+     function STEPFWD_VAMP() result(is_a_success)
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       BY REFERENCE VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
 
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       LOCAL VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+       logical :: is_a_success
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       MAIN BODY OF THE ROUTINE
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
 
+        is_a_success = .TRUE.
 
-      END MODULE main_lib_VAMPER
+        ! UPDATE_CLIMATE_FORCING
+        ! DO_VAMPER_STEP
+
+
+     end function STEPFWD_VAMP
+
+
+    END MODULE main_lib_VAMPER

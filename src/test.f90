@@ -7,7 +7,7 @@ program test_fonctions
   use parameter_mod, only: z_num, gridNoMax, dt, t_num, D, dz
 
   !dmr [2024-06-28] Functions used in the main
-  use Principal, only : Lecture_forcing, Vamper_step ! Vamper_init,
+  use vamper_step_mod, only : Lecture_forcing, Vamper_step ! Vamper_init,
 
   use Fonction_temp, only : AppHeatCapacity, ThermalConductivity
 !~   use Fonction_init, only : GeoHeatFlow ! Porosity_init, , Glacial_index
@@ -18,6 +18,8 @@ program test_fonctions
   use Model_snow, only : snw_average_swe, snw_proc, snw_average_snw, snw_average_snw_tot
 
 #if ( CARBON == 1 )
+  use parameter_mod, only: alt, altmax_lastyear, bio_diff_k_const, diff_k_const, max_cryoturb_alt, min_cryoturb_alt, zf_soil
+  use spatialvars_mod, only: deepSOM_a, deepSOM_s, deepSOM_p, fc
   use Carbon, only : carbon_first_init, carbon_init
 #endif
 
@@ -32,13 +34,6 @@ program test_fonctions
   integer :: kk, ll,organic_ind,spy, nb_lines,dim_temp,dim_swe,t_step,t_deb ! ,t_num
   real,dimension(:),allocatable :: time_gi, glacial_ind ! dmr glacial indexes, to be checked with Amaury
   real :: Tb ! ,dt moved to parameter_mod
-!~                                         ! SPATIAL GLOBAL VARIABLES
-!~   real, dimension(:,:),allocatable::    Temp      & !dmr [SPAT_VAR], soil temperature over the vertical // prognostic
-!~                                        ,Kp        & !dmr [CNTST]     heat conductivity constant over the depth, current value is 2
-!~                                        ,n         & !dmr [SPAT_VAR], porosity on the vertical
-!~                                        ,Cp        & !dmr [SPAT_VAR]  specific heat capacity
-!~                                        ,pori      & !dmr [???  TBC]
-!~                                        ,porf        !dmr [???  TBC]
 
   real, dimension(:),allocatable::     &
                                        ! FORCING VARIABLES
@@ -49,16 +44,10 @@ program test_fonctions
                                        ,T_snw_t     !dmr [SPAT_VAR] temperature of snow over time forcing ???
 
 #if ( CARBON == 1 )
-                                       ! nb and mbv CARBON GLOBAL VARIABLES
-    real,dimension(:,:), allocatable  :: deepSOM_a, deepSOM_s, deepSOM_p, fc
-    real                              :: max_cryoturb_alt, min_cryoturb_alt
-    real                              :: ALT ! active layer thickness !gridNoMax
-    real                              :: altmax_lastyear
+
     real                              :: clay
-    real                              :: diff_k_const, bio_diff_k_const
-    real, dimension(:) , allocatable  :: zf_soil
     REAL                              :: bioturbation_depth
-    integer :: end_year
+    integer                           :: end_year
 #endif
 
   integer :: gridNo = 1 ! index for spatial loops
@@ -66,28 +55,16 @@ program test_fonctions
 
 
   well_done = INITIALIZE_VAMP()
+  if (well_done) then
+    WRITE(*,*) "VAMPER INITIALIZATION COMPLETE"
+  endif
 
-!~   call INIT_maskGRID()
   call get_forcing()
   READ(*,*)
 
   t_deb = 0
   kk=1
   ll=1
-
-#if ( CARBON == 1 )
-  !nb and mbv Carbon cycle
-  allocate(deepSOM_a(1:z_num,1:gridNoMax))
-  allocate(deepSOM_s(1:z_num,1:gridNoMax))
-  allocate(deepSOM_p(1:z_num,1:gridNoMax))
-  allocate(fc(1:z_num,1:gridNoMax))
-  allocate(zf_soil(1:z_num))
-
-
-  !nb and mbv Carbon cycle
-  call carbon_first_init(dt, max_cryoturb_alt, min_cryoturb_alt, diff_k_const, bio_diff_k_const, bioturbation_depth &
-       , D, dz, zf_soil , ALT, altmax_lastyear)
-#endif
 
   do gridNo = 1, gridNoMax
 

@@ -18,6 +18,8 @@
 
 MODULE parameter_mod
 
+#include "constant.h"
+
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
@@ -52,7 +54,7 @@ MODULE parameter_mod
   integer :: Bool_layer_temp       ! Creation of .txt with the temperature of the soil at different layer
   integer :: Forcage_Month_day     ! (1) Daily or (0) monthly forcing
   integer :: Bool_Swe_Snw          ! (1) Snow forcing, (0) Swe forcing
-  integer :: Bool_Model_Snow       ! (1) Usinsg snow model to find snow_depth, (0) Forcing with snow_depth
+  integer :: Bool_Model_Snow       ! (1) Using snow model to find snow_depth, (0) Forcing with snow_depth
   integer :: Bool_Bessi
   integer :: Bool_geometric
 
@@ -120,9 +122,23 @@ MODULE parameter_mod
    integer, public  :: t_num
 
         ! VERTICAL DIMENSION VARIABLES
-   real, dimension(:),allocatable::  dz , D     !dmr [VERTCL] thickness of the layers, depth of the layers
-   integer                       :: organic_ind ! depth of the organic layer in layer index
+   real, dimension(:), allocatable ::  dz , D     !dmr [VERTCL] thickness of the layers, depth of the layers
+   integer                         :: organic_ind ! depth of the organic layer in layer index
 
+#if ( CARBON == 1 )
+        ! SOME CARBON CONSTANTS AND 1-D VARIABLES
+    real, parameter :: one_day=24*60*60
+    real, parameter :: max_cryoturb_alt= 3 !m
+    real, parameter :: min_cryoturb_alt=0.01 !1cm
+    real, parameter :: cryoturbation_diff_k_in = .001 ! input time constant of bioturbation (m^2/y)
+    real, parameter :: bioturbation_diff_k_in = 0.0001 ! input time constant of bioturbation (m^2/y)
+    real            :: diff_k_const, bio_diff_k_const
+    real, parameter :: bioturbation_depth=2 !m
+
+    real, dimension(:), allocatable :: zf_soil  !! will be (0:z_num)
+    real            :: ALT
+    real            :: altmax_lastyear
+#endif
 
 CONTAINS
 

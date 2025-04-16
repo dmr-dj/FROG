@@ -91,16 +91,6 @@
 
      end function flatten_it
 
-
-
-
-
-
-
-
-
-
-
      SUBROUTINE get_forcing()
 
 
@@ -292,7 +282,7 @@
       ! Hence I should get nDims = 2, nVars = 3, no unlimited if no time, hence unlimdimid = -1
 
 
-      WRITE(*,*) "info file", nDims, nVars, unlimdimid
+!~       WRITE(*,*) "info file", nDims, nVars, unlimdimid
 
       if ( (nDims.EQ.2).AND.(nVars.EQ.3).AND.(unlimdimid.EQ.-1) ) then ! valid file
 
@@ -345,7 +335,7 @@
          dim1 = dimLEN(varDIMIDS(v,1))
          dim2 = dimLEN(varDIMIDS(v,2))
 
-         WRITE(*,*) "DIMS for Mask", dim1, dim2
+!~          WRITE(*,*) "DIMS for Mask", dim1, dim2
 
          ALLOCATE(maskdata(dim1,dim2))
 
@@ -376,7 +366,7 @@
       ENDDO
       ENDDO
 
-      WRITE(*,*) "Count of unmasked datapoints", nb_unmaskedp
+!~       WRITE(*,*) "Count of unmasked datapoints", nb_unmaskedp
 
       ALLOCATE(two_to_oneDims(dim1,dim2))
       ALLOCATE(one_to_twoDims_i(nb_unmaskedp))
@@ -403,6 +393,8 @@
       ! So far I have created a list of coordinates and a list of points, need still to have the lat/lon values for all these points somewhere ? Or not ?
 
       endif
+
+      WRITE(*,*) "Currently, VAMPER seems to be off for a run with", nb_unmaskedp, " datapoints."
 
       END SUBROUTINE INIT_maskGRID
 

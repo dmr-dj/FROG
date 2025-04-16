@@ -1,4 +1,4 @@
-module Principal
+module vamper_step_mod
 
 
   use parameter_mod, only : z_num,TotTime,nb_mon_per_year,YearType,Depth,GridType,PorosityType,T_init,Bool_glacial
@@ -270,28 +270,6 @@ contains
 
     end do
 
-! [TOREMOVE]
-! dmr&mbv --- already defined in t_disc
-!# if Daily == 0
-!
-!       spy = 12
-!       t_num = t_step*12
-!
-!#else
-!
-!       spy = 365
-!       ! t_num = t_step
-!       !t_num = 2
-!       t_num = 365*30
-!
-!#endif
-! [TOREMOVE]
-     ! ICI
-   ! open(newunit=tempmens, file="Results/testmoismens.txt", status="replace")
-   ! open(newunit=ALLTT, file="Results/testaltmens.txt", status="replace")
-
-    !write(*,*) n
-
 #if ( CARBON == 1 )
 !nb and mbv
     end_year=0
@@ -300,8 +278,6 @@ contains
 
 !boucle temporelle
     do ll=1,t_num
-
-       ! write(*,*) "Time step:: ", ll," / ", t_num
 
 #if ( CARBON == 1 )
        !nb and mbv for carbon cycle, is it the end of the year?
@@ -324,22 +300,19 @@ contains
        T_soil = T_air(mod(ll,dim_temp)+1)
        swe_f  = swe_f_t(mod(ll,dim_swe)+1)
        snw_tot = swe_f_t(mod(ll,dim_swe)+1)
-       !snw_tot = 0
 
        if (Bool_Bessi==1)then
           rho_snow = rho_snow_t(mod(ll,dim_temp)+1)
           snw_tot = snw_dp_t(mod(ll,dim_temp)+1)
        end if
-       !write(*,*) snw_tot,T_soil,rho_snow
-       if (Bool_glacial==1)then
 
-          indice_tab = nb_lines-floor((-(ll/real(spy))+t_deb)/100.0)
-          T_glacial=alpha*(glacial_ind(indice_tab-1)+(100-mod((-(ll/real(spy))+t_deb),100.0))*(glacial_ind(indice_tab)- &
-glacial_ind(indice_tab-1))/100.0)
-          T_soil = (T_glacial+T_soil)
-          !write(*,*) indice_tab,T_soil,glacial_ind(indice_tab-1),glacial_ind(indice_tab),T_glacial,mod((-(ll/spy)+t_deb),100.0)
+!~        if (Bool_glacial==1)then
 
-       end if
+!~           indice_tab = nb_lines-floor((-(ll/real(spy))+t_deb)/100.0)
+!~           T_glacial=alpha*(glacial_ind(indice_tab-1)+(100-mod((-(ll/real(spy))+t_deb),100.0))*(glacial_ind(indice_tab)- &
+!~ glacial_ind(indice_tab-1))/100.0)
+!~           T_soil = (T_glacial+T_soil)
+!~        end if
 
        if (snw_tot > 0.000001 .or. swe_f > 0.000001  ) then
 
@@ -372,7 +345,6 @@ glacial_ind(indice_tab-1))/100.0)
        end if
 
        T_old(1:z_num) = Temp(1:z_num)
-       !write(*,*) Temp
 
        !-------------- Numerical difference routine when there is snow or not --------!
 
@@ -386,12 +358,9 @@ glacial_ind(indice_tab-1))/100.0)
           !T_soil = T_snw_t(mod(ll,dim_temp)+1)
 
           call Implicit_T(T_old,T_soil,Tb,dt,dz,n,organic_ind,Temp,Kp)
-!dmr [UNUSED]          call Implicit_T(T_old,T_soil,Tb,dt,dz,n,organic_ind,Temp,Cp,Kp)
-
 
           if (Bool_Bessi==0) then
              call snw_proc(Tsnw(1), snw_tot, swe_tot, frac_snw, Cp_snow, rho_snow, dt)
-!dmr [UNUSED]             call snw_proc(Tsnw(1),Temp(1), snw_tot, swe_tot, frac_snw, Cp_snow, rho_snow, dt)
           end if
 
        else
@@ -405,15 +374,9 @@ glacial_ind(indice_tab-1))/100.0)
 
           end do
 
-          !T_soil = T_snw_t(mod(ll,dim_temp)+1)
-
           call Implicit_T(T_old,T_soil,Tb,dt,dz,n,organic_ind,Temp,Kp)
-!dmr [UNUSED]          call Implicit_T(T_old,T_soil,Tb,dt,dz,n,organic_ind,Temp,Cp,Kp)
-
 
        end if
-
-       !write(*,*) Kp(5)*dt/(Cp(5)*dz(5)*dz(5))
 
        if (Bool_layer_temp==1)then
          if (ll>t_num-7300)then
@@ -423,9 +386,7 @@ glacial_ind(indice_tab-1))/100.0)
        end if
 
        call Permafrost_Depth(Temp,D,Per_depth)
-       ! write(*,*) "[PRINC] Per_depth: ", Per_depth
 
-       !write(*,*) Kp
 
 #if ( CARBON == 1 )
        ! nb and mbv carbon cycle call
@@ -454,9 +415,9 @@ glacial_ind(indice_tab-1))/100.0)
 
     t_deb = t_deb - floor(t_step/365.0)
 
-    if (Bool_glacial.eq.1) then !dmr indice_tab is undefined if Bool_glacial is not 1
-    !  write(*,*) "[PRINC] indice_tab,t_num,organic_ind: ", indice_tab,t_num,organic_ind
-    endif
+!~     if (Bool_glacial.eq.1) then !dmr indice_tab is undefined if Bool_glacial is not 1
+!~     !  write(*,*) "[PRINC] indice_tab,t_num,organic_ind: ", indice_tab,t_num,organic_ind
+!~     endif
 
     close(u_n_ml)
     close(ALLTT)
@@ -468,4 +429,4 @@ glacial_ind(indice_tab-1))/100.0)
 
 
 
-end module Principal
+end module vamper_step_mod

@@ -16,8 +16,9 @@
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-
     MODULE spatialvars_mod
+
+#include "constant.h"
 
     IMPLICIT NONE
 
@@ -38,6 +39,15 @@
 
 
      integer, dimension(:), allocatable, PUBLIC :: orgalayer_indx
+
+
+#if ( CARBON == 1 )
+     real,dimension(:,:), allocatable, PUBLIC :: deepSOM_a & !dmr [TBD]
+                                               , deepSOM_s & !dmr [TBD]
+                                               , deepSOM_p & !dmr [TBD]
+                                               , fc          !dmr [TBD]
+#endif
+
 
 
      PUBLIC:: spatialvars_allocate, spatialvars_init
@@ -80,6 +90,13 @@
 
        allocate(orgalayer_indx(1:gridNoMax))
 
+#if ( CARBON == 1 )
+                        !nb and mbv Carbon cycle
+       allocate(deepSOM_a(1:z_num,1:gridNoMax))
+       allocate(deepSOM_s(1:z_num,1:gridNoMax))
+       allocate(deepSOM_p(1:z_num,1:gridNoMax))
+       allocate(fc(1:z_num,1:gridNoMax))
+#endif
 
      END SUBROUTINE spatialvars_allocate
 
