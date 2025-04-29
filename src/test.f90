@@ -7,7 +7,7 @@ program test_fonctions
   use parameter_mod, only: z_num, gridNoMax, dt, t_num, D, dz
 
   !dmr [2024-06-28] Functions used in the main
-  use vamper_step_mod, only : Lecture_forcing, Vamper_step ! Vamper_init,
+  use vamper_step_mod, only :  Vamper_step ! Vamper_init,Lecture_forcing,
 
   use Fonction_temp, only : AppHeatCapacity, ThermalConductivity
 !~   use Fonction_init, only : GeoHeatFlow ! Porosity_init, , Glacial_index
@@ -19,7 +19,7 @@ program test_fonctions
 
 #if ( CARBON == 1 )
   use parameter_mod, only: alt, altmax_lastyear, bio_diff_k_const, diff_k_const, max_cryoturb_alt, min_cryoturb_alt, zf_soil
-  use spatialvars_mod, only: deepSOM_a, deepSOM_s, deepSOM_p, fc_SV, clay_SV
+  use spatialvars_mod, only: deepSOM_a, deepSOM_s, deepSOM_p,  clay_SV ! fc_SV,
   use Carbon, only : carbon_first_init, carbon_init
 #endif
 
@@ -29,8 +29,8 @@ program test_fonctions
 
   implicit none
 
-  integer :: kk, ll,organic_ind,spy, nb_lines,dim_temp,dim_swe,t_step,t_deb ! ,t_num
-  real,dimension(:),allocatable :: time_gi, glacial_ind ! dmr glacial indexes, to be checked with Amaury
+  integer :: kk, ll,organic_ind,dim_temp,dim_swe,t_step ! ,t_deb ! ,t_num, nb_lines, spy,
+!~   real,dimension(:),allocatable :: time_gi, glacial_ind ! dmr glacial indexes, to be checked with Amaury
   real :: Tb ! ,dt moved to parameter_mod
 
   real, dimension(:),allocatable::     &
@@ -59,63 +59,42 @@ program test_fonctions
 
   READ(*,*)
 
-  t_deb = 0
+!~   t_deb = 0
   kk=1
   ll=1
 
   do gridNo = 1, gridNoMax
 
-  !dmr [2024-06-28] [ADDING COMMENTS]
-  !dmr No spatial dependence till here ...
-  !dmr Inputs to Vamper_init:
-  !dmr intent(in)                z_num == number of vertical slices
-  !dmr intent(in)                dz = vertical stepping
-  !dmr intent(in)                D is provided to porosity_init as depth_layer(z_num)
-  !dmr intent(out)               Temp = temperature of the soil for all vertical layers
-  !dmr intent(out) (allocatable) time_gi = years B.P. in the glacial index file (I think)
-  !dmr intent(out) (allocatable) glacial_ind = array for glacial indexing, if not, then glacial_ind(1) = 0
-  !dmr intent(out)               nb_lines = number of lines in the glacial index file, read in that file
-  !dmr intent(out)               Kp = heat conductivity constant over the depth, current value is 2
-  !dmr intent(out)               Cp = specific heat capacity
-  !dmr intent(out)               n -> allocated in Porosity_init to z_num, contains porosity profile [NOTA: BAD_NAME]
-  !dmr intent(out)               organic_ind = depth of the organic layer? integer value in vertical index
-  !dmr intent(out)               Tb = Temperature Bottom, lower boundary condition ... computed from GeoHeatFlow
-!~   call Vamper_init(dz,D,Temp(:,gridNo),time_gi,glacial_ind,nb_lines,Kp(:,gridNo),Cp(:,gridNo),n(:,gridNo),organic_ind,Tb)
-
-!~ #if ( CARBON == 1 )
-!~   !nb and mbv
-!~   !Initialisation for carbon cycle variables
-!~   call carbon_init(deepSOM_a(:,gridNo), deepSOM_s(:,gridNo), deepSOM_p(:,gridNo),  fc(:,gridNo), clay) !ALT,
-!~ #endif
-
-  !dmr [2024-06-28] [ADDING COMMENTS]
-  !dmr This subroutine will be reading the forcing from external files. There is a suite of options as to how the forcing is done.
-  !dmr Basically, it needs to fill in:
-  !dmr
-  !dmr
-
-  !dmr intent(inout) (z_num)     Temp         Temperature of the soil for each layer, read in external file unit_nb_3, one timestep (initial?)
-
-  !dmr intent(out)               dim_swe      Length of the SWE forcing, calculated from the length of the input text file
-  !dmr intent(out) (allocatable) swe_f_t      SWE forcing, allocated to (1:dim_swe) and values read in external text file (unit_nb_2)
-
-  !dmr intent(out)               dim_temp     Length of the temp forcing, calculated from the length of the input text file
-  !dmr intent(out) (allocatable) T_air        temperature of the air forcing, allocated to (1:dim_temp) and read in external file (unit_nb_1)
 
 
-  !dmr Those three are allocated to (1:dim_temp) and if BESSI, read from external files.
+!~   !dmr [2024-06-28] [ADDING COMMENTS]
+!~   !dmr This subroutine will be reading the forcing from external files. There is a suite of options as to how the forcing is done.
+!~   !dmr Basically, it needs to fill in:
+!~   !dmr
+!~   !dmr
 
-  !dmr intent(out) (allocatable) snow_dp_t     if BESSI, unit_nb_4 else set to zero
-  !dmr intent(out) (allocatable) rho_snow_t    if BESSI, unit_nb_5 else set to zero
-  !dmr intent(out) (allocatable) T_snw_t       if BESSI, unit_nb_6 else ... commented read, nothing done [NOTA: UNINITIALIZED]
+!~   !dmr intent(inout) (z_num)     Temp         Temperature of the soil for each layer, read in external file unit_nb_3, one timestep (initial?)
 
-  call Lecture_forcing(z_num,T_air,swe_f_t,snow_dp_t,rho_snow_t,T_snw_t,Temp(:,gridNo),dim_temp,dim_swe)
+!~   !dmr intent(out)               dim_swe      Length of the SWE forcing, calculated from the length of the input text file
+!~   !dmr intent(out) (allocatable) swe_f_t      SWE forcing, allocated to (1:dim_swe) and values read in external text file (unit_nb_2)
+
+!~   !dmr intent(out)               dim_temp     Length of the temp forcing, calculated from the length of the input text file
+!~   !dmr intent(out) (allocatable) T_air        temperature of the air forcing, allocated to (1:dim_temp) and read in external file (unit_nb_1)
+
+
+!~   !dmr Those three are allocated to (1:dim_temp) and if BESSI, read from external files.
+
+!~   !dmr intent(out) (allocatable) snow_dp_t     if BESSI, unit_nb_4 else set to zero
+!~   !dmr intent(out) (allocatable) rho_snow_t    if BESSI, unit_nb_5 else set to zero
+!~   !dmr intent(out) (allocatable) T_snw_t       if BESSI, unit_nb_6 else ... commented read, nothing done [NOTA: UNINITIALIZED]
+
+!~   call Lecture_forcing(z_num,T_air,swe_f_t,snow_dp_t,rho_snow_t,T_snw_t,Temp(:,gridNo),dim_temp,dim_swe)
 
   write(*,*) "[MAIN] D: ", D
   write(*,*) "[MAIN] t_num:", t_num
   write(*,*) "[MAIN] forcing: ", dim_temp, dim_swe
   write(*,*) "[Prof]", dz
-  write(*,*) "[MAIN] 1|Temp: ",Temp
+!~   write(*,*) "[MAIN] 1|Temp: ",Temp
 
   t_step = dim_temp
 
@@ -146,13 +125,13 @@ program test_fonctions
   !dmr intent(in)    (nb_lines)  glacial_ind   / glacial index modifier
 
   call Vamper_step(T_air,swe_f_t,Temp(:,gridNo),Tb,Cp(:,gridNo),Kp(:,gridNo),n(:,gridNo),organic_ind &
-                  ,glacial_ind,nb_lines,dim_temp,dim_swe,z_num,dz,dt,t_step                          &
-                  ,porf(:,gridNo),pori(:,gridNo),t_deb,rho_snow_t,snow_dp_t,T_snw_t,D, spy, t_num    &
+                  ,dim_temp,dim_swe,z_num,dz,dt                         & !nb_lines, ,t_step
+                  ,porf(:,gridNo),pori(:,gridNo), D, t_num    &    ! rho_snow_t,snow_dp_t,T_snw_t, spy,
 #if ( CARBON == 0 )
                    )
 #else
 
-                  ,end_year , deepSOM_a, deepSOM_s, deepSOM_p, fc_SV, clay_SV(gridNo)                &
+                  ,end_year , deepSOM_a, deepSOM_s, deepSOM_p, clay_SV(gridNo)                &   !! fc_SV,
                   ,diff_k_const, bio_diff_k_const, min_cryoturb_alt, max_cryoturb_alt, zf_soil       &
                   ,bioturbation_depth, ALT, altmax_lastyear)
 #endif
