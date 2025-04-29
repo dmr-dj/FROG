@@ -32,8 +32,8 @@
 
      function INITIALIZE_VAMP() result(is_a_success)
 
-       use grids_more,      only: INIT_maskGRID, nb_unmaskedp
-       use parameter_mod,   only: read_namelist, set_numbergridpoints, t_disc, z_disc
+       use grids_more,      only: INIT_maskGRID, nb_unmaskedp, forcing_timelength
+       use parameter_mod,   only: read_namelist, set_numbergridpoints, set_numberforcingsteps, t_disc, z_disc
        use spatialvars_mod, only: spatialvars_allocate, spatialvars_init
 #if ( CARBON == 1 )
        use carbon,          only: carbon_first_init
@@ -58,6 +58,7 @@
         call INIT_maskGRID
 
         call set_numbergridpoints(nb_unmaskedp)
+        call set_numberforcingsteps(forcing_timelength)
 
         ! Read the namelist to define most global constants
         call read_namelist

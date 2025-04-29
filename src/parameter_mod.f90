@@ -51,7 +51,7 @@ MODULE parameter_mod
   integer :: EQ1_EQ2           ! EQ1(1) initial temperature calculated with the Geothermal heat flux. EQ2 initial temperature read in a file .txt
   integer :: Bool_delta        !
   integer :: Bool_glacial          ! Using glacial index to modify air temperature
-  integer :: Bool_layer_temp       ! Creation of .txt with the temperature of the soil at different layer
+!~   integer :: Bool_layer_temp       ! Creation of .txt with the temperature of the soil at different layer
   integer :: Forcage_Month_day     ! (1) Daily or (0) monthly forcing
   integer :: Bool_Swe_Snw          ! (1) Snow forcing, (0) Swe forcing
   integer :: Bool_Model_Snow       ! (1) Using snow model to find snow_depth, (0) Forcing with snow_depth
@@ -118,8 +118,9 @@ MODULE parameter_mod
         ! TIME DEFINITIONS
 
    integer, private :: nb_daysperyear
-   real, public     :: dt
+   real,    public  :: dt
    integer, public  :: t_num
+   integer, public  :: timFNoMax ! maximum number of timesteps in the forcing
 
         ! VERTICAL DIMENSION VARIABLES
    real, dimension(:), allocatable ::  dz , D     !dmr [VERTCL] thickness of the layers, depth of the layers
@@ -140,6 +141,14 @@ MODULE parameter_mod
     real            :: altmax_lastyear
 #endif
 
+
+!   FORCING FILES FOR OFFLINE RUN. TEMPORARY DROP HERE
+
+    CHARACTER(len=str_len) :: forc_tas_file = "tas_ewembi_1979-2016-r128x64-maskocean.nc4"
+    CHARACTER(len=str_len) ::  name_tas_variable="topo"
+
+
+
 CONTAINS
 
 
@@ -150,6 +159,15 @@ CONTAINS
    gridNoMax = gridpts
 
  end subroutine set_numbergridpoints
+
+ subroutine set_numberforcingsteps(nbsteps)
+
+ integer, intent(in) :: nbsteps
+
+   timFNoMax = nbsteps
+
+ end subroutine set_numberforcingsteps
+
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 ! dmr   time discretization routine
@@ -332,8 +350,8 @@ CONTAINS
 
     NAMELIST /Param/ namerun,TotTime,nb_day_per_month,nb_mon_per_year, t_fin,YearType,Bool_glacial,alpha,PorosityType, &
                      Bool_Organic,Porosity_soil,organic_depth,n_organic,n_soil_bot, q_quartz,Gfx,Bool_Snow,     &
-                     Bool_Swe_Snw,Bool_Model_Snow,Bool_Bessi,s_l_max,z_num,GridType,Bool_layer_temp,  &
-                     Depth,T_init,Bool_delta,Bool_geometric, EQ_Tr, EQ1_EQ2
+                     Bool_Swe_Snw,Bool_Model_Snow,Bool_Bessi,s_l_max,z_num,GridType,  &
+                     Depth,T_init,Bool_delta,Bool_geometric, EQ_Tr, EQ1_EQ2 ! Bool_layer_temp,
 
     NAMELIST /Physique/ rho_snow_freeze,rho_water,rho_ice,rho_organic,rho_soil,rho_snow_fresh,C_water,C_ice, &
             C_organic,C_dry_soil,K_other_minerals,K_quartz,K_organic,K_ice,K_fluids,T_freeze,freezing_range,&
@@ -414,8 +432,8 @@ CONTAINS
     write(fo,*) adjustl(to_print), Bool_delta        !
     write(to_print,'(a30)') "Bool_glacial"
     write(fo,*) adjustl(to_print), Bool_glacial          ! Using glacial index to modify air temperature
-    write(to_print,'(a30)') "Bool_layer_temp"
-    write(fo,*) adjustl(to_print), Bool_layer_temp       ! Creation of .txt with the temperature of the soil at different layer
+!~     write(to_print,'(a30)') "Bool_layer_temp"
+!~     write(fo,*) adjustl(to_print), Bool_layer_temp       ! Creation of .txt with the temperature of the soil at different layer
     write(to_print,'(a30)') "Bool_Swe_Snw"
     write(fo,*) adjustl(to_print), Bool_Swe_Snw          ! (1) Snow forcing, (0) Swe forcing
     write(to_print,'(a30)') "Bool_Model_Snow"

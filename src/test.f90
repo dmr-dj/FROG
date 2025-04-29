@@ -23,9 +23,7 @@ program test_fonctions
   use Carbon, only : carbon_first_init, carbon_init
 #endif
 
-  use grids_more, only: get_forcing
   use main_lib_VAMPER, only: INITIALIZE_VAMP
-
 
   use spatialvars_mod, only: Temp, Kp, Cp, n, porf, pori
 
@@ -59,7 +57,6 @@ program test_fonctions
     WRITE(*,*) "VAMPER INITIALIZATION COMPLETE"
   endif
 
-  call get_forcing()
   READ(*,*)
 
   t_deb = 0

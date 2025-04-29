@@ -3,7 +3,7 @@ module vamper_step_mod
 
   use parameter_mod, only : z_num,TotTime,nb_mon_per_year,YearType,Depth,GridType,PorosityType,T_init,Bool_glacial
   use parameter_mod, only : Bool_Organic,organic_depth,Gfx, T_freeze, EQ_Tr, EQ1_EQ2, Bool_delta,t_fin, alpha
-  use parameter_mod, only : Bool_layer_temp,Forcage_Month_day,Bool_Swe_Snw,Bool_Model_Snow,Bool_Bessi,s_l_max
+  use parameter_mod, only : Forcage_Month_day,Bool_Swe_Snw,Bool_Model_Snow,Bool_Bessi,s_l_max ! Bool_layer_temp,
   use Fonction_temp, only : AppHeatCapacity, ThermalConductivity, Permafrost_Depth
 
   use Model_snow, only : snw_average_swe, snw_proc, snw_average_snw, snw_average_snw_tot
@@ -59,12 +59,12 @@ contains
 
     !stop ici
 
-    if (Bool_Bessi==1)then
-
-       open(newunit=unit_nb_4,file="Donnee/Snow_dp_1998.txt",status="old",action='read')
-       open(newunit=unit_nb_5,file="Donnee/Rho_snow_1998.txt",status="old",action='read')
-
-    end if
+![DELSNOW]    if (Bool_Bessi==1)then
+![DELSNOW]
+![DELSNOW]       open(newunit=unit_nb_4,file="Donnee/Snow_dp_1998.txt",status="old",action='read')
+![DELSNOW]       open(newunit=unit_nb_5,file="Donnee/Rho_snow_1998.txt",status="old",action='read')
+![DELSNOW]
+![DELSNOW]    end if
 
     !open(newunit=unit_nb_6,file="Donnee/T_snw.txt",status="old",action='read')
 
@@ -217,36 +217,43 @@ contains
     real, intent(in)                      :: bioturbation_depth
 #endif
 
-     if (Bool_layer_temp==1)then
+!dmr [TBRMD] Useless in the context of more than one column ... they would overwrite each other !
+!~      if (Bool_layer_temp==1)then
 
-        open(newunit=u_n_ml,file="Results/"//trim(namerun)//".txt", status="replace",action='write')
-        !open(newunit=u_n_ml,file="Results/toto.txt", status="replace",action='write')
+!~         open(newunit=u_n_ml,file="Results/"//trim(namerun)//".txt", status="replace",action='write')
+!~         !open(newunit=u_n_ml,file="Results/toto.txt", status="replace",action='write')
 
-       DO zzz = LBOUND(indx_min,DIM=1), UBOUND(indx_min,DIM=1)
-          indx_min(zzz) = minloc(abs(D-fixed_levs(zzz)), DIM=1)
-       ENDDO
+!~        DO zzz = LBOUND(indx_min,DIM=1), UBOUND(indx_min,DIM=1)
+!~           indx_min(zzz) = minloc(abs(D-fixed_levs(zzz)), DIM=1)
+!~        ENDDO
 
-    end if
+!~     end if
 
+!dmr ---
+!dmr [NOTA] This bit looks very much like an init, not being part of a step ... --->
+!dmr ---
 
-    swe_tot = 0
-    snw_tot = 0
-    snw_old = 0
-    ind_snw = 0
-    s_l_t = 1
-    !write(*,*) "[PRINC] organic_ind: ", organic_ind
+![DELSNOW]     swe_tot = 0
+![DELSNOW]     snw_tot = 0
+![DELSNOW]     snw_old = 0
+![DELSNOW]     ind_snw = 0
+![DELSNOW]     s_l_t = 1
 
-    do kk =1,s_l_max
+    write(*,*) "[PRINC] organic_ind: ", organic_ind
 
-       Tsnw(kk) = -4
+![DELSNOW]     do kk =1,s_l_max
+![DELSNOW]
+![DELSNOW]        Tsnw(kk) = -4
+![DELSNOW]
+![DELSNOW]     end do
 
-    end do
-
-    dz_snow= 0.01
-    D(1) = dz_snow*s_l_max
-    do kk = 1,s_l_max-1
-       D(kk+1) = D(kk) - dz_snow
-    end do
+!dmr [CHECK] The following code seems to be modifying the porosity where there is snow ... even if snow not used !
+!dmr         Commenting it out, but will change the results possibly
+![DELSNOW]     dz_snow= 0.01
+![DELSNOW]     D(1) = dz_snow*s_l_max
+![DELSNOW]     do kk = 1,s_l_max-1
+![DELSNOW]        D(kk+1) = D(kk) - dz_snow
+![DELSNOW]     end do
 
     do kk=1,z_num
 
@@ -276,8 +283,13 @@ contains
     compteur_time_step=0
 #endif
 
-!boucle temporelle
-    do ll=1,t_num
+!dmr ---
+!dmr [NOTA] <--- This bit looks very much like an init, not being part of a step ...
+!dmr ---
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+    do ll=1,t_num !boucle temporelle
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
 #if ( CARBON == 1 )
        !nb and mbv for carbon cycle, is it the end of the year?
@@ -294,17 +306,20 @@ contains
        endif
 #endif
 
+![DELSNOW]        snw_old = snw_tot
 
-       snw_old = snw_tot
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!dmr    This is the section that updates the climate forcing, ill-placed
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
        T_soil = T_air(mod(ll,dim_temp)+1)
        swe_f  = swe_f_t(mod(ll,dim_swe)+1)
        snw_tot = swe_f_t(mod(ll,dim_swe)+1)
 
-       if (Bool_Bessi==1)then
-          rho_snow = rho_snow_t(mod(ll,dim_temp)+1)
-          snw_tot = snw_dp_t(mod(ll,dim_temp)+1)
-       end if
+![DELSNOW]       if (Bool_Bessi==1)then
+![DELSNOW]          rho_snow = rho_snow_t(mod(ll,dim_temp)+1)
+![DELSNOW]          snw_tot = snw_dp_t(mod(ll,dim_temp)+1)
+![DELSNOW]       end if
 
 !~        if (Bool_glacial==1)then
 
@@ -314,77 +329,80 @@ contains
 !~           T_soil = (T_glacial+T_soil)
 !~        end if
 
-       if (snw_tot > 0.000001 .or. swe_f > 0.000001  ) then
+![DELSNOW]       if (snw_tot > 0.000001 .or. swe_f > 0.000001  ) then
 
-          if (Bool_Bessi==0) then
-             call snw_average_swe(swe_f, swe_tot, snw_tot, rho_snow)
-          end if
+![DELSNOW]          if (Bool_Bessi==0) then
+![DELSNOW]             call snw_average_swe(swe_f, swe_tot, snw_tot, rho_snow)
+![DELSNOW]          end if
 
-          if (abs(swe_tot - swe_f )< 0.000001 .and. Bool_Bessi==0) then
+![DELSNOW]          if (abs(swe_tot - swe_f )< 0.000001 .and. Bool_Bessi==0) then
 
-             Tsnw = T_soil
-             K_s = 0.07
-             frac_snw = 1
+![DELSNOW]             Tsnw = T_soil
+![DELSNOW]             K_s = 0.07
+![DELSNOW]             frac_snw = 1
 
-          end if
+![DELSNOW]          end if
 
-          if (abs(snw_old )< 0.000001) then
+![DELSNOW]          if (abs(snw_old )< 0.000001) then
 
-             Tsnw(1) = T_soil
-             !Tsnw(2) = (
-             K_s = 0.07
-             frac_snw = 1
+![DELSNOW]             Tsnw(1) = T_soil
+![DELSNOW]             !Tsnw(2) = (
+![DELSNOW]             K_s = 0.07
+![DELSNOW]             frac_snw = 1
 
-          end if
-       end if
+![DELSNOW]          end if
+![DELSNOW]       end if
 
-       if (T_soil>0.0) then
-
-          snw_tot = 0
-
-       end if
+![dmr] This states that in the case that Tsoil is positive, snow instantaneously melts????
+![DELSNOW]       if (T_soil>0.0) then
+![DELSNOW]
+![DELSNOW]          snw_tot = 0
+![DELSNOW]
+![DELSNOW]       end if
 
        T_old(1:z_num) = Temp(1:z_num)
 
        !-------------- Numerical difference routine when there is snow or not --------!
 
-       if (snw_tot > 0.00001) then
+![DELSNOW]       if (snw_tot > 0.00001) then
 
-          s_l_t = 1
+![DELSNOW]          s_l_t = 1
 
-          !call Implicit_snow(snw_tot,rho_snow,Tsnw,T_old,T_soil,dt,dz,n,organic_ind,Temp,Cp,Kp,Cp_snow,s_l_t)
+![DELSNOW]          !call Implicit_snow(snw_tot,rho_snow,Tsnw,T_old,T_soil,dt,dz,n,organic_ind,Temp,Cp,Kp,Cp_snow,s_l_t)
 
 
-          !T_soil = T_snw_t(mod(ll,dim_temp)+1)
+![DELSNOW]          !T_soil = T_snw_t(mod(ll,dim_temp)+1)
+
+![DELSNOW]          call Implicit_T(T_old,T_soil,Tb,dt,dz,n,organic_ind,Temp,Kp)
+
+![DELSNOW]          if (Bool_Bessi==0) then
+![DELSNOW]             call snw_proc(Tsnw(1), snw_tot, swe_tot, frac_snw, Cp_snow, rho_snow, dt)
+![DELSNOW]          end if
+
+![DELSNOW]       else
+
+![DELSNOW]           swe_tot = 0.0
+![DELSNOW]           snw_tot = 0.0
+
+![DELSNOW]           do kk =1,s_l_max
+![DELSNOW]
+![DELSNOW]              Tsnw(kk) = 0
+![DELSNOW]
+![DELSNOW]           end do
 
           call Implicit_T(T_old,T_soil,Tb,dt,dz,n,organic_ind,Temp,Kp)
 
-          if (Bool_Bessi==0) then
-             call snw_proc(Tsnw(1), snw_tot, swe_tot, frac_snw, Cp_snow, rho_snow, dt)
-          end if
+![DELSNOW]       end if
 
-       else
+!~        if (Bool_layer_temp==1)then
+!~          if (ll>t_num-7300)then
+!~             write(u_n_ml,'(10F12.3)') ( Temp(indx_min(zzz)) &
+!~                  , zzz=LBOUND(indx_min,DIM=1),UBOUND(indx_min,DIM=1))
+!~           end if
+!~        end if
 
-          swe_tot = 0.0
-          snw_tot = 0.0
-
-          do kk =1,s_l_max
-
-             Tsnw(kk) = 0
-
-          end do
-
-          call Implicit_T(T_old,T_soil,Tb,dt,dz,n,organic_ind,Temp,Kp)
-
-       end if
-
-       if (Bool_layer_temp==1)then
-         if (ll>t_num-7300)then
-            write(u_n_ml,'(10F12.3)') ( Temp(indx_min(zzz)) &
-                 , zzz=LBOUND(indx_min,DIM=1),UBOUND(indx_min,DIM=1))
-          end if
-       end if
-
+                       ! Returns Per_depth as depth of the 0C isotherm
+                       !    in meters, not per cell
        call Permafrost_Depth(Temp,D,Per_depth)
 
 
@@ -411,7 +429,10 @@ contains
          write(tempmens,*) (Temp(index_claque),                                &
                           index_claque=LBOUND(Temp,dim=1), UBOUND(Temp, dim=1))
        !endif
-    end do
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+    end do ! on the time loop
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
     t_deb = t_deb - floor(t_step/365.0)
 
@@ -427,6 +448,11 @@ contains
 
   end subroutine Vamper_step
 
+
+  subroutine vamp_step_dt
+
+
+  end subroutine vamp_step_dt
 
 
 end module vamper_step_mod
