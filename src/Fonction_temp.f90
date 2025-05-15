@@ -104,6 +104,9 @@ module Fonction_temp
      integer :: kk, z_m, z_p
      real :: alpha
 
+     z_p = 0
+     z_m = 0
+
      do kk=0,z_num-1
 
         if (Temp(z_num-kk)<0) then
@@ -116,9 +119,15 @@ module Fonction_temp
 
      end do
 
-     alpha = Temp(z_p)-Temp(z_m)
+     if ((z_p.GT.0).AND.(z_m.GT.0)) then
 
-     Per_depth = D(z_p) - Temp(z_p)/alpha
+       alpha = Temp(z_p)-Temp(z_m)
+
+       Per_depth = D(z_p) - Temp(z_p)/alpha
+
+     else
+       Per_depth = -9999.
+     endif
 
   end subroutine Permafrost_Depth
 

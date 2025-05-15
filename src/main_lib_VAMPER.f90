@@ -32,7 +32,7 @@
 
      function INITIALIZE_VAMP() result(is_a_success)
 
-       use grids_more,      only: INIT_maskGRID, nb_unmaskedp, forcing_timelength
+       use grids_more,      only: INIT_maskGRID, nb_unmaskedp, forcing_timelength, INIT_netCDF_output
        use parameter_mod,   only: read_namelist, set_numbergridpoints, set_numberforcingsteps, t_disc, z_disc
        use spatialvars_mod, only: spatialvars_allocate, spatialvars_init
 #if ( CARBON == 1 )
@@ -83,11 +83,15 @@
         !        For now [2025-04-16], fixed to constants in parameter_mod
         call spatialvars_init
 
+        call INIT_netCDF_output
+
         is_a_success = .TRUE.
 
      end function INITIALIZE_VAMP
 
      function STEPFWD_VAMP() result(is_a_success)
+
+       USE spatialvars_mod, ONLY: UPDATE_climate_forcing, DO_spatialvars_step
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       BY REFERENCE VARIABLES
@@ -99,18 +103,19 @@
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
        logical :: is_a_success
-
+       INTEGER :: nb_steps_toDO = 365
+       REAL, DIMENSION(:,:), ALLOCATABLE :: temperature_forcing_nextsteps
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       MAIN BODY OF THE ROUTINE
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-        is_a_success = .TRUE.
-
-
         ! UPDATE_CLIMATE_FORCING
+        CALL UPDATE_climate_forcing(nb_steps_toDO,temperature_forcing_nextsteps)
 
         ! DO_VAMPER_STEP
-!~         CALL DO_spatialvars_step() !! stepstoDO,forcage_temperature_surface
+        CALL DO_spatialvars_step(nb_steps_toDO, temperature_forcing_nextsteps)
+
+        is_a_success = .TRUE.
 
      end function STEPFWD_VAMP
 

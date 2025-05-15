@@ -32,9 +32,10 @@
 ! dmr           Change from 0.0.0: Created a first version that can test read a topographic/mask grid assumed regular so far
 ! dmr           Change from 0.1.0: Modified so that the temperature forcing can be used as a grid definition file
 ! dmr           Change from 0.2.0: Modified so as to get all the information from a time forcing file directly
+! dmr           Change from 0.3.0: added the netCDF initialization
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-      CHARACTER(LEN=5), PARAMETER, PUBLIC :: version_mod ="0.3.0"
+      CHARACTER(LEN=5), PARAMETER, PUBLIC :: version_mod ="0.4.0"
 
       integer, parameter  :: str_len =256
 
@@ -52,10 +53,36 @@
 
       CHARACTER(len=str_len) :: mask_file = "tas_ewembi_1979-2016-r128x64-maskocean.nc4"! "tas_ewembi_1979-2016-r128x64-maskocean.nc4" ! "mask_ocean_r128x64.nc"
 
+
 ! --- spatial forcing needed
       REAL, DIMENSION(:), ALLOCATABLE :: BC_Kp, BC_Cp, BC_n, BC_pori, BC_porf
 
-      PUBLIC :: INIT_maskGRID
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+! --- for output generation / netCDF
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+      INTEGER :: spat_dim2, spat_dim1
+      REAL    :: undefined_value
+      CHARACTER(LEN=str_len), PARAMETER :: typology_file="file_typology-r128x64.nc"
+      CHARACTER(LEN=str_len), PARAMETER :: netCDFout_file="VAMPER-output.nc"
+
+      INTEGER, PARAMETER :: nb_out_vars = 1, nb_dim_vars = 3
+
+      CHARACTER(LEN=str_len), DIMENSION(nb_dim_vars), PARAMETER:: output_dim_names=[CHARACTER(len=str_len) :: "lat", "lon", "lev"]
+      CHARACTER(LEN=str_len), DIMENSION(nb_out_vars), PARAMETER:: output_var_names=[CHARACTER(len=str_len) :: "temp"]
+
+      INTEGER, DIMENSION(0:nb_dim_vars) :: output_dim_len, output_dim_dimid
+      INTEGER, DIMENSION(nb_out_vars) :: output_var_dimid
+      INTEGER, PARAMETER :: indx_var_temp_ig = 1
+      INTEGER :: current_time_record
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+! ---
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+
+      PUBLIC :: INIT_maskGRID, INIT_netCDF_output, WRITE_netCDF_output
 
       CONTAINS
 
@@ -75,7 +102,7 @@
 
        real, dimension(nb_unmaskedp) :: flattened_array
 
-       integer :: i,j,k
+       integer :: i,j
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       MAIN BODY OF THE ROUTINE
@@ -89,6 +116,35 @@
        enddo
 
      end function flatten_it
+
+     function un_flatten_it(flattened_array) result(spatial_array)
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       BY REFERENCE VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+       real, dimension(:), intent(in) :: flattened_array
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       LOCAL VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+       real, dimension(spat_dim1,spat_dim2) :: spatial_array
+
+       integer :: k
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       MAIN BODY OF THE ROUTINE
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+       spatial_array(:,:) = undefined_value
+
+       do k=1,UBOUND(flattened_array,dim=1)
+         spatial_array(one_to_twoDims_i(k),one_to_twoDims_j(k)) = flattened_array(k)
+       enddo
+
+      end function un_flatten_it
+
 
       SUBROUTINE INIT_maskGRID()
 
@@ -268,6 +324,10 @@
       ENDDO
       ENDDO
 
+      undefined_value = mask_undef
+      spat_dim1 = dim1
+      spat_dim2 = dim2
+
       ! So far I have created a list of coordinates and a list of points, need still to have the lat/lon values for all these points somewhere ? Or not ?
 
       endif
@@ -280,6 +340,223 @@
       END SUBROUTINE INIT_maskGRID
 
 ! ---
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+      SUBROUTINE INIT_netCDF_output
+
+       USE netcdf
+       USE parameter_mod, only: z_num, depth_levels=>D
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       BY REFERENCE VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       LOCAL VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+       CHARACTER(len=str_len) :: command_to_copy="cp -f "//TRIM(typology_file)//" "//TRIM(netCDFout_file)
+
+       INTEGER :: ncid, nDims, nvars, nGlobalAtts, unlimdimid, d, n, depth_varid
+
+       CHARACTER(len=NF90_MAX_NAME), DIMENSION(:),   ALLOCATABLE :: dimNAMES
+       INTEGER                     , DIMENSION(:),   ALLOCATABLE :: dimLEN
+
+       LOGICAL, DIMENSION(nb_dim_vars) :: dim_exists_file
+
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       MAIN BODY OF THE ROUTINE
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+       ! Copy the typology file into the new output file
+       WRITE(*,*) "COMMAND // ", TRIM(command_to_copy)
+       call execute_command_line(TRIM(command_to_copy))
+
+       ! Now need to check and define the dimension if needed (levels for sure)
+
+       dim_exists_file(:) = .FALSE.
+
+       call handle_err(                                                                                &
+            nf90_open(path = TRIM(netCDFout_file), mode = NF90_WRITE, ncid = ncid)                     & ! open existing netCDF dataset
+                      , __LINE__)
+
+       ! Check that lat and lon already exist in the file ...
+
+       call handle_err(                                                                                &
+           nf90_inquire(ncid, nDims, nVars, nGlobalAtts, unlimdimid)                                   & ! inquire existing dimensions in the file
+                      , __LINE__)
+
+       output_dim_dimid(0) = unlimdimid
+
+       ALLOCATE(dimNAMES(nDims))
+       ALLOCATE(dimLEN(nDims))
+
+       DO d=1,nDims
+
+       call handle_err(                                                                                &
+            nf90_inquire_dimension(ncid, d, dimNAMES(d), dimLEN(d))                                    &
+                      , __LINE__)
+       DO n=1, nb_dim_vars
+          if (TRIM(dimNAMES(d)) == TRIM(output_dim_names(n))) then
+             dim_exists_file(n) = .TRUE.
+             call handle_err(                                                                          &
+                  nf90_inq_dimid(ncid, TRIM(dimNAMES(d)), output_dim_dimid(n))                         &
+                      , __LINE__)
+             output_dim_len(n) = dimLEN(d)
+          endif
+       ENDDO
+
+       ENDDO
+
+       if (.NOT. ALL(dim_exists_file)) then                                                       ! at least one dimension does not exist
+
+       DO n=1, nb_dim_vars
+
+         if (.NOT.dim_exists_file(n)) then
+
+         if (n.eq.3) then ! lev
+           output_dim_len(n) = z_num
+         endif
+
+         call handle_err(                                                                              &
+              nf90_redef(ncid=ncid)                                                                    & ! put it into define mode
+                      , __LINE__)
+
+         call handle_err(                                                                              &
+              nf90_def_dim(ncid, output_dim_names(n), output_dim_len(n), output_dim_dimid(n))          & ! define additional dimensions
+                      , __LINE__)
+
+         endif
+
+       ENDDO
+
+       endif
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+       ! define the depth variable (in meters below the surface of the ground, positive downwards)
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+       call handle_err(                                                                                &
+            nf90_def_var(ncid, "depth", NF90_FLOAT, output_dim_dimid(3), depth_varid)                  &  ! define additional variables
+                      , __LINE__)
+
+       call handle_err(                                                                                &
+            nf90_put_att(ncid, depth_varid, "units", "meters")                                         &
+                      , __LINE__)
+
+       call handle_err(                                                                                &
+            nf90_put_att(ncid, depth_varid, "standard_name", "depth")                                  &
+                      , __LINE__)
+
+       call handle_err(                                                                                &
+            nf90_put_att(ncid, depth_varid, "long_name", "depth_below_ground_surface")                 &
+                      , __LINE__)
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+       ! define the 3D temperature variable (in K)
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+       call handle_err(                                                                                &
+            nf90_def_var(ncid, "temp_ig", NF90_FLOAT, output_dim_dimid(3:0:-1), output_var_dimid(1))   &  ! define additional variables
+                      , __LINE__)
+
+       call handle_err(                                                                                &
+            nf90_put_att(ncid, output_var_dimid(1), "units", "K")                                      &
+                      , __LINE__)
+
+       call handle_err(                                                                                &
+            nf90_put_att(ncid, output_var_dimid(1), "standard_name", "temperature_in_ground")          &
+                      , __LINE__)
+
+       call handle_err(                                                                                &
+            nf90_put_att(ncid, output_var_dimid(1), "long_name", "solid_earth_subsurface_temperature") &
+                      , __LINE__)
+
+       call handle_err(                                                                                &
+!~             nf90_def_var_fill(ncid, output_var_dimid(1), fill_value=undefined_value)                   &
+            nf90_put_att(ncid, output_var_dimid(1), "_FillValue", undefined_value)                     &
+                      , __LINE__)
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+       ! Finalize definitions
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+       call handle_err(                                                                                &
+            nf90_enddef(ncid)                                                                          & ! check definitions, leave define mode
+                      , __LINE__)
+
+       ! Write the depth(z_num) variable in the output file
+       call handle_err(                                                                                &
+            nf90_put_var(ncid, depth_varid, depth_levels)                                              &  ! provide new variable values
+                      , __LINE__)
+
+
+       call handle_err(                                                                                & ! close netcdf dataset
+            nf90_close(ncid)                                                                           &
+                      , __LINE__)
+
+
+       current_time_record = 0
+
+      END SUBROUTINE INIT_netCDF_output
+
+
+
+      SUBROUTINE WRITE_netCDF_output(var_to_write)
+
+       USE netcdf
+       USE parameter_mod, only: z_num
+
+       INTEGER :: ncid, z
+       REAL, DIMENSION(:,:) :: var_to_write ! variables are 1:z_num, 1:gridNoMax
+       REAL, DIMENSION(z_num,spat_dim1,spat_dim2) :: nc_vartowrite ! lev, lon, lat, time
+
+       current_time_record = current_time_record + 1
+
+       do z=1,z_num
+         nc_vartowrite(z,:,:) = un_flatten_it(var_to_write(z,:))
+       enddo
+
+       WRITE(*,*) "VARIABLE TO NC WRITE: ", MINVAL(nc_vartowrite), MAXVAL(nc_vartowrite)
+       WRITE(*,*) "dims :: ", z_num, spat_dim1, spat_dim2
+
+       call handle_err(                                                                                &
+            nf90_open(path = TRIM(netCDFout_file), mode = NF90_WRITE, ncid = ncid)                     & ! open existing netCDF dataset
+                      , __LINE__)
+
+       call handle_err(                                                                                &
+            nf90_put_var(ncid, output_var_dimid(indx_var_temp_ig) ,                                    &
+                         nc_vartowrite(1:z_num,1:spat_dim1,1:spat_dim2),                               &
+                         start=(/1,1,1,current_time_record/), count=(/z_num, spat_dim1, spat_dim2,1/)) &  ! provide new variable values
+                      , __LINE__)
+
+
+       call handle_err(                                                                                & ! close netcdf dataset
+            nf90_close(ncid)                                                                           &
+                      , __LINE__)
+
+
+      END SUBROUTINE WRITE_netCDF_output
+
+
+
+
+      SUBROUTINE handle_err(nf90_code, line_location)
+
+        USE netcdf, ONLY: nf90_noerr, nf90_strerror
+
+        INTEGER, INTENT(IN) :: nf90_code
+        INTEGER, INTENT(in) :: line_location
+
+        if (nf90_code /= nf90_noerr) then
+           WRITE(*,*) "Error in netCDF operation", line_location, nf90_strerror(nf90_code)
+           STOP
+        endif
+
+      END SUBROUTINE handle_err
+
 
       END MODULE grids_more
 

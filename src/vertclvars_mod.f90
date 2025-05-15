@@ -24,7 +24,7 @@
 
      PRIVATE
 
-     PUBLIC :: vertclvars_init
+     PUBLIC :: vertclvars_init, DO_vertclvars_step
 
      CONTAINS
 
@@ -40,12 +40,15 @@
                                    compteur_time_step, end_year                                                    &
                                                                       )
 
-        USE parameter_mod, ONLY: organic_ind, z_num
-        USE parameter_mod, ONLY: D, dt, dz
+        USE parameter_mod,     ONLY: organic_ind, z_num
+        USE parameter_mod,     ONLY: D, dt, dz
+        use Fonction_temp,     ONLY: Permafrost_Depth
+        use Fonction_implicit, ONLY: Implicit_T
 
 #if ( CARBON == 1 )
         USE parameter_mod, ONLY: bio_diff_k_const, diff_k_const, bioturbation_depth, min_cryoturb_alt, max_cryoturb_alt, zf_soil
         USE parameter_mod, ONLY: YearType
+        USE Carbon,        ONLY: compute_alt, carbon_redistribute, decomposition, cryoturbation
 #endif
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
@@ -54,7 +57,8 @@
 
         INTEGER                         , INTENT(in)        :: nb_steps_toDO
         REAL, DIMENSION(1:nb_steps_toDO), INTENT(in)        :: T_air
-        REAL, DIMENSION(1:z_num)        , INTENT(IN)        :: Kp, n
+        REAL, DIMENSION(1:z_num)        , INTENT(inout)     :: Kp
+        REAL, DIMENSION(1:z_num)        , INTENT(IN)        :: n
         REAL, DIMENSION(1:z_num)        , INTENT(INOUT)     :: Temp
         REAL                            , INTENT(in)        :: T_bottom
         REAL                            , INTENT(out)       :: Per_depth
@@ -105,16 +109,6 @@
            end_year=.FALSE.
        endif
 #endif
-
-
-
-
-
-
-
-
-
-
 
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|

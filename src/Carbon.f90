@@ -101,7 +101,8 @@ contains
     real,  intent(inout)                                :: ALT ! active layer thickness
     real,  intent(out)                                  :: altmax_lastyear ! alt last year
     integer, intent(in)                                 :: compteur_time_step
-    integer, intent(in)                                 :: end_year
+!~     integer, intent(in)                                 :: end_year
+    logical, intent(in)                                 :: end_year
     integer                                             :: k, i, ALT_index
     real, dimension(z_num), intent(in)                  :: D
 
@@ -129,7 +130,8 @@ contains
 
    ! fin  de l'annee
    !write(*,*) 'end_year', end_year
-   if (end_year.eq.1) then
+!~    if (end_year.eq.1) then
+   if (end_year) then
    ALT_index=1
      altmax_lastyear=ALT
      if (Temp_positive(1).gt.0) then ! si en surface on a une temperature positive

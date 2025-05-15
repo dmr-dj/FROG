@@ -65,7 +65,7 @@
 
 
 
-     PUBLIC:: spatialvars_allocate, spatialvars_init
+     PUBLIC:: spatialvars_allocate, spatialvars_init, UPDATE_climate_forcing, DO_spatialvars_step
 
      CONTAINS
 
@@ -168,13 +168,17 @@
             !dmr [NOTA] For now, dummy init of spatial variables based on constants
 
 #if (SP_GHF == 1)
-        GeoHFlux(1:gridNoMax) = get_Spatial_GHF()
+        GeoHFlux(1:gridNoMax) = get_Spatial_2Dforcing("GHFl_r128x64-maskocean.nc","GHF_mean")
 #else
         GeoHFlux(:) = Gfx
 #endif
 
+#if (SP_Tinit == 1)
+        Tinit_SV(:) = get_Spatial_2Dforcing("tas_ewembi_1979-2016-r128x64-maskocean-timemean-clean.nc4","topo")
+#else
         !Tinit_SV(:) = T_init
         Tinit_SV(:) = SUM(forcing_surface_temp(:,:),DIM=2)/timFNoMax
+#endif
 
             !dmr Initialization of all columns, one by one
         do gridp = 1, gridNoMax
@@ -190,7 +194,7 @@
 
      END SUBROUTINE spatialvars_init
 
-     FUNCTION get_Spatial_GHF() result(GeoHFlux_SV)
+     FUNCTION get_Spatial_2Dforcing(nc_file_to_read,name_surf_variable) result(ReadInit_SV)
 
         use netcdf
         use parameter_mod, only: gridNoMax
@@ -199,7 +203,9 @@
 !       BY REFERENCE VARIABLES
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-        REAL, DIMENSION(1:gridNoMax) :: GeoHFlux_SV
+        CHARACTER(len=*), INTENT(in):: nc_file_to_read, name_surf_variable
+
+        REAL, DIMENSION(1:gridNoMax) :: ReadInit_SV
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       LOCAL VARIABLES
@@ -224,9 +230,6 @@
         REAL                      , DIMENSION(:,:),   ALLOCATABLE :: varDATA
         REAL                                                      :: var_undef = 0.0
 
-        CHARACTER(len=NF90_MAX_NAME),                   PARAMETER :: nc_file_to_read = "GHFl_r128x64-maskocean.nc"
-        CHARACTER(len=NF90_MAX_NAME),                   PARAMETER :: name_surf_variable="GHF_mean"
-
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       MAIN BODY OF THE ROUTINE
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
@@ -239,7 +242,8 @@
       ! I look forward to get a grid with one spatial variable and two dimensions for now
       ! Hence I should get nDims = 3, nVars = 4 at least (could be more if more variables), unlimited without time, hence unlimdimid == -1
 
-      if ( (nDims.EQ.2).AND.(nVars.GE.3).AND.(unlimdimid.EQ.-1) ) then ! valid file, no time expected
+!~       if ( (nDims.EQ.2).AND.(nVars.GE.3).AND.(unlimdimid.EQ.-1) ) then ! valid file, no time expected
+      if ( (nDims.GE.2).AND.(nVars.GE.3).AND.(unlimdimid.EQ.-1) ) then ! valid file, no time expected
 
        ALLOCATE(dimNAMES(nDims))
        ALLOCATE(dimLEN(nDims))
@@ -307,12 +311,12 @@
          if (varDATA(i,j).NE.var_undef) then
              ! count it in !
             varunmasked = varunmasked + 1
-            GeoHFlux_SV(varunmasked) = varDATA(i,j)
+            ReadInit_SV(varunmasked) = varDATA(i,j)
          endif
       ENDDO
       ENDDO
 
-      WRITE(*,*) "READ GeoHeatFlux from netCDF file: ", MINVAL(GeoHFlux_SV), MAXVAL(GeoHFlux_SV)
+      WRITE(*,*) "READ Variable from netCDF file: ", name_surf_variable, MINVAL(ReadInit_SV), MAXVAL(ReadInit_SV)
 
       else
         WRITE(*,*) "var id is zero", v
@@ -331,7 +335,7 @@
 
 
 
-     END FUNCTION get_Spatial_GHF
+     END FUNCTION get_Spatial_2Dforcing
 
 
 
@@ -479,6 +483,8 @@
      SUBROUTINE DO_spatialvars_step(stepstoDO,forcage_temperature_surface)
 
         use parameter_mod,  only: gridNoMax
+        use vertclvars_mod, only: DO_vertclvars_step
+        use grids_more,     only: WRITE_netCDF_output
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       BY REFERENCE VARIABLES
@@ -498,6 +504,7 @@
        ! This is where the parallelization could find place ...
        do gridp = 1, gridNoMax
 
+         WRITE(*,*) "INTEGRATING ... ", gridp, "/", gridNoMax
 
          CALL DO_vertclvars_step(stepstoDO,Kp(:,gridp),T_bottom_SV(gridp),Temp(:,gridp), forcage_temperature_surface(gridp,:) &
                                , n(:,gridp),freeze_depth_SV(gridp)                                                            &
@@ -508,8 +515,54 @@
 
        enddo
 
+       ! WRITE OUTPUT
+
+       CALL WRITE_netCDF_output(Temp)
+
      END SUBROUTINE DO_spatialvars_step
 
 
+
+     SUBROUTINE UPDATE_climate_forcing(stepstoDO,temperature_forcing_next)
+
+       use parameter_mod,  only: gridNoMax, timFNoMax
+
+       INTEGER, INTENT(in) :: stepstoDO
+       REAL, DIMENSION(:,:), ALLOCATABLE, INTENT(out) :: temperature_forcing_next ! will be (1:gridNoMax,1:stepstoDO)
+
+! Need to assume that there, the grid is worked upon in its entirety (no parallelization) ...
+
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       LOCAL VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+       INTEGER :: current_step, start_step, end_step, interim_nb, interim_end
+
+       current_step = compteur_tstep_SV(1)
+
+       start_step = current_step
+
+       if ((current_step.EQ.0).and.(.NOT.ALLOCATED(temperature_forcing_next))) then ! first call ...
+           allocate(temperature_forcing_next(1:gridNoMax,1:stepstoDO))
+           start_step = 1 ! for the forcing index
+       endif
+
+       end_step = start_step + stepstoDO - 1
+
+       if (end_step.GT.timFNoMax) then ! forcing serie requested is too long ... split !!
+
+        interim_nb = timFNoMax - start_step + 1
+        temperature_forcing_next(:,1:interim_nb) = forcing_surface_temp(:,start_step:timFNoMax)
+        ! then loop on the forcing
+        interim_end = stepstoDO - interim_nb + 1
+        temperature_forcing_next(:,interim_nb:stepstoDO) = forcing_surface_temp(:,1:interim_end)
+
+       else ! enough data already
+         temperature_forcing_next(:,:) = forcing_surface_temp(:,start_step:end_step)
+       endif
+
+
+     END SUBROUTINE UPDATE_climate_forcing
 
     END MODULE spatialvars_mod
