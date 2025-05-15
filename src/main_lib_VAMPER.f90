@@ -25,7 +25,7 @@
 
       PRIVATE
 
-      PUBLIC :: INITIALIZE_VAMP
+      PUBLIC :: INITIALIZE_VAMP, STEPFWD_VAMP
 
      contains
 
@@ -104,12 +104,13 @@
 !       MAIN BODY OF THE ROUTINE
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-
         is_a_success = .TRUE.
 
-        ! UPDATE_CLIMATE_FORCING
-        ! DO_VAMPER_STEP
 
+        ! UPDATE_CLIMATE_FORCING
+
+        ! DO_VAMPER_STEP
+!~         CALL DO_spatialvars_step() !! stepstoDO,forcage_temperature_surface
 
      end function STEPFWD_VAMP
 

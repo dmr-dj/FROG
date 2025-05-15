@@ -35,9 +35,10 @@
                                                 ,pori      & !dmr [???  TBC]
                                                 ,porf        !dmr [???  TBC]
 
-     real, dimension(:), allocatable, PUBLIC :: GeoHFlux   &
-                                               ,Tinit_SV
-
+     real, dimension(:), allocatable, PUBLIC ::  GeoHFlux    &
+                                               , Tinit_SV    &
+                                               , T_bottom_SV &
+                                               , freeze_depth_SV
 
      integer, dimension(:), allocatable, PUBLIC :: orgalayer_indx
 
@@ -48,11 +49,18 @@
 
 
 #if ( CARBON == 1 )
-     real,dimension(:,:)  , allocatable, PUBLIC :: deepSOM_a & !dmr [TBD]
-                                                 , deepSOM_s & !dmr [TBD]
-                                                 , deepSOM_p   !dmr [TBD]
-     real, dimension(:)   , allocatable, PUBLIC :: clay_SV
-     real,dimension(:,:,:), allocatable, PUBLIC :: fc_SV       !dmr [TBD]
+     real,dimension(:,:)  ,  allocatable, PUBLIC :: deepSOM_a & !dmr [TBD]
+                                                  , deepSOM_s & !dmr [TBD]
+                                                  , deepSOM_p   !dmr [TBD]
+     integer,dimension(:,:), allocatable, PUBLIC :: temp_oncepositive
+     real, dimension(:)   ,  allocatable, PUBLIC :: clay_SV
+     real,dimension(:,:,:),  allocatable, PUBLIC :: fc_SV       !dmr [TBD]
+     real, dimension(:)   ,  allocatable, PUBLIC :: ALT_SV, altmax_ly_SV
+
+!   Timer variables
+    INTEGER, dimension(:),  allocatable, PUBLIC :: compteur_tstep_SV    !nb of day or month of the year
+    LOGICAL, dimension(:),  allocatable, PUBLIC :: end_year_SV          !=0 if not end of year, =1 if end of year
+
 #endif
 
 
@@ -94,7 +102,8 @@
 
        allocate(GeoHFlux(1:gridNoMax))
        allocate(Tinit_SV(1:gridNoMax))
-
+       allocate(T_bottom_SV(1:gridNoMax))
+       allocate(freeze_depth_SV(1:gridNoMax))
 
        allocate(orgalayer_indx(1:gridNoMax))
 
@@ -103,8 +112,15 @@
        allocate(deepSOM_a(1:z_num,1:gridNoMax))
        allocate(deepSOM_s(1:z_num,1:gridNoMax))
        allocate(deepSOM_p(1:z_num,1:gridNoMax))
+       allocate(temp_oncepositive(1:z_num,1:gridNoMax))
        allocate(fc_SV(1:ncarb,1:ncarb,1:gridNoMax))
        allocate(clay_SV(1:gridNoMax))
+       allocate(ALT_SV(1:gridNoMax))
+       allocate(altmax_ly_SV(1:gridNoMax))
+       allocate(compteur_tstep_SV(1:gridNoMax))
+       allocate(end_year_SV(1:gridNoMax))
+
+
 #endif
 
        allocate(forcing_surface_temp(1:gridNoMax,1:timFNoMax))
@@ -120,7 +136,7 @@
 
      SUBROUTINE spatialvars_init ! VERTCL, SPAT_VAR
 
-       use parameter_mod,  only: gridNoMax, z_num
+       use parameter_mod,  only: gridNoMax, z_num, timFNoMax
        use vertclvars_mod, only: vertclvars_init
 
            ! Temporary addendum [2025-04-16]
@@ -144,26 +160,180 @@
 !       MAIN BODY OF THE ROUTINE
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-            !dmr [NOTA] For now, dummy init of spatial variables based on constants
-        GeoHFlux(:) = Gfx
-        Tinit_SV(:) = T_init
-
-            !dmr Initialization of all columns, one by one
-        do gridp = 1, gridNoMax
-          call vertclvars_init(GeoHFlux(gridp), Tinit_SV(gridp), Kp(:,gridp),Cp(:,gridp), orgalayer_indx(gridp), n(:,gridp) &
-                             , Temp(:,gridp))
-
-#if ( CARBON == 1 )
-            !dmr Initialization of all columns, one by one
-          call carbon_init(deepSOM_a(:,gridp), deepSOM_s(:,gridp), deepSOM_p(:,gridp), fc_SV(:,:,gridp), clay_SV(gridp))
-#endif
-        enddo
 
 #if (OFFLINE_RUN == 1)
         call get_clim_forcing(forc_tas_file, name_tas_variable,forcing_surface_temp)
 #endif
 
+            !dmr [NOTA] For now, dummy init of spatial variables based on constants
+
+#if (SP_GHF == 1)
+        GeoHFlux(1:gridNoMax) = get_Spatial_GHF()
+#else
+        GeoHFlux(:) = Gfx
+#endif
+
+        !Tinit_SV(:) = T_init
+        Tinit_SV(:) = SUM(forcing_surface_temp(:,:),DIM=2)/timFNoMax
+
+            !dmr Initialization of all columns, one by one
+        do gridp = 1, gridNoMax
+          call vertclvars_init(GeoHFlux(gridp), Tinit_SV(gridp), Kp(:,gridp),Cp(:,gridp), orgalayer_indx(gridp), n(:,gridp) &
+                             , Temp(:,gridp), T_bottom_SV(gridp))
+
+#if ( CARBON == 1 )
+            !dmr Initialization of all columns, one by one
+          call carbon_init(deepSOM_a(:,gridp), deepSOM_s(:,gridp), deepSOM_p(:,gridp), fc_SV(:,:,gridp), clay_SV(gridp), &
+                           ALT_SV(gridp),altmax_ly_SV(gridp),compteur_tstep_SV(gridp),end_year_SV(gridp))
+#endif
+        enddo
+
      END SUBROUTINE spatialvars_init
+
+     FUNCTION get_Spatial_GHF() result(GeoHFlux_SV)
+
+        use netcdf
+        use parameter_mod, only: gridNoMax
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       BY REFERENCE VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+        REAL, DIMENSION(1:gridNoMax) :: GeoHFlux_SV
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       LOCAL VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+        INTEGER :: ncid, ret_stat, nDims, nvars, nGlobalAtts, unlimdimid
+        INTEGER :: d,v,a, i, j
+
+        CHARACTER(len=NF90_MAX_NAME), DIMENSION(:),   ALLOCATABLE :: dimNAMES
+        INTEGER                     , DIMENSION(:),   ALLOCATABLE :: dimLEN
+
+        CHARACTER(len=NF90_MAX_NAME), DIMENSION(:),   ALLOCATABLE :: varNAMES
+        INTEGER                     , DIMENSION(:),   ALLOCATABLE :: varXTYPE, varNDIMS, varNATTS
+        INTEGER                     , DIMENSION(:,:), ALLOCATABLE :: varDIMIDS
+
+        CHARACTER(len=NF90_MAX_NAME), DIMENSION(:),   ALLOCATABLE :: attNAMES
+
+        LOGICAL                     , DIMENSION(:),   ALLOCATABLE :: varisDIM
+
+        INTEGER :: maskVarID=0, dim1, dim2, varunmasked
+
+        REAL                      , DIMENSION(:,:),   ALLOCATABLE :: varDATA
+        REAL                                                      :: var_undef = 0.0
+
+        CHARACTER(len=NF90_MAX_NAME),                   PARAMETER :: nc_file_to_read = "GHFl_r128x64-maskocean.nc"
+        CHARACTER(len=NF90_MAX_NAME),                   PARAMETER :: name_surf_variable="GHF_mean"
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       MAIN BODY OF THE ROUTINE
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+!      dmr GETTING THE VARIABLE NEEDED
+
+      ret_stat = nf90_open(nc_file_to_read, nf90_nowrite, ncid)
+      ret_stat = nf90_inquire(ncid, nDims, nVars, nGlobalAtts, unlimdimid)
+
+      ! I look forward to get a grid with one spatial variable and two dimensions for now
+      ! Hence I should get nDims = 3, nVars = 4 at least (could be more if more variables), unlimited without time, hence unlimdimid == -1
+
+      if ( (nDims.EQ.2).AND.(nVars.GE.3).AND.(unlimdimid.EQ.-1) ) then ! valid file, no time expected
+
+       ALLOCATE(dimNAMES(nDims))
+       ALLOCATE(dimLEN(nDims))
+
+       DO d=1,nDims
+         ret_stat = nf90_inquire_dimension(ncid, d, dimNAMES(d), dimLEN(d))
+!~          WRITE(*,*) "Found dimensions ::", dimNAMES(d), d
+       ENDDO
+
+       ! really only need the length of the unlimited (time) variable
+
+       ret_stat = nf90_inq_varid(ncid,name_surf_variable,v)
+
+       ALLOCATE(varNAMES(nVars))
+       ALLOCATE(varXTYPE(nVars))
+       ALLOCATE(varNDIMS(nVars))
+       ALLOCATE(varDIMIDS(nVars,nDims))
+       ALLOCATE(varNATTS(nVars))
+       ALLOCATE(varisDIM(nVars))
+
+       ret_stat = nf90_inquire_variable(ncid, v, varNAMES(v), varXTYPE(v), varNDIMS(v), varDIMIDS(v,:), varNATTS(v))
+
+      else
+         WRITE(*,*) "netCDF file for VAR does not match expectations", name_surf_variable
+         STOP
+      endif
+
+      if (v.NE.0) then ! I have found my variable to read, I have enough to define it
+
+      if (varNDIMS(v).NE.2) then
+         WRITE(*,*) "Current version only support 2D var file for GHF"
+         STOP
+      else
+         ! Get the actual values of the thing
+
+         dim1 = dimLEN(varDIMIDS(v,1))
+         dim2 = dimLEN(varDIMIDS(v,2))
+
+         ALLOCATE(varDATA(dim1,dim2))
+
+         ret_stat = NF90_GET_VAR(ncid,v,varDATA)
+
+!~          WRITE(*,*) "DIMS", dim1, dim2, dim3 ! lon lat time is getting out ... correct? (somehow netCDF reads backward)
+
+         ALLOCATE(attNAMES(varNATTS(v)))
+
+         do a=1,varNATTS(v)
+           ret_stat = NF90_INQ_ATTNAME(ncid, v, a, attNAMES(a))
+           if ((INDEX(attNAMES(a), "missing_value").GT.0) .OR. (INDEX(attNAMES(a), "_FillValue").GT.0) ) then
+               ret_stat = NF90_GET_ATT(ncid, v, attNAMES(a), var_undef)
+           endif
+         enddo
+
+!~          ! Get the missing value of the thing if exists ...
+!~          WRITE(*,*) "Value for undef :: ", var_undef
+      endif
+
+      ! variable is read in ... now need to check where I have an actual value (not masked)
+
+
+      varunmasked = 0
+
+      DO j=1, dim2
+      DO i=1, dim1
+         if (varDATA(i,j).NE.var_undef) then
+             ! count it in !
+            varunmasked = varunmasked + 1
+            GeoHFlux_SV(varunmasked) = varDATA(i,j)
+         endif
+      ENDDO
+      ENDDO
+
+      WRITE(*,*) "READ GeoHeatFlux from netCDF file: ", MINVAL(GeoHFlux_SV), MAXVAL(GeoHFlux_SV)
+
+      else
+        WRITE(*,*) "var id is zero", v
+      endif
+
+
+      DEALLOCATE(dimNAMES)
+      DEALLOCATE(dimLEN)
+      DEALLOCATE(varNAMES)
+      DEALLOCATE(varXTYPE)
+      DEALLOCATE(varNDIMS)
+      DEALLOCATE(varDIMIDS)
+      DEALLOCATE(varNATTS)
+      DEALLOCATE(varisDIM)
+      DEALLOCATE(varDATA)
+
+
+
+     END FUNCTION get_Spatial_GHF
+
+
 
      SUBROUTINE get_clim_forcing(forc_surf_file, name_surf_variable, forcing_surface_var)
 
@@ -304,6 +474,42 @@
       DEALLOCATE(varDATA)
 
      END SUBROUTINE get_clim_forcing
+
+
+     SUBROUTINE DO_spatialvars_step(stepstoDO,forcage_temperature_surface)
+
+        use parameter_mod,  only: gridNoMax
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       BY REFERENCE VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+        INTEGER, INTENT(in) :: stepstoDO
+        REAL, DIMENSION(1:gridNoMax,1:stepstoDO), INTENT(in) :: forcage_temperature_surface
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       LOCAL VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+       integer :: gridp
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       MAIN BODY OF THE ROUTINE
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+       ! This is where the parallelization could find place ...
+       do gridp = 1, gridNoMax
+
+
+         CALL DO_vertclvars_step(stepstoDO,Kp(:,gridp),T_bottom_SV(gridp),Temp(:,gridp), forcage_temperature_surface(gridp,:) &
+                               , n(:,gridp),freeze_depth_SV(gridp)                                                            &
+                                   ! CARBON OPTIONAL VARIABLES ...
+                               , temp_oncepositive(:,gridp), ALT_SV(gridp), altmax_ly_SV(gridp), clay_SV(gridp)               &
+                               , deepSOM_a(:,gridp), deepSOM_s(:,gridp), deepSOM_p(:,gridp), compteur_tstep_SV(gridp)         &
+                               , end_year_SV(gridp))
+
+       enddo
+
+     END SUBROUTINE DO_spatialvars_step
+
 
 
     END MODULE spatialvars_mod

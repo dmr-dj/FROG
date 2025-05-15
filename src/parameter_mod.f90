@@ -137,8 +137,8 @@ MODULE parameter_mod
     real, parameter :: bioturbation_depth=2 !m
 
     real, dimension(:), allocatable :: zf_soil  !! will be (0:z_num)
-    real            :: ALT
-    real            :: altmax_lastyear
+!~     real            :: ALT
+!~     real            :: altmax_lastyear
 #endif
 
 
@@ -146,7 +146,6 @@ MODULE parameter_mod
 
     CHARACTER(len=str_len) :: forc_tas_file = "tas_ewembi_1979-2016-r128x64-maskocean.nc4"
     CHARACTER(len=str_len) ::  name_tas_variable="topo"
-
 
 
 CONTAINS

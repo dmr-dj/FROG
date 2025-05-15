@@ -18,7 +18,7 @@ contains
 
     use parameter_mod, only: YearType, z_num, one_day
     use parameter_mod, only: diff_k_const, bio_diff_k_const, cryoturbation_diff_k_in, bioturbation_diff_k_in
-    use parameter_mod, only: ALT, altmax_lastyear
+!~     use parameter_mod, only: ALT, altmax_lastyear
     use parameter_mod, only: zf_soil
     use parameter_mod, only: zi_soil=>D, dz
 
@@ -34,16 +34,18 @@ contains
     zf_soil(1:z_num)=zi_soil(:)+dz(:)/2.
     zf_soil(0) = 0.
 
-    !Active layer depth
-    ALT=0.0
-    altmax_lastyear=0.0
+! dmr&mv --- moved to the spatial module (a.k.a. SpaceX)
+!~     !Active layer depth
+!~     ALT=0.0
+!~     altmax_lastyear=0.0
 
 
   end subroutine carbon_first_init
 !--------------------------
 
-!--------------------------
-  subroutine carbon_init(deepSOM_a, deepSOM_s, deepSOM_p,  fc, clay)
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+  subroutine carbon_init(deepSOM_a, deepSOM_s, deepSOM_p,  fc, clay, ALT, altmax_lastyear,compteur_tstep, end_year)
   ! initialize the carbon variables to 0
 
     use parameter_mod, only: z_num
@@ -54,13 +56,17 @@ contains
     real,dimension(z_num), intent(inout) :: deepSOM_a, deepSOM_s, deepSOM_p
     REAL, DIMENSION(ncarb,ncarb), intent(out)  :: fc                         !! flux fractions within carbon pools
     REAL, DIMENSION(ncarb)                     :: fr                         !! fraction of decomposed carbon that goes into the atmosphere
-    REAL, intent(out)                          :: clay
+    REAL, intent(out)                          :: clay, ALT, altmax_lastyear
+    INTEGER, intent(out)                       :: compteur_tstep
+    LOGICAL, intent(out)                       :: end_year
 
     deepSOM_a(:) = 0.0
     deepSOM_s(:) = 0.0
     deepSOM_p(:) = 0.0
 
     clay=1.0
+    ALT = 0.0
+    altmax_lastyear = 0.0
 
     ! calculate soil organic matter flux fractions
     fc(iactive,iactive) = 0.0
@@ -78,6 +84,9 @@ contains
     fr(:) = 1.0-fc(:,iactive)-fc(:,islow)-fc(:,ipassive) ! pour verifier, faire un print, doit etre 0
     !firstcall = .FALSE.
 
+    end_year = .FALSE.
+    compteur_tstep = 0
+
   end subroutine carbon_init
 !--------------------------
 
@@ -88,7 +97,7 @@ contains
     use parameter_mod, only: z_num, YearType, nb_day_per_month
 
     real, dimension(z_num), intent(in)                  ::   Temp
-    real, dimension(z_num), intent(inout)               :: Temp_positive
+    integer, dimension(z_num), intent(inout)            :: Temp_positive
     real,  intent(inout)                                :: ALT ! active layer thickness
     real,  intent(out)                                  :: altmax_lastyear ! alt last year
     integer, intent(in)                                 :: compteur_time_step
@@ -99,7 +108,7 @@ contains
    !initialisation au debut de l annee
    !write(*,*) 'compteur_time_step', compteur_time_step
    if (compteur_time_step.eq.1) then
-      Temp_positive(:) = 0.0
+      Temp_positive(:) = 0
    endif
 
    !au cours de l annee passe a 1 la ou temp > 0
@@ -108,10 +117,10 @@ contains
    !end where
 
    if (Temp(1).gt.0.0) then ! si en surface temperature positive
-    Temp_positive(1)=1.0
+    Temp_positive(1)=1
     do i=2, z_num
-     if ((Temp(i).gt.0.0).and.(Temp_positive(i-1).gt.0.0)) then
-       Temp_positive(i)=1.0
+     if ((Temp(i).gt.0.0).and.(Temp_positive(i-1).gt.0)) then
+       Temp_positive(i)=1
      endif
     enddo
    endif
@@ -123,9 +132,9 @@ contains
    if (end_year.eq.1) then
    ALT_index=1
      altmax_lastyear=ALT
-     if (Temp_positive(1).gt.0.0) then ! si en surface on a une temperature positive
+     if (Temp_positive(1).gt.0) then ! si en surface on a une temperature positive
       do k=1, z_num
-       if (Temp_positive(k).gt.0.0) then ! tant que la temperature est positive on descend
+       if (Temp_positive(k).gt.0) then ! tant que la temperature est positive on descend
           ALT_index=k
        else
           exit ! A VERIFIER

@@ -16,6 +16,7 @@
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
+#include "constant.h"
 
     MODULE vertclvars_mod
 
@@ -28,11 +29,142 @@
      CONTAINS
 
 
+
+     SUBROUTINE DO_vertclvars_step(nb_steps_toDO, Kp, T_bottom, Temp, T_air, n, Per_depth,                         &
+                                                                      ! Temp is the one column temperature of soil
+                                                                      ! T_air is the surface soil temperature forcing for the timesteps
+                                                                      ! T_air should be T_air(nb_steps_toDO) exactly
+                                                                      ! n is porosity in the vertical
+                                                                      ! Per_depth is the diagnosed "permafrost" or freezing depth (in meters)
+                                   Temp_positive, ALT, altmax_lastyear, clay, deepSOM_a, deepSOM_s, deepSOM_p,     &
+                                   compteur_time_step, end_year                                                    &
+                                                                      )
+
+        USE parameter_mod, ONLY: organic_ind, z_num
+        USE parameter_mod, ONLY: D, dt, dz
+
+#if ( CARBON == 1 )
+        USE parameter_mod, ONLY: bio_diff_k_const, diff_k_const, bioturbation_depth, min_cryoturb_alt, max_cryoturb_alt, zf_soil
+        USE parameter_mod, ONLY: YearType
+#endif
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       BY REFERENCE VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+        INTEGER                         , INTENT(in)        :: nb_steps_toDO
+        REAL, DIMENSION(1:nb_steps_toDO), INTENT(in)        :: T_air
+        REAL, DIMENSION(1:z_num)        , INTENT(IN)        :: Kp, n
+        REAL, DIMENSION(1:z_num)        , INTENT(INOUT)     :: Temp
+        REAL                            , INTENT(in)        :: T_bottom
+        REAL                            , INTENT(out)       :: Per_depth
+
+
+        INTEGER,DIMENSION(1:z_num), INTENT(inout), OPTIONAL :: Temp_positive                    ! Where temp is once positive over one year
+        REAL                      , INTENT(inout), OPTIONAL :: ALT, altmax_lastyear             ! Active Layer Thickness
+        REAL                      , INTENT(in),    OPTIONAL :: clay
+        INTEGER                   , INTENT(inout), OPTIONAL :: compteur_time_step
+        LOGICAL                   , INTENT(inout), OPTIONAL :: end_year
+        REAL   ,DIMENSION(1:z_num), INTENT(inout), OPTIONAL :: deepSOM_a, deepSOM_s, deepSOM_p
+
+
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       LOCAL VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+        INTEGER                  :: ll
+        REAL                     :: T_soil
+        REAL, DIMENSION(1:z_num) :: T_old
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       MAIN BODY OF THE ROUTINE
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+! dmr   Computes the forward step(s) in time for one column
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+        do ll=1,nb_steps_toDO !boucle temporelle / nombre de pas de temps à faire en avant
+
+
+
+
+#if ( CARBON == 1 )
+       !nb and mbv for carbon cycle, is it the end of the year?
+       compteur_time_step=compteur_time_step+1
+#if ( DAILY == 1 )
+       if (compteur_time_step.eq.YearType) then !nomber of days per year
+#else
+       if (compteur_time_step.eq.nb_mon_per_year) then !nomber of months per year
+#endif
+           end_year=.TRUE.
+           compteur_time_step=0
+       else
+           end_year=.FALSE.
+       endif
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!dmr    This is the section that updates the climate forcing, ill-placed
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+! dmr   The code below was providing a mean for time looping. I will move it outside this routine in the forcing updater
+!~        T_soil = T_air(mod(ll,dim_temp)+1)
+!~        swe_f  = swe_f_t(mod(ll,dim_swe)+1)
+!~        snw_tot = swe_f_t(mod(ll,dim_swe)+1)
+
+        T_soil = T_air(ll)
+        T_old(1:z_num) = Temp(1:z_num)
+
+
+       !-------------- Numerical difference routine when there is no snow --------!
+
+         call Implicit_T(T_old,T_soil,T_bottom,dt,dz,n,organic_ind,Temp,Kp)
+
+                       ! Returns Per_depth as depth of the 0C isotherm
+                       !    in meters, not per cell
+         call Permafrost_Depth(Temp,D,Per_depth)
+
+#if ( CARBON == 1 )
+       ! nb and mbv carbon cycle call
+       ! at the end of each year computes the actve layer thickness, needed for redistribution
+         call compute_alt(Temp, Temp_positive, ALT, compteur_time_step, end_year, altmax_lastyear, D)
+       !write(*,*) 'ALT', ALT
+       ! redistribute carbon from biosphere model
+         call carbon_redistribute(Temp, deepSOM_a, deepSOM_s, deepSOM_p, dz, ALT)
+       ! computes the decomposition in permafrost as a function of temperature (later : humidity and soil type?)
+       !! ICI verifier D pour zi_soil?
+         call decomposition(Temp, D, dt, deepSOM_a, deepSOM_s, deepSOM_p, clay)
+       ! cryoturbation et bioturbation
+       !! ICI chercher zi_soil et zf_soil dans VAMPER ?? D ???
+         call cryoturbation(Temp, deepSOM_a, deepSOM_s, deepSOM_p, altmax_lastyear, max_cryoturb_alt, &
+            min_cryoturb_alt, D, zf_soil, diff_k_const, bio_diff_k_const, dt,         &
+            bioturbation_depth)
+#endif
+        enddo ! boucle temporelle
+
+     END SUBROUTINE DO_vertclvars_step
+
+
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 ! dmr   Computes the 1-D characteristics, inputs/outputs ar for one column or one point
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-     SUBROUTINE vertclvars_init(Gfx_loc, Tinit_loc, Kp_loc, Cp_loc, organic_ind_loc, porosity_profvertcl, temperature_profvertcl)
+     SUBROUTINE vertclvars_init(Gfx_loc, Tinit_loc, Kp_loc, Cp_loc, organic_ind_loc, porosity_profvertcl, temperature_profvertcl  &
+                              , T_bottom)
 
        use parameter_mod, only: PorosityType, D, Bool_Organic, organic_depth, organic_ind, z_num
        use parameter_mod, only: dz, T_freeze
@@ -49,6 +181,7 @@
        real, dimension(1:z_num-1), intent(out) :: Kp_loc                                        ! Kp first constant, then computed
        real, dimension(1:z_num-1), intent(out) :: Cp_loc                                        ! Kp first constant, then computed
        integer,                    intent(out) :: organic_ind_loc                               ! indx of the bottom of organic layer
+       real,                       intent(out) :: T_bottom                                      ! Computation of bottom temperature (last level deep)
 
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
@@ -92,6 +225,8 @@
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
        call GeoHeatFlow(Gfx_loc, Kp_loc, dz, Tinit_loc, temperature_profvertcl)
+
+       T_bottom = temperature_profvertcl(z_num)
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !dmr    Then computes Cp and porf, pori and thermal conductivity of soil Kp
