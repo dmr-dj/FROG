@@ -33,9 +33,10 @@
 ! dmr           Change from 0.1.0: Modified so that the temperature forcing can be used as a grid definition file
 ! dmr           Change from 0.2.0: Modified so as to get all the information from a time forcing file directly
 ! dmr           Change from 0.3.0: added the netCDF initialization
+! dmr           Change from 0.4.0: added the netCDF writing, expanded variables
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-      CHARACTER(LEN=5), PARAMETER, PUBLIC :: version_mod ="0.4.0"
+      CHARACTER(LEN=5), PARAMETER, PUBLIC :: version_mod ="0.5.0"
 
       integer, parameter  :: str_len =256
 
@@ -62,27 +63,33 @@
 ! --- for output generation / netCDF
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-      INTEGER :: spat_dim2, spat_dim1
-      REAL    :: undefined_value
+      INTEGER         :: spat_dim2, spat_dim1
+      REAL, PUBLIC    :: undefined_value
       CHARACTER(LEN=str_len), PARAMETER :: typology_file="file_typology-r128x64.nc"
       CHARACTER(LEN=str_len), PARAMETER :: netCDFout_file="VAMPER-output.nc"
 
-      INTEGER, PARAMETER :: nb_out_vars = 1, nb_dim_vars = 3
+      INTEGER, PARAMETER :: nb_out_vars = 3, nb_dim_vars = 3
 
       CHARACTER(LEN=str_len), DIMENSION(nb_dim_vars), PARAMETER:: output_dim_names=[CHARACTER(len=str_len) :: "lat", "lon", "lev"]
-      CHARACTER(LEN=str_len), DIMENSION(nb_out_vars), PARAMETER:: output_var_names=[CHARACTER(len=str_len) :: "temp"]
+      CHARACTER(LEN=str_len), DIMENSION(nb_out_vars), PARAMETER:: output_var_names=[CHARACTER(len=str_len) :: "temp_ig", "palt"  &
+                                                                                                            , "plt"]
 
       INTEGER, DIMENSION(0:nb_dim_vars) :: output_dim_len, output_dim_dimid
-      INTEGER, DIMENSION(nb_out_vars) :: output_var_dimid
-      INTEGER, PARAMETER :: indx_var_temp_ig = 1
       INTEGER :: current_time_record
+
+      INTEGER, DIMENSION(nb_out_vars) :: output_var_dimid
+      INTEGER, PARAMETER              :: indx_var_temp_ig = 1, indx_var_palt=2, indx_var_plt=3
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 ! ---
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
+      INTERFACE WRITE_netCDF_output
+        MODULE PROCEDURE WRITE_netCDF_output3D, WRITE_netCDF_output2D
+      END INTERFACE WRITE_netCDF_output
 
-      PUBLIC :: INIT_maskGRID, INIT_netCDF_output, WRITE_netCDF_output
+      PUBLIC :: INIT_maskGRID, INIT_netCDF_output, indx_var_temp_ig, indx_var_palt, indx_var_plt, WRITE_netCDF_output
+
 
       CONTAINS
 
@@ -459,26 +466,69 @@
        ! define the 3D temperature variable (in K)
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-       call handle_err(                                                                                &
-            nf90_def_var(ncid, "temp_ig", NF90_FLOAT, output_dim_dimid(3:0:-1), output_var_dimid(1))   &  ! define additional variables
+       call handle_err(                                                                                                     &
+            nf90_def_var(ncid, output_var_names(indx_var_temp_ig), NF90_FLOAT, output_dim_dimid(3:0:-1)                     &
+                      , output_var_dimid(indx_var_temp_ig))         &  ! define additional variables
                       , __LINE__)
 
-       call handle_err(                                                                                &
-            nf90_put_att(ncid, output_var_dimid(1), "units", "K")                                      &
+       call handle_err(                                                                                                     &
+            nf90_put_att(ncid, output_var_dimid(indx_var_temp_ig), "units", "K")                                            &
                       , __LINE__)
 
-       call handle_err(                                                                                &
-            nf90_put_att(ncid, output_var_dimid(1), "standard_name", "temperature_in_ground")          &
+       call handle_err(                                                                                                     &
+            nf90_put_att(ncid, output_var_dimid(indx_var_temp_ig), "standard_name", "temperature_in_ground")                &
                       , __LINE__)
 
-       call handle_err(                                                                                &
-            nf90_put_att(ncid, output_var_dimid(1), "long_name", "solid_earth_subsurface_temperature") &
+       call handle_err(                                                                                                     &
+            nf90_put_att(ncid, output_var_dimid(indx_var_temp_ig), "long_name", "solid_earth_subsurface_temperature")       &
                       , __LINE__)
 
-       call handle_err(                                                                                &
-!~             nf90_def_var_fill(ncid, output_var_dimid(1), fill_value=undefined_value)                   &
-            nf90_put_att(ncid, output_var_dimid(1), "_FillValue", undefined_value)                     &
+       call handle_err(                                                                                                     &
+            nf90_put_att(ncid, output_var_dimid(indx_var_temp_ig), "_FillValue", undefined_value)                           &
                       , __LINE__)
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+       ! define the 2D permafrost depth variables (in m), 2D, since no dependence on depth
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+       ! dmr Permafrost active layer thickness (palt)
+
+       call handle_err(                                                                                               &
+            nf90_def_var(ncid, output_var_names(indx_var_palt), NF90_FLOAT, output_dim_dimid(2:0:-1)                  &
+                      , output_var_dimid(indx_var_palt))         &  ! define additional variables
+                      , __LINE__)
+
+       call handle_err(                                                                                               &
+            nf90_put_att(ncid, output_var_dimid(indx_var_palt), "units", "m")                                         &
+                      , __LINE__)
+
+       call handle_err(                                                                                               &
+            nf90_put_att(ncid, output_var_dimid(indx_var_palt), "standard_name", "permafrost_active_layer_thickness") &
+                      , __LINE__)
+
+       call handle_err(                                                                                               &
+            nf90_put_att(ncid, output_var_dimid(indx_var_palt), "_FillValue", undefined_value)                        &
+                      , __LINE__)
+
+       ! dmr Permafrost layer thickness (plt)
+
+       call handle_err(                                                                                               &
+            nf90_def_var(ncid, output_var_names(indx_var_plt), NF90_FLOAT, output_dim_dimid(2:0:-1)                   &
+                      , output_var_dimid(indx_var_plt))          &  ! define additional variables
+                      , __LINE__)
+
+       call handle_err(                                                                                               &
+            nf90_put_att(ncid, output_var_dimid(indx_var_plt), "units", "m")                                          &
+                      , __LINE__)
+
+       call handle_err(                                                                                               &
+            nf90_put_att(ncid, output_var_dimid(indx_var_plt), "standard_name", "permafrost_active_layer_thickness")  &
+                      , __LINE__)
+
+       call handle_err(                                                                                               &
+            nf90_put_att(ncid, output_var_dimid(indx_var_plt), "_FillValue", undefined_value)                         &
+                      , __LINE__)
+
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
        ! Finalize definitions
@@ -504,13 +554,14 @@
 
 
 
-      SUBROUTINE WRITE_netCDF_output(var_to_write)
+      SUBROUTINE WRITE_netCDF_output3D(var_to_write, indx_var)
 
        USE netcdf
        USE parameter_mod, only: z_num
 
        INTEGER :: ncid, z
-       REAL, DIMENSION(:,:) :: var_to_write ! variables are 1:z_num, 1:gridNoMax
+       REAL, DIMENSION(:,:), INTENT(in) :: var_to_write ! variables are 1:z_num, 1:gridNoMax
+       INTEGER, INTENT(in) :: indx_var
        REAL, DIMENSION(z_num,spat_dim1,spat_dim2) :: nc_vartowrite ! lev, lon, lat, time
 
        current_time_record = current_time_record + 1
@@ -527,7 +578,7 @@
                       , __LINE__)
 
        call handle_err(                                                                                &
-            nf90_put_var(ncid, output_var_dimid(indx_var_temp_ig) ,                                    &
+            nf90_put_var(ncid, output_var_dimid(indx_var) ,                                            &
                          nc_vartowrite(1:z_num,1:spat_dim1,1:spat_dim2),                               &
                          start=(/1,1,1,current_time_record/), count=(/z_num, spat_dim1, spat_dim2,1/)) &  ! provide new variable values
                       , __LINE__)
@@ -538,9 +589,43 @@
                       , __LINE__)
 
 
-      END SUBROUTINE WRITE_netCDF_output
+      END SUBROUTINE WRITE_netCDF_output3D
+
+      SUBROUTINE WRITE_netCDF_output2D(var_to_write, indx_var)
+
+       USE netcdf
+!~        USE parameter_mod, only: z_num
+
+       INTEGER :: ncid
+       REAL, DIMENSION(:), INTENT(in) :: var_to_write ! variables are 1:gridNoMax
+       INTEGER, INTENT(in) :: indx_var
+       REAL, DIMENSION(spat_dim1,spat_dim2) :: nc_vartowrite ! lon, lat, time
+
+!~        current_time_record = current_time_record + 1
+
+!~        do z=1,z_num
+         nc_vartowrite(:,:) = un_flatten_it(var_to_write(:))
+!~        enddo
+
+       WRITE(*,*) "VARIABLE TO NC WRITE: ", MINVAL(nc_vartowrite), MAXVAL(nc_vartowrite)
+       WRITE(*,*) "dims :: ", spat_dim1, spat_dim2
+
+       call handle_err(                                                                                &
+            nf90_open(path = TRIM(netCDFout_file), mode = NF90_WRITE, ncid = ncid)                     & ! open existing netCDF dataset
+                      , __LINE__)
+
+       call handle_err(                                                                                &
+            nf90_put_var(ncid, output_var_dimid(indx_var) ,                                            &
+                         nc_vartowrite(1:spat_dim1,1:spat_dim2),                                       &
+                         start=(/1,1,current_time_record/), count=(/spat_dim1, spat_dim2,1/))          & ! provide new variable values
+                      , __LINE__)
+
+       call handle_err(                                                                                & ! close netcdf dataset
+            nf90_close(ncid)                                                                           &
+                      , __LINE__)
 
 
+      END SUBROUTINE WRITE_netCDF_output2D
 
 
       SUBROUTINE handle_err(nf90_code, line_location)

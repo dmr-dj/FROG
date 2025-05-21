@@ -34,8 +34,6 @@
 !Param simulation 
   z_num = 101               !nombre de couches étudiée
   GridType = 1              !(1) Log-generated, (2) Linear-generated 
-  gridNoMax = 1             !dmr spatial index, no assumption of the spatial arrangement
-  Bool_layer_temp = 1       ! Creation of .txt with the temperature of the soil at different layer
   Depth = 1000.0            !profondeur de la modélisation
   T_init = -7.0             !température initiale a la surface
 

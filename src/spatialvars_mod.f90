@@ -35,10 +35,11 @@
                                                 ,pori      & !dmr [???  TBC]
                                                 ,porf        !dmr [???  TBC]
 
-     real, dimension(:), allocatable, PUBLIC ::  GeoHFlux    &
-                                               , Tinit_SV    &
-                                               , T_bottom_SV &
-                                               , freeze_depth_SV
+     real, dimension(:), allocatable, PUBLIC  ::  GeoHFlux    &
+                                                , Tinit_SV    &
+                                                , T_bottom_SV
+
+     real, dimension(:,:), allocatable, PUBLIC :: freeze_depth_SV
 
      integer, dimension(:), allocatable, PUBLIC :: orgalayer_indx
 
@@ -103,7 +104,7 @@
        allocate(GeoHFlux(1:gridNoMax))
        allocate(Tinit_SV(1:gridNoMax))
        allocate(T_bottom_SV(1:gridNoMax))
-       allocate(freeze_depth_SV(1:gridNoMax))
+       allocate(freeze_depth_SV(2,1:gridNoMax))
 
        allocate(orgalayer_indx(1:gridNoMax))
 
@@ -484,7 +485,7 @@
 
         use parameter_mod,  only: gridNoMax
         use vertclvars_mod, only: DO_vertclvars_step
-        use grids_more,     only: WRITE_netCDF_output
+        use grids_more,     only: WRITE_netCDF_output, indx_var_temp_ig, indx_var_palt, indx_var_plt
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       BY REFERENCE VARIABLES
@@ -507,7 +508,7 @@
          WRITE(*,*) "INTEGRATING ... ", gridp, "/", gridNoMax
 
          CALL DO_vertclvars_step(stepstoDO,Kp(:,gridp),T_bottom_SV(gridp),Temp(:,gridp), forcage_temperature_surface(gridp,:) &
-                               , n(:,gridp),freeze_depth_SV(gridp)                                                            &
+                               , n(:,gridp),freeze_depth_SV(:,gridp)                                                            &
                                    ! CARBON OPTIONAL VARIABLES ...
                                , temp_oncepositive(:,gridp), ALT_SV(gridp), altmax_ly_SV(gridp), clay_SV(gridp)               &
                                , deepSOM_a(:,gridp), deepSOM_s(:,gridp), deepSOM_p(:,gridp), compteur_tstep_SV(gridp)         &
@@ -517,7 +518,9 @@
 
        ! WRITE OUTPUT
 
-       CALL WRITE_netCDF_output(Temp)
+       CALL WRITE_netCDF_output(Temp, indx_var_temp_ig)
+       CALL WRITE_netCDF_output(freeze_depth_SV(2,:), indx_var_palt)
+       CALL WRITE_netCDF_output(freeze_depth_SV(1,:)-freeze_depth_SV(2,:), indx_var_plt)
 
      END SUBROUTINE DO_spatialvars_step
 
@@ -562,6 +565,8 @@
          temperature_forcing_next(:,:) = forcing_surface_temp(:,start_step:end_step)
        endif
 
+!~        !dmr [TEMPORARY ADD ON]
+!~        temperature_forcing_next(:,:) = temperature_forcing_next(:,:) - 273.15
 
      END SUBROUTINE UPDATE_climate_forcing
 

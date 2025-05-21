@@ -8,7 +8,7 @@ module Fonction_temp
   implicit none
 
   private
-  public:: AppHeatCapacity, ThermalConductivity, Permafrost_Depth
+  public:: AppHeatCapacity, ThermalConductivity, diagnose_Permafrost_Depth
 
   contains
 
@@ -98,38 +98,112 @@ module Fonction_temp
   end subroutine ThermalConductivity
 
 
-  subroutine Permafrost_Depth(Temp,D,Per_depth)
-     real, dimension(z_num), intent(in) :: Temp,D
-     real, intent(out) :: Per_depth
-     integer :: kk, z_m, z_p
-     real :: alpha
+  FUNCTION diagnose_Permafrost_Depth(Temp,Depth_vals) RESULT(freeze_temp_max_min)
 
-     z_p = 0
-     z_m = 0
+     use grids_more, only: undefined_value
 
-     do kk=0,z_num-1
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       BY REFERENCE VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-        if (Temp(z_num-kk)<0) then
+     REAL, DIMENSION(z_num), INTENT(in) :: Temp                ! Vertical temperature profile (should be °C)
+     REAL, DIMENSION(z_num), INTENT(in) :: Depth_vals          ! Vertical depth values (m)
 
-           z_m=z_num-kk
-           z_p=z_num-kk+1
-           exit
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       LOCAL VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-        end if
+     REAL, DIMENSION(2)                 :: freeze_temp_max_min ! maximum and minimum depth with freezing conditions
 
-     end do
+     INTEGER :: kk, indx_max, indx_min
 
-     if ((z_p.GT.0).AND.(z_m.GT.0)) then
+     REAL, parameter           :: zero = 273.15
+     LOGICAL, DIMENSION(z_num) :: mask_depth
 
-       alpha = Temp(z_p)-Temp(z_m)
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       MAIN BODY OF THE ROUTINE
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-       Per_depth = D(z_p) - Temp(z_p)/alpha
 
-     else
-       Per_depth = -9999.
-     endif
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+! dmr   Initialization
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-  end subroutine Permafrost_Depth
+     indx_min = z_num
+     indx_max = z_num
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+! dmr
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+    WHERE(Temp.LT.zero)
+      mask_depth = .TRUE.
+    ELSEWHERE
+      mask_depth = .FALSE.
+    ENDWHERE
+
+
+    IF (ANY(mask_depth,dim=1)) then
+                               ! There is at least one index where the temperature is below zero
+
+      indx_max = FINDLOC(mask_depth,.TRUE.,DIM=1,BACK=.TRUE.)      ! find the deepest    index that matches freeze conditions
+      indx_min = FINDLOC(mask_depth(indx_min:z_num),.TRUE., DIM=1) ! find the shallowest index that matches freeze conditions
+
+      if ((indx_max.EQ.indx_min).OR.(indx_min.LE.1)) then
+         ! There is only one (deep ?) freezing to unfreezing conditions change, surface must be frozen
+         freeze_temp_max_min(2) = Depth_vals(1)
+
+         if (indx_max.EQ.z_num) then ! Frozen all the way to the bottom ... STRANGE, NO ?
+           freeze_temp_max_min(1) = Depth_vals(z_num)
+         else
+           freeze_temp_max_min(1) = interpol_value(Temp(indx_max:indx_max+1),Depth_vals(indx_max:indx_max+1))
+         endif
+      else
+         freeze_temp_max_min(2) = interpol_value(Temp(indx_min-1:indx_min),Depth_vals(indx_min-1:indx_min))
+         freeze_temp_max_min(1) = interpol_value(Temp(indx_max:indx_max+1),Depth_vals(indx_max:indx_max+1))
+      endif
+
+    ELSE ! Always above zero, nothing to do
+        freeze_temp_max_min(:) = Depth_vals(1)
+    ENDIF
+
+  END FUNCTION diagnose_Permafrost_Depth
+
+  FUNCTION interpol_value(temp,Depth) result(depth_interpol)
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       BY REFERENCE VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+    REAL, DIMENSION(2), INTENT(in) :: temp, Depth
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       LOCAL VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+    REAL :: depth_interpol
+
+    REAL    :: alpha, dist
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       MAIN BODY OF THE ROUTINE
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+
+    alpha = ABS(Temp(1))+ABS(Temp(2)) ! Temperature distance (°C) around the zero
+    dist  = ABS(Depth(1)-Depth(2))     ! distance (m) between the two grid points
+
+    if (Temp(1).GT.0.0) then
+      depth_interpol = Depth(1) + Temp(1) * dist/alpha
+    else
+      depth_interpol = Depth(2) + Temp(2) * dist/alpha
+    endif
+
+  END FUNCTION interpol_value
 
 
 end module Fonction_temp
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+! dmr   The End of All Things (op. cit.)
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|

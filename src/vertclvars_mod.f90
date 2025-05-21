@@ -42,7 +42,7 @@
 
         USE parameter_mod,     ONLY: organic_ind, z_num
         USE parameter_mod,     ONLY: D, dt, dz
-        use Fonction_temp,     ONLY: Permafrost_Depth
+        use Fonction_temp,     ONLY: diagnose_Permafrost_Depth
         use Fonction_implicit, ONLY: Implicit_T
 
 #if ( CARBON == 1 )
@@ -61,7 +61,7 @@
         REAL, DIMENSION(1:z_num)        , INTENT(IN)        :: n
         REAL, DIMENSION(1:z_num)        , INTENT(INOUT)     :: Temp
         REAL                            , INTENT(in)        :: T_bottom
-        REAL                            , INTENT(out)       :: Per_depth
+        REAL, DIMENSION(2)              , INTENT(out)       :: Per_depth
 
 
         INTEGER,DIMENSION(1:z_num), INTENT(inout), OPTIONAL :: Temp_positive                    ! Where temp is once positive over one year
@@ -130,7 +130,7 @@
 
                        ! Returns Per_depth as depth of the 0C isotherm
                        !    in meters, not per cell
-         call Permafrost_Depth(Temp,D,Per_depth)
+         Per_depth = diagnose_Permafrost_Depth(Temp,D)
 
 #if ( CARBON == 1 )
        ! nb and mbv carbon cycle call
