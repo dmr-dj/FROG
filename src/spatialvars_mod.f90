@@ -144,6 +144,8 @@
        use parameter_mod,  only: Gfx, T_init
        use parameter_mod,  only: forc_tas_file, name_tas_variable
 
+       use parameter_mod,  only: GHF_spatial_file, GHF_variable_name, Tinit_spatial_file, Tinit_variable_name
+
 #if ( CARBON == 1 )
        use carbon        , only: carbon_init
 #endif
@@ -166,16 +168,14 @@
         call get_clim_forcing(forc_tas_file, name_tas_variable,forcing_surface_temp)
 #endif
 
-            !dmr [NOTA] For now, dummy init of spatial variables based on constants
-
 #if (SP_GHF == 1)
-        GeoHFlux(1:gridNoMax) = get_Spatial_2Dforcing("GHFl_r128x64-maskocean.nc","GHF_mean")
+        GeoHFlux(1:gridNoMax) = get_Spatial_2Dforcing(GHF_spatial_file,GHF_variable_name)
 #else
         GeoHFlux(:) = Gfx
 #endif
 
 #if (SP_Tinit == 1)
-        Tinit_SV(:) = get_Spatial_2Dforcing("tas_ewembi_1979-2016-r128x64-maskocean-timemean-clean.nc4","topo")
+        Tinit_SV(:) = get_Spatial_2Dforcing(Tinit_spatial_file,Tinit_variable_name)
 #else
         !Tinit_SV(:) = T_init
         Tinit_SV(:) = SUM(forcing_surface_temp(:,:),DIM=2)/timFNoMax

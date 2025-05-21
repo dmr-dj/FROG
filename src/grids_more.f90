@@ -23,6 +23,8 @@
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
+      use, intrinsic :: iso_fortran_env, only: stdin=>input_unit, stdout=>output_unit, stderr=>error_unit
+
       IMPLICIT NONE
 
       PRIVATE
@@ -34,9 +36,10 @@
 ! dmr           Change from 0.2.0: Modified so as to get all the information from a time forcing file directly
 ! dmr           Change from 0.3.0: added the netCDF initialization
 ! dmr           Change from 0.4.0: added the netCDF writing, expanded variables
+! dmr           Change from 0.5.0: streamlined the netCDF writing for the variables part
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-      CHARACTER(LEN=5), PARAMETER, PUBLIC :: version_mod ="0.5.0"
+      CHARACTER(LEN=5), PARAMETER, PUBLIC :: version_mod ="0.6.0"
 
       integer, parameter  :: str_len =256
 
@@ -52,7 +55,7 @@
 
 ! --- temporary file names that will need to be filled in
 
-      CHARACTER(len=str_len) :: mask_file = "tas_ewembi_1979-2016-r128x64-maskocean.nc4"! "tas_ewembi_1979-2016-r128x64-maskocean.nc4" ! "mask_ocean_r128x64.nc"
+      CHARACTER(len=str_len) :: mask_file ! = "tas_ewembi_1979-2016-r128x64-maskocean.nc4"! "tas_ewembi_1979-2016-r128x64-maskocean.nc4" ! "mask_ocean_r128x64.nc"
 
 
 ! --- spatial forcing needed
@@ -65,14 +68,21 @@
 
       INTEGER         :: spat_dim2, spat_dim1
       REAL, PUBLIC    :: undefined_value
-      CHARACTER(LEN=str_len), PARAMETER :: typology_file="file_typology-r128x64.nc"
-      CHARACTER(LEN=str_len), PARAMETER :: netCDFout_file="VAMPER-output.nc"
+      CHARACTER(LEN=str_len) :: typology_file  ! ="file_typology-r128x64.nc"
+      CHARACTER(LEN=str_len) :: netCDFout_file ! ="VAMPER-output.nc"
 
       INTEGER, PARAMETER :: nb_out_vars = 3, nb_dim_vars = 3
 
       CHARACTER(LEN=str_len), DIMENSION(nb_dim_vars), PARAMETER:: output_dim_names=[CHARACTER(len=str_len) :: "lat", "lon", "lev"]
-      CHARACTER(LEN=str_len), DIMENSION(nb_out_vars), PARAMETER:: output_var_names=[CHARACTER(len=str_len) :: "temp_ig", "palt"  &
-                                                                                                            , "plt"]
+      CHARACTER(LEN=str_len), DIMENSION(nb_out_vars), PARAMETER::                                     &
+                              output_var_names=[CHARACTER(len=str_len) :: "temp_ig", "palt", "plt"],  &
+                              output_unt_names=[CHARACTER(len=str_len) :: "K", "m", "m"],             &
+                              output_std_names=[CHARACTER(len=str_len) :: "temperature_in_ground",    &
+                                 "permafrost_active_layer_thickness", "permafrost_layer_thickness"],  &
+                              output_lng_names=[CHARACTER(len=str_len) ::                             &
+                                 "solid_earth_subsurface_temperature", "", ""],                       &
+                              output_dms_names=[CHARACTER(len=str_len) :: "lev lon lat time",          &
+                                 "lon lat time", "lon lat time"]
 
       INTEGER, DIMENSION(0:nb_dim_vars) :: output_dim_len, output_dim_dimid
       INTEGER :: current_time_record
@@ -185,6 +195,12 @@
         REAL                        , DIMENSION(:,:), ALLOCATABLE :: maskdata
         REAL                                                      :: mask_undef = 0.0
 
+! dmr   For namelist reading ...
+
+        CHARACTER(len=str_len), PARAMETER                         :: file_path ="vamper_inputsGrid.nml"
+        INTEGER                                                   :: rc,fu
+        NAMELIST /inputsGrid/ mask_file, typology_file, netCDFout_file
+
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       MAIN BODY OF THE ROUTINE
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
@@ -193,6 +209,29 @@
 !       THINGS TO DO ONCE
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+! dmr   Read the appropriate namelist
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+      INQUIRE (file=file_path, iostat=rc)
+      IF (rc /= 0) THEN
+         WRITE (stderr, '("Error: input file ", a, " does not exist")') file_path
+         STOP
+      ENDIF
+
+      ! Open and read Namelist file.
+      OPEN (action='read', file=file_path, iostat=rc, newunit=fu)
+      IF (rc /= 0) WRITE (stderr, '("Error: Cannot open namelist file")')
+
+      READ (nml=inputsGrid, iostat=rc, unit=fu)
+      IF (rc /= 0) WRITE (stderr, '("Error: invalid Namelist format")')
+
+      CLOSE (fu)
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+! dmr
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
       ret_stat = nf90_open(mask_file, nf90_nowrite, ncid)
 
       ret_stat = nf90_inquire(ncid, nDims, nVars, nGlobalAtts, unlimdimid)
@@ -364,7 +403,7 @@
 !       LOCAL VARIABLES
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-       CHARACTER(len=str_len) :: command_to_copy="cp -f "//TRIM(typology_file)//" "//TRIM(netCDFout_file)
+       CHARACTER(len=str_len) :: command_to_copy ! ="cp -f "//TRIM(typology_file)//" "//TRIM(netCDFout_file)
 
        INTEGER :: ncid, nDims, nvars, nGlobalAtts, unlimdimid, d, n, depth_varid
 
@@ -373,12 +412,14 @@
 
        LOGICAL, DIMENSION(nb_dim_vars) :: dim_exists_file
 
+       INTEGER :: c, indx_var
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       MAIN BODY OF THE ROUTINE
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
        ! Copy the typology file into the new output file
+       command_to_copy="cp -f "//TRIM(typology_file)//" "//TRIM(netCDFout_file)
        WRITE(*,*) "COMMAND // ", TRIM(command_to_copy)
        call execute_command_line(TRIM(command_to_copy))
 
@@ -462,73 +503,51 @@
             nf90_put_att(ncid, depth_varid, "long_name", "depth_below_ground_surface")                 &
                       , __LINE__)
 
-!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
-       ! define the 3D temperature variable (in K)
-!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
-
-       call handle_err(                                                                                                     &
-            nf90_def_var(ncid, output_var_names(indx_var_temp_ig), NF90_FLOAT, output_dim_dimid(3:0:-1)                     &
-                      , output_var_dimid(indx_var_temp_ig))         &  ! define additional variables
-                      , __LINE__)
-
-       call handle_err(                                                                                                     &
-            nf90_put_att(ncid, output_var_dimid(indx_var_temp_ig), "units", "K")                                            &
-                      , __LINE__)
-
-       call handle_err(                                                                                                     &
-            nf90_put_att(ncid, output_var_dimid(indx_var_temp_ig), "standard_name", "temperature_in_ground")                &
-                      , __LINE__)
-
-       call handle_err(                                                                                                     &
-            nf90_put_att(ncid, output_var_dimid(indx_var_temp_ig), "long_name", "solid_earth_subsurface_temperature")       &
-                      , __LINE__)
-
-       call handle_err(                                                                                                     &
-            nf90_put_att(ncid, output_var_dimid(indx_var_temp_ig), "_FillValue", undefined_value)                           &
-                      , __LINE__)
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
-       ! define the 2D permafrost depth variables (in m), 2D, since no dependence on depth
+       ! define the variables iteratively
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-       ! dmr Permafrost active layer thickness (palt)
+        DO indx_var=1, nb_out_vars
 
-       call handle_err(                                                                                               &
-            nf90_def_var(ncid, output_var_names(indx_var_palt), NF90_FLOAT, output_dim_dimid(2:0:-1)                  &
-                      , output_var_dimid(indx_var_palt))         &  ! define additional variables
-                      , __LINE__)
+           c = count_words_string(output_dms_names(indx_var))
 
-       call handle_err(                                                                                               &
-            nf90_put_att(ncid, output_var_dimid(indx_var_palt), "units", "m")                                         &
-                      , __LINE__)
+           SELECT CASE (c)
+             CASE (4)
+               call handle_err(                                                                                           &
+                  nf90_def_var(ncid, output_var_names(indx_var), NF90_FLOAT, output_dim_dimid(3:0:-1)                     &
+                            , output_var_dimid(indx_var))                                                                 &
+                            , __LINE__)
+             CASE (3)
+               call handle_err(                                                                                           &
+                  nf90_def_var(ncid, output_var_names(indx_var), NF90_FLOAT, output_dim_dimid(2:0:-1)                     &
+                            , output_var_dimid(indx_var))                                                                 &
+                            , __LINE__)
+             CASE DEFAULT
+               WRITE(*,*) "NetCDF init is not setup for a variable with ", c, " axes"
 
-       call handle_err(                                                                                               &
-            nf90_put_att(ncid, output_var_dimid(indx_var_palt), "standard_name", "permafrost_active_layer_thickness") &
-                      , __LINE__)
+           END SELECT
 
-       call handle_err(                                                                                               &
-            nf90_put_att(ncid, output_var_dimid(indx_var_palt), "_FillValue", undefined_value)                        &
-                      , __LINE__)
+           call handle_err(                                                                                               &
+              nf90_put_att(ncid, output_var_dimid(indx_var), "units", output_unt_names(indx_var))                         &
+                        , __LINE__)
 
-       ! dmr Permafrost layer thickness (plt)
+           call handle_err(                                                                                               &
+              nf90_put_att(ncid, output_var_dimid(indx_var), "standard_name", output_std_names(indx_var))                 &
+                        , __LINE__)
 
-       call handle_err(                                                                                               &
-            nf90_def_var(ncid, output_var_names(indx_var_plt), NF90_FLOAT, output_dim_dimid(2:0:-1)                   &
-                      , output_var_dimid(indx_var_plt))          &  ! define additional variables
-                      , __LINE__)
 
-       call handle_err(                                                                                               &
-            nf90_put_att(ncid, output_var_dimid(indx_var_plt), "units", "m")                                          &
-                      , __LINE__)
+           if (output_lng_names(indx_var) /= "") then
+             call handle_err(                                                                                             &
+                nf90_put_att(ncid, output_var_dimid(indx_var), "long_name", output_lng_names(indx_var))                   &
+                          , __LINE__)
+           endif
 
-       call handle_err(                                                                                               &
-            nf90_put_att(ncid, output_var_dimid(indx_var_plt), "standard_name", "permafrost_active_layer_thickness")  &
-                      , __LINE__)
+           call handle_err(                                                                                               &
+              nf90_put_att(ncid, output_var_dimid(indx_var), "_FillValue", undefined_value)                               &
+                        , __LINE__)
 
-       call handle_err(                                                                                               &
-            nf90_put_att(ncid, output_var_dimid(indx_var_plt), "_FillValue", undefined_value)                         &
-                      , __LINE__)
-
+        ENDDO
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
        ! Finalize definitions
@@ -642,6 +661,38 @@
 
       END SUBROUTINE handle_err
 
+! dmr adapted from: https://www.reddit.com/r/fortran/comments/yzhkw5/reading_a_file_into_individual_words/
+
+      FUNCTION count_words_string(input_string) result(word_count)
+
+       CHARACTER(LEN=*), INTENT(in) :: input_string
+       INTEGER :: word_count
+
+       CHARACTER(LEN=32), DIMENSION(10) :: words
+
+       INTEGER :: i, ios, counter
+
+        counter = 1
+        i = 0
+        do
+
+          read(input_string, *, iostat=ios) words(counter:counter+i)
+
+          if (ios /= 0) then
+            words(counter+i) = ''
+            counter = counter + i
+            exit
+          else
+            i = i + 1
+          endif
+
+        enddo
+
+        words(counter) = ''
+        word_count = counter - 1
+
+
+      END FUNCTION count_words_string
 
       END MODULE grids_more
 

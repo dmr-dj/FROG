@@ -36,6 +36,17 @@ MODULE parameter_mod
   integer, parameter  :: str_len = 256
 
 
+
+!   FORCING FILES FOR OFFLINE RUN & GRID DEFINITION
+
+  CHARACTER(len=str_len) :: forc_tas_file      ! = "tas_ewembi_1979-2016-r128x64-maskocean.nc4"
+  CHARACTER(len=str_len) :: name_tas_variable  ! ="topo"
+  CHARACTER(len=str_len) :: GHF_spatial_file
+  CHARACTER(len=str_len) :: GHF_variable_name
+  CHARACTER(len=str_len) :: Tinit_spatial_file
+  CHARACTER(len=str_len) :: Tinit_variable_name
+
+
   character(len=str_len) :: namerun
   integer :: TotTime         !temps total en année
   integer :: nb_day_per_month           !
@@ -140,13 +151,6 @@ MODULE parameter_mod
 !~     real            :: ALT
 !~     real            :: altmax_lastyear
 #endif
-
-
-!   FORCING FILES FOR OFFLINE RUN. TEMPORARY DROP HERE
-
-    CHARACTER(len=str_len) :: forc_tas_file = "tas_ewembi_1979-2016-r128x64-maskocean.nc4"
-    CHARACTER(len=str_len) ::  name_tas_variable="topo"
-
 
 CONTAINS
 
@@ -347,13 +351,16 @@ CONTAINS
     CHARACTER(len= 19)  :: file_path ="vamper_namelist.nml"
 
 
+    NAMELIST /inputFiles/ forc_tas_file, name_tas_variable, GHF_spatial_file, GHF_variable_name, Tinit_spatial_file    &
+                        , Tinit_variable_name
+
     NAMELIST /Param/ namerun,TotTime,nb_day_per_month,nb_mon_per_year, t_fin,YearType,Bool_glacial,alpha,PorosityType, &
-                     Bool_Organic,Porosity_soil,organic_depth,n_organic,n_soil_bot, q_quartz,Gfx,Bool_Snow,     &
-                     Bool_Swe_Snw,Bool_Model_Snow,Bool_Bessi,s_l_max,z_num,GridType,  &
+                     Bool_Organic,Porosity_soil,organic_depth,n_organic,n_soil_bot, q_quartz,Gfx,Bool_Snow,            &
+                     Bool_Swe_Snw,Bool_Model_Snow,Bool_Bessi,s_l_max,z_num,GridType,                                   &
                      Depth,T_init,Bool_delta,Bool_geometric, EQ_Tr, EQ1_EQ2 ! Bool_layer_temp,
 
-    NAMELIST /Physique/ rho_snow_freeze,rho_water,rho_ice,rho_organic,rho_soil,rho_snow_fresh,C_water,C_ice, &
-            C_organic,C_dry_soil,K_other_minerals,K_quartz,K_organic,K_ice,K_fluids,T_freeze,freezing_range,&
+    NAMELIST /Physique/ rho_snow_freeze,rho_water,rho_ice,rho_organic,rho_soil,rho_snow_fresh,C_water,C_ice,           &
+            C_organic,C_dry_soil,K_other_minerals,K_quartz,K_organic,K_ice,K_fluids,T_freeze,freezing_range,           &
             gravity,Latent_heat
 
     NAMELIST /Tempdata/ Tempsolinit, Tempairmonth, Tempairday, Tempsnowmonth, Tempsnowday
@@ -367,6 +374,9 @@ CONTAINS
 
     ! Open and read Namelist file.
     OPEN (action='read', file=file_path, iostat=rc, newunit=fu)
+
+    IF (rc /= 0) WRITE (stderr, '("Error: invalid Namelist format")')
+    READ (nml=inputFiles, iostat=rc, unit=fu)
 
     IF (rc /= 0) WRITE (stderr, '("Error: invalid Namelist format")')
     READ (nml=Param, iostat=rc, unit=fu)
@@ -403,6 +413,11 @@ CONTAINS
 
     write(fo,*) "=== PARAMETERS CHECK ==="
 
+
+    write(to_print,'(a30)') "forc_tas_file"
+    write(fo,*) adjustl(to_print), trim(forc_tas_file)
+    write(to_print,'(a30)') "name_tas_variable"
+    write(fo,*) adjustl(to_print), trim(name_tas_variable)
     write(to_print,'(a30)') "namerun"
     write(fo,*) adjustl(to_print), trim(namerun)
     write(to_print,'(a30)') "TotTime"

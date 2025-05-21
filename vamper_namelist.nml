@@ -1,4 +1,13 @@
 ! mbv  Namelist parametres 
+&inputFiles
+  forc_tas_file       = "tas_ewembi_1979-2016-r128x64-maskocean.nc4"
+  name_tas_variable   = "topo"
+  GHF_spatial_file    = "GHFl_r128x64-maskocean.nc"
+  GHF_variable_name   = "GHF_mean"
+  Tinit_spatial_file  = "tas_ewembi_1979-2016-r128x64-maskocean-timemean-clean.nc4"
+  Tinit_variable_name = "topo"
+/
+
 &Param
 ! Name of the experiment
   namerun = "Boike08psoil" ! Name of the run
