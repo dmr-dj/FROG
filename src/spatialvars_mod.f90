@@ -502,10 +502,13 @@
 !       MAIN BODY OF THE ROUTINE
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
+
        ! This is where the parallelization could find place ...
+!$omp parallel
+!$omp do
        do gridp = 1, gridNoMax
 
-         WRITE(*,*) "INTEGRATING ... ", gridp, "/", gridNoMax
+!~          WRITE(*,*) "INTEGRATING ... ", gridp, "/", gridNoMax
 
          CALL DO_vertclvars_step(stepstoDO,Kp(:,gridp),T_bottom_SV(gridp),Temp(:,gridp), forcage_temperature_surface(gridp,:) &
                                , n(:,gridp),freeze_depth_SV(:,gridp)                                                            &
@@ -515,6 +518,8 @@
                                , end_year_SV(gridp))
 
        enddo
+!$omp end do
+!$omp end parallel
 
        ! WRITE OUTPUT
 
