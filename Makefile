@@ -1,51 +1,109 @@
-DIR = src
-
+## Copyright (c) 2019 alberto Otero de la Roza <aoterodelaroza@gmail.com>
+## This file is frere software; distributed under GNU/GPL version 3.
 include make.macros
+## FC=compiler
+## FCSYNTAX=syntax-only compilation flag
+## FCMODDIR=flag to set read/write .mod and .smod directory
+## FCMODREADDIR=flag to set write-only .mod and .smod directory
+## MODDIR=.mod and .smod directory (leave blank for root)
+# FC:=gfortran
+FCSYNTAX:=-fsyntax-only
+FCMODDIR:=-J
+MODDIR:=.mod
+# FC:=ifort
+# FCSYNTAX:=-syntax-only
+# FCMODDIR:=-module
+# FCMODREADDIR:=-I
+# MODDIR:=.mod
 
-# Suffix-rules:  Begin by throwing away all old suffix-
-# rules, and then create new ones for compiling
-# *.f90-files.
-.SUFFIXES:
-.SUFFIXES: .f90 .o
-.SUFFIXES: .f08 .o
-.SUFFIXES: .f .o
-.SUFFIXES: .F .o
+#### user input ends here ####
 
-# Compilation rules
-$(DIR)/%.o: $(DIR)/%.f90
-	$(FC) $(F_FLAGS_EXTD) $(FFLAGS) ${INCLUDES} -c $(DIR)/$*.f90 -o $(DIR)/$*.o
+## some tricks for text manipulation
+null:=
+space:=$(null) $(null)
+$(space):=$(space)
+define \n
 
-$(DIR)/%.o: $(DIR)/%.f08
-	$(FC) $(F_STRCT_EIGHT) $(F_FLAGS_EXTD) $(FFLAGS) ${INCLUDES} -c ${F_TREAT_FORTR} $(DIR)/$*.f08 -o $(DIR)/$*.o
 
-$(DIR)/%.o: $(DIR)/%.f
-	$(FC) $(F_FLAGS_CARD) $(FFLAGS) ${INCLUDES} -c $(DIR)/$*.f -o $(DIR)/$*.o
+endef
 
-$(DIR)/%.o: $(DIR)/%.F
-	$(FC) $(F_FLAGS_CARD) $(FFLAGS) ${INCLUDES} -c $(DIR)/$*.F -o $(DIR)/$*.o
+## no implicit rules
+.SUFFIXES: 
 
-# Include the dependency-list created by makedepf90 below
-include .depend
+## auxiliary programs
+AWK:=awk
+SED:=sed
+RM:=rm -f
+MKDIR:=mkdir -p
+TEST:=test
 
-all: vamper.x
+## known fortran extensions
+FORTEXT:=f F fpp FPP for FOR ftn FTN f90 F90 f95 F95 f03 F03 f08 F08
 
-# target 'clean' for deleting object- *.mod- and other
-# # unwanted files
-#
+## locate the source files
+SOURCES:=$(shell find src/. -regextype posix-awk -regex '.*\.($(subst $( ),|,$(FORTEXT)))$$')
+
+## compilation and syntax-compilation commands
+COMPILE.f08 = $(FC) $(F_FLAGS_EXTD) $(FFLAGS) $(INCLUDES) $(TARGET_ARCH) -c
+MAKEMOD.f08 = $(FC) $(F_FLAGS_EXTD) $(FFLAGS) $(INCLUDES) $(TARGET_ARCH) $(FCSYNTAX) -c
+
+## create the mod and smod directory; define slashed version of MODDIR
+ifneq ($(MODDIR),)
+  $(shell $(TEST) -d $(MODDIR) || $(MKDIR) -p $(MODDIR))
+  MODDIRSLSH:=$(MODDIR)/
+else
+  MODDIRSLSH:=./
+endif
+
+## create the temporary mod and smod directory
+ifneq ($(FCMODREADDIR),)
+  MODDIRTMP:=.tmp$(MODDIR)
+  $(shell $(TEST) -d $(MODDIRTMP) || $(MKDIR) -p $(MODDIRTMP))
+  MAKEMOD.f08+= $(FCMODDIR) $(MODDIR)
+  COMPILE.f08+= $(FCMODREADDIR) $(MODDIR) $(FCMODDIR) $(MODDIRTMP)
+else
+  MAKEMOD.f08+= $(FCMODDIR) $(MODDIR)
+  COMPILE.f08+= $(FCMODDIR) $(MODDIR)
+endif
+
+## define the anchors and the objects variables
+# $(call source-to-extension,source-file-list,new-extension)
+define source-to-extension
+  $(strip \
+    $(foreach ext,$(FORTEXT),\
+      $(subst .$(ext),.$2,$(filter %.$(ext),$1))))
+endef
+OBJECTS:=$(call source-to-extension,$(SOURCES),o)
+ANCHORS:=$(call source-to-extension,$(SOURCES),anc)
+
+## default target, main and clean targets
+all: VAMPER.x
+
+VAMPER.x: $(OBJECTS)
+	$(FC) $(INCLUDES) -o $@ $+ $(LIBS)
+
+.PHONY: clean
 clean:
-	rm -f *.mod $(DIR)/*.o *genmod* .depend vamper.x
+	-$(RM) *.mod *.smod $(OBJECTS) $(ANCHORS) main
+	-$(TEST) -d $(MODDIR) && $(RM) -r $(MODDIR)
+	-$(TEST) -d $(MODDIRTMP) && $(RM) -r $(MODDIRTMP)
 
-strict: clean vamper.x
+## syntax-only compilation rule: all anchor files depend on their source
+# $(call modsource-pattern-rule,extension)
+define modsource-pattern-rule
+%.anc: %.$1
+	$$(MAKEMOD.f08) $$<
+	@touch $$@
+endef
+$(foreach ext,$(FORTEXT),$(eval $(call modsource-pattern-rule,$(ext))))
 
-# Create a dependency list using makedepf90.  All files
-# that needs to be compiled to build the program,
-# i.e all source files except include files, should
-# be given on the command line to makedepf90.
-#
-# The argument to the '-o' option will be the name of the
-# resulting program when running 'make'
+## compilation rule: objects depend on their anchor file
+%.o: %.anc
+	$(COMPILE.f08) $(OUTPUT_OPTION) $(wildcard $(addprefix $*.,$(FORTEXT)))
+ifdef MODDIRTMP
+	-@$(RM) $(MODDIRTMP)/*.mod $(MODDIRTMP)/*.smod
+endif
+	@touch $@
 
-depend .depend:
-		$(FMAKEDEPEND) -o vamper.x $(DIR)/*.f90 > .depend
-
-
+## automatically generate the dependency rules
+$(eval $(subst $( ),$(\n),$(shell $(AWK) --traditional -f makedepf08.awk $(SOURCES) | sort | uniq | $(SED) -e 's!^.mod/!$(MODDIRSLSH)!' -e 's!:.mod/!:$(MODDIRSLSH)!')))
