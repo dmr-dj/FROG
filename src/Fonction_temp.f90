@@ -8,7 +8,7 @@ module Fonction_temp
   implicit none
 
   private
-  public:: AppHeatCapacity, ThermalConductivity, diagnose_Permafrost_Depth
+  public:: AppHeatCapacity, ThermalConductivity, diagnose_frost_Depth
 
   contains
 
@@ -98,7 +98,7 @@ module Fonction_temp
   end subroutine ThermalConductivity
 
 
-  FUNCTION diagnose_Permafrost_Depth(Temp,Depth_vals) RESULT(freeze_temp_max_min)
+  FUNCTION diagnose_frost_Depth(Temp,Depth_vals) RESULT(freeze_temp_max_min)
 
      use grids_more, only: undefined_value
 
@@ -106,14 +106,14 @@ module Fonction_temp
 !       BY REFERENCE VARIABLES
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-     REAL, DIMENSION(z_num), INTENT(in) :: Temp                ! Vertical temperature profile (should be °C)
+     REAL, DIMENSION(z_num), INTENT(in) :: Temp                ! Vertical temperature profile (should be °C or K ???)
      REAL, DIMENSION(z_num), INTENT(in) :: Depth_vals          ! Vertical depth values (m)
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       LOCAL VARIABLES
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-     REAL, DIMENSION(2)                 :: freeze_temp_max_min ! maximum and minimum depth with freezing conditions
+     REAL, DIMENSION(3)                 :: freeze_temp_max_min ! maximum and minimum depth with freezing conditions + active_layer_depth
 
      INTEGER :: kk, indx_max, indx_min
 
@@ -130,7 +130,7 @@ module Fonction_temp
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
      indx_min = z_num
-     indx_max = z_num
+     indx_max = 1
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 ! dmr
@@ -147,27 +147,54 @@ module Fonction_temp
                                ! There is at least one index where the temperature is below zero
 
       indx_max = FINDLOC(mask_depth,.TRUE.,DIM=1,BACK=.TRUE.)      ! find the deepest    index that matches freeze conditions
-      indx_min = FINDLOC(mask_depth(indx_min:z_num),.TRUE., DIM=1) ! find the shallowest index that matches freeze conditions
+      indx_min = FINDLOC(mask_depth,.TRUE., DIM=1)                 ! find the shallowest index that matches freeze conditions
 
-      if ((indx_max.EQ.indx_min).OR.(indx_min.LE.1)) then
-         ! There is only one (deep ?) freezing to unfreezing conditions change, surface must be frozen
-         freeze_temp_max_min(2) = Depth_vals(1)
+      IF (ALL(mask_depth,dim=1)) then ! Frozen everywhere
+        freeze_temp_max_min(1) = Depth_vals(z_num)
+        freeze_temp_max_min(2) = Depth_vals(1)
+        freeze_temp_max_min(2) = 0.0
 
-         if (indx_max.EQ.z_num) then ! Frozen all the way to the bottom ... STRANGE, NO ?
-           freeze_temp_max_min(1) = Depth_vals(z_num)
-         else
-           freeze_temp_max_min(1) = interpol_value(Temp(indx_max:indx_max+1),Depth_vals(indx_max:indx_max+1))
-         endif
-      else
-         freeze_temp_max_min(2) = interpol_value(Temp(indx_min-1:indx_min),Depth_vals(indx_min-1:indx_min))
-         freeze_temp_max_min(1) = interpol_value(Temp(indx_max:indx_max+1),Depth_vals(indx_max:indx_max+1))
-      endif
+      ELSE                            ! not frozen everywhere
 
-    ELSE ! Always above zero, nothing to do
-        freeze_temp_max_min(:) = Depth_vals(1)
+        if (indx_min.LT.indx_max) then ! There is an actual frozen layer
+
+          if ((indx_min.GT.1).and.(indx_max.lt.z_num)) then ! general case: surface not frozen and not frozen to the bottom in the form F F F T T T T T T T F F F F
+            freeze_temp_max_min(1) = interpol_value(Temp(indx_max:indx_max+1),Depth_vals(indx_max:indx_max+1))
+            freeze_temp_max_min(2) = interpol_value(Temp(indx_min-1:indx_min),Depth_vals(indx_min-1:indx_min))
+            freeze_temp_max_min(3) = freeze_temp_max_min(2)
+          else if (mask_depth(1)) then ! surface is frozen
+            freeze_temp_max_min(2) = Depth_vals(1)
+            freeze_temp_max_min(3) = 0.0 ! no active layer
+            if (mask_depth(z_num)) then ! bottom is frozen
+              freeze_temp_max_min(1) = Depth_vals(z_num)
+            else
+              freeze_temp_max_min(1) = interpol_value(Temp(indx_max:indx_max+1),Depth_vals(indx_max:indx_max+1))
+            endif
+
+          else ! surface not frozen
+
+            freeze_temp_max_min(2) = interpol_value(Temp(indx_min-1:indx_min),Depth_vals(indx_min-1:indx_min))
+            freeze_temp_max_min(3) = freeze_temp_max_min(2)
+            if (mask_depth(z_num)) then ! bottom is frozen
+              freeze_temp_max_min(1) = Depth_vals(z_num)
+            else
+              freeze_temp_max_min(1) = interpol_value(Temp(indx_max:indx_max+1),Depth_vals(indx_max:indx_max+1))
+            endif
+
+          endif
+
+        endif ! on not frozen everywhere
+
+      ENDIF ! on frozen / not frozen everywhere
+
+    ELSE ! Always above zero, nothing to do, no active layer per se
+        freeze_temp_max_min(1:2) = Depth_vals(1)
+        freeze_temp_max_min(3)   = 0.0
     ENDIF
 
-  END FUNCTION diagnose_Permafrost_Depth
+!~     WRITE(*,*) "ALT et al.", freeze_temp_max_min, Temp(1), mask_depth(1)
+
+  END FUNCTION diagnose_frost_Depth
 
   FUNCTION interpol_value(temp,Depth) result(depth_interpol)
 

@@ -63,7 +63,7 @@ MODULE parameter_mod
   integer :: Bool_delta        !
   integer :: Bool_glacial          ! Using glacial index to modify air temperature
 !~   integer :: Bool_layer_temp       ! Creation of .txt with the temperature of the soil at different layer
-  integer :: Forcage_Month_day     ! (1) Daily or (0) monthly forcing
+!~   integer :: Forcage_Month_day     ! (1) Daily or (0) monthly forcing
   integer :: Bool_Swe_Snw          ! (1) Snow forcing, (0) Swe forcing
   integer :: Bool_Model_Snow       ! (1) Using snow model to find snow_depth, (0) Forcing with snow_depth
   integer :: Bool_Bessi

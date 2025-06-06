@@ -21,6 +21,8 @@
 #include "constant.h"
 #define OFFLINE_RUN 1
 
+    USE timer_mod, only: cell_time
+
     IMPLICIT NONE
 
     PRIVATE
@@ -53,22 +55,32 @@
      real,dimension(:,:)  ,  allocatable, PUBLIC :: deepSOM_a & !dmr [TBD]
                                                   , deepSOM_s & !dmr [TBD]
                                                   , deepSOM_p   !dmr [TBD]
-     integer,dimension(:,:), allocatable, PUBLIC :: temp_oncepositive
-     real, dimension(:)   ,  allocatable, PUBLIC :: clay_SV
+!~      integer,dimension(:,:), allocatable, PUBLIC :: temp_oncepositive
+!~      real, dimension(:)   ,  allocatable, PUBLIC :: clay_SV
      real,dimension(:,:,:),  allocatable, PUBLIC :: fc_SV       !dmr [TBD]
      real, dimension(:)   ,  allocatable, PUBLIC :: ALT_SV, altmax_ly_SV
 
-!   Timer variables
-    INTEGER, dimension(:),  allocatable, PUBLIC :: compteur_tstep_SV    !nb of day or month of the year
-    LOGICAL, dimension(:),  allocatable, PUBLIC :: end_year_SV          !=0 if not end of year, =1 if end of year
+    ! Timer variable carbon only
+    LOGICAL, dimension(:),  allocatable, PUBLIC            :: end_year_SV          !=0 if not end of year, =1 if end of year
 
 #endif
+
+
+!   Main Timer variable
+
+           !> number of timesteps, can be months or days. Spatial variable for parallel execution
+     TYPE(cell_time), dimension(:),  allocatable :: compteur_tstep_SV
 
 
 
      PUBLIC:: spatialvars_allocate, spatialvars_init, UPDATE_climate_forcing, DO_spatialvars_step
 
      CONTAINS
+
+
+
+
+
 
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
@@ -104,19 +116,20 @@
        allocate(GeoHFlux(1:gridNoMax))
        allocate(Tinit_SV(1:gridNoMax))
        allocate(T_bottom_SV(1:gridNoMax))
-       allocate(freeze_depth_SV(2,1:gridNoMax))
+       allocate(freeze_depth_SV(3,1:gridNoMax))
 
        allocate(orgalayer_indx(1:gridNoMax))
+
+       allocate(ALT_SV(1:gridNoMax))
 
 #if ( CARBON == 1 )
                         !nb and mbv Carbon cycle
        allocate(deepSOM_a(1:z_num,1:gridNoMax))
        allocate(deepSOM_s(1:z_num,1:gridNoMax))
        allocate(deepSOM_p(1:z_num,1:gridNoMax))
-       allocate(temp_oncepositive(1:z_num,1:gridNoMax))
+!~        allocate(temp_oncepositive(1:z_num,1:gridNoMax))
        allocate(fc_SV(1:ncarb,1:ncarb,1:gridNoMax))
-       allocate(clay_SV(1:gridNoMax))
-       allocate(ALT_SV(1:gridNoMax))
+!~        allocate(clay_SV(1:gridNoMax))
        allocate(altmax_ly_SV(1:gridNoMax))
        allocate(compteur_tstep_SV(1:gridNoMax))
        allocate(end_year_SV(1:gridNoMax))
@@ -146,6 +159,10 @@
 
        use parameter_mod,  only: GHF_spatial_file, GHF_variable_name, Tinit_spatial_file, Tinit_variable_name
 
+!~        use parameter_mod,  only: Forcage_Month_day
+
+       use timer_mod,      only: init_time_cell
+
 #if ( CARBON == 1 )
        use carbon        , only: carbon_init
 #endif
@@ -159,10 +176,16 @@
 !       LOCAL VARIABLES
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
        integer :: gridp
+       logical :: logic_month_day
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       MAIN BODY OF THE ROUTINE
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
+        if (DAILY.EQ.1) then
+            logic_month_day = .TRUE.
+        else
+            logic_month_day = .FALSE.
+        endif
 
 #if (OFFLINE_RUN == 1)
         call get_clim_forcing(forc_tas_file, name_tas_variable,forcing_surface_temp)
@@ -188,10 +211,13 @@
 
 #if ( CARBON == 1 )
             !dmr Initialization of all columns, one by one
-          call carbon_init(deepSOM_a(:,gridp), deepSOM_s(:,gridp), deepSOM_p(:,gridp), fc_SV(:,:,gridp), clay_SV(gridp), &
-                           ALT_SV(gridp),altmax_ly_SV(gridp),compteur_tstep_SV(gridp),end_year_SV(gridp))
+          call carbon_init(deepSOM_a(:,gridp), deepSOM_s(:,gridp), deepSOM_p(:,gridp), fc_SV(:,:,gridp),ALT_SV(gridp))
 #endif
+
+          compteur_tstep_SV(gridp) = init_time_cell(0,.FALSE.,.FALSE.,logic_month_day)
+
         enddo
+
 
      END SUBROUTINE spatialvars_init
 
@@ -511,11 +537,11 @@
 !~          WRITE(*,*) "INTEGRATING ... ", gridp, "/", gridNoMax
 
          CALL DO_vertclvars_step(stepstoDO,Kp(:,gridp),T_bottom_SV(gridp),Temp(:,gridp), forcage_temperature_surface(gridp,:) &
-                               , n(:,gridp),freeze_depth_SV(:,gridp)                                                            &
+                               , n(:,gridp),freeze_depth_SV(:,gridp)                                                          &
                                    ! CARBON OPTIONAL VARIABLES ...
-                               , temp_oncepositive(:,gridp), ALT_SV(gridp), altmax_ly_SV(gridp), clay_SV(gridp)               &
-                               , deepSOM_a(:,gridp), deepSOM_s(:,gridp), deepSOM_p(:,gridp), compteur_tstep_SV(gridp)         &
-                               , end_year_SV(gridp))
+                               , ALT_SV(gridp), altmax_ly_SV(gridp)                                                           &
+                               , deepSOM_a(:,gridp), deepSOM_s(:,gridp), deepSOM_p(:,gridp), compteur_tstep_SV(gridp)     )  !  &
+!~                                , end_year_SV(gridp))
 
        enddo
 !$omp end do
@@ -524,7 +550,7 @@
        ! WRITE OUTPUT
 
        CALL WRITE_netCDF_output(Temp, indx_var_temp_ig)
-       CALL WRITE_netCDF_output(freeze_depth_SV(2,:), indx_var_palt)
+       CALL WRITE_netCDF_output(ALT_SV, indx_var_palt)
        CALL WRITE_netCDF_output(freeze_depth_SV(1,:)-freeze_depth_SV(2,:), indx_var_plt)
 
      END SUBROUTINE DO_spatialvars_step
@@ -534,6 +560,8 @@
      SUBROUTINE UPDATE_climate_forcing(stepstoDO,temperature_forcing_next)
 
        use parameter_mod,  only: gridNoMax, timFNoMax
+       use timer_mod, only: cell_time
+
 
        INTEGER, INTENT(in) :: stepstoDO
        REAL, DIMENSION(:,:), ALLOCATABLE, INTENT(out) :: temperature_forcing_next ! will be (1:gridNoMax,1:stepstoDO)
@@ -545,13 +573,14 @@
 !       LOCAL VARIABLES
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-       INTEGER :: current_step, start_step, end_step, interim_nb, interim_end
+       INTEGER :: start_step, end_step, interim_nb, interim_end
+       TYPE(cell_time) :: current_step
 
        current_step = compteur_tstep_SV(1)
 
-       start_step = current_step
+       start_step = current_step%current_step
 
-       if ((current_step.EQ.0).and.(.NOT.ALLOCATED(temperature_forcing_next))) then ! first call ...
+       if ((current_step%current_step.EQ.0).and.(.NOT.ALLOCATED(temperature_forcing_next))) then ! first call ...
            allocate(temperature_forcing_next(1:gridNoMax,1:stepstoDO))
            start_step = 1 ! for the forcing index
        endif

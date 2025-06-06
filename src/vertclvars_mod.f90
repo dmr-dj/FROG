@@ -36,14 +36,13 @@
                                                                       ! T_air should be T_air(nb_steps_toDO) exactly
                                                                       ! n is porosity in the vertical
                                                                       ! Per_depth is the diagnosed "permafrost" or freezing depth (in meters)
-                                   Temp_positive, ALT, altmax_lastyear, clay, deepSOM_a, deepSOM_s, deepSOM_p,     &
-                                   compteur_time_step, end_year                                                    &
-                                                                      )
+                                   ALT, altmax_lastyear, deepSOM_a, deepSOM_s, deepSOM_p, compteur_time_step )
 
         USE parameter_mod,     ONLY: organic_ind, z_num
         USE parameter_mod,     ONLY: D, dt, dz
-        use Fonction_temp,     ONLY: diagnose_Permafrost_Depth
+        use Fonction_temp,     ONLY: diagnose_frost_Depth
         use Fonction_implicit, ONLY: Implicit_T
+        use timer_mod,         ONLY: cell_time, update_time_cell
 
 #if ( CARBON == 1 )
         USE parameter_mod, ONLY: bio_diff_k_const, diff_k_const, bioturbation_depth, min_cryoturb_alt, max_cryoturb_alt, zf_soil
@@ -61,15 +60,15 @@
         REAL, DIMENSION(1:z_num)        , INTENT(IN)        :: n
         REAL, DIMENSION(1:z_num)        , INTENT(INOUT)     :: Temp
         REAL                            , INTENT(in)        :: T_bottom
-        REAL, DIMENSION(2)              , INTENT(out)       :: Per_depth
+        REAL, DIMENSION(3)              , INTENT(out)       :: Per_depth
 
 
-        INTEGER,DIMENSION(1:z_num), INTENT(inout), OPTIONAL :: Temp_positive                    ! Where temp is once positive over one year
-        REAL                      , INTENT(inout), OPTIONAL :: ALT, altmax_lastyear             ! Active Layer Thickness
-        REAL                      , INTENT(in),    OPTIONAL :: clay
-        INTEGER                   , INTENT(inout), OPTIONAL :: compteur_time_step
-        LOGICAL                   , INTENT(inout), OPTIONAL :: end_year
-        REAL   ,DIMENSION(1:z_num), INTENT(inout), OPTIONAL :: deepSOM_a, deepSOM_s, deepSOM_p
+!~         INTEGER,DIMENSION(1:z_num), INTENT(inout), OPTIONAL :: Temp_positive                    ! Where temp is once positive over one year
+        REAL                      , INTENT(inout)           :: ALT, altmax_lastyear             ! Active Layer Thickness
+!~         REAL                      , INTENT(in),    OPTIONAL :: clay
+        TYPE(cell_time)           , INTENT(inout)           :: compteur_time_step
+!~         LOGICAL                   , INTENT(inout), OPTIONAL :: end_year
+        REAL   ,DIMENSION(1:z_num), INTENT(inout)           :: deepSOM_a, deepSOM_s, deepSOM_p
 
 
 
@@ -80,6 +79,9 @@
         INTEGER                  :: ll
         REAL                     :: T_soil
         REAL, DIMENSION(1:z_num) :: T_old
+        LOGICAL                  :: success
+        LOGICAL                  :: end_year
+        REAL                     :: altmax_thisyear
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       MAIN BODY OF THE ROUTINE
@@ -90,64 +92,53 @@
 ! dmr   Computes the forward step(s) in time for one column
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
+        altmax_thisyear=0.0
+
         do ll=1,nb_steps_toDO !boucle temporelle / nombre de pas de temps à faire en avant
 
 
+         success = update_time_cell(compteur_time_step)
+         end_year = compteur_time_step%end_year
 
 
-#if ( CARBON == 1 )
-       !nb and mbv for carbon cycle, is it the end of the year?
-       compteur_time_step=compteur_time_step+1
-#if ( DAILY == 1 )
-       if (compteur_time_step.eq.YearType) then !nomber of days per year
-#else
-       if (compteur_time_step.eq.nb_mon_per_year) then !nomber of months per year
-#endif
-           end_year=.TRUE.
-           compteur_time_step=0
-       else
-           end_year=.FALSE.
-       endif
-#endif
-
-
-!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
-!dmr    This is the section that updates the climate forcing, ill-placed
-!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
-
-! dmr   The code below was providing a mean for time looping. I will move it outside this routine in the forcing updater
-!~        T_soil = T_air(mod(ll,dim_temp)+1)
-!~        swe_f  = swe_f_t(mod(ll,dim_swe)+1)
-!~        snw_tot = swe_f_t(mod(ll,dim_swe)+1)
-
-        T_soil = T_air(ll)
-        T_old(1:z_num) = Temp(1:z_num)
+         T_soil = T_air(ll)
+         T_old(1:z_num) = Temp(1:z_num)
 
 
        !-------------- Numerical difference routine when there is no snow --------!
 
          call Implicit_T(T_old,T_soil,T_bottom,dt,dz,n,organic_ind,Temp,Kp)
 
-                       ! Returns Per_depth as depth of the 0C isotherm
-                       !    in meters, not per cell
-         Per_depth = diagnose_Permafrost_Depth(Temp,D)
+
+
+                       !> Returns Per_depth as depth of the 0C isotherm
+                       !>    in meters, not per cell, also the current ALT as last term
+         Per_depth = diagnose_frost_Depth(Temp,D)
+         altmax_thisyear = MAX(altmax_thisyear,Per_depth(3)) ! the maximum active layer thickness so far this year
 
 #if ( CARBON == 1 )
        ! nb and mbv carbon cycle call
        ! at the end of each year computes the actve layer thickness, needed for redistribution
-         call compute_alt(Temp, Temp_positive, ALT, compteur_time_step, end_year, altmax_lastyear, D)
+!~          call compute_alt(Temp, Temp_positive, ALT, compteur_time_step, end_year, altmax_lastyear, D)
        !write(*,*) 'ALT', ALT
        ! redistribute carbon from biosphere model
-         call carbon_redistribute(Temp, deepSOM_a, deepSOM_s, deepSOM_p, dz, ALT)
+         call carbon_redistribute(deepSOM_a, ALT) !### Temp, deepSOM_s, deepSOM_p, dz,
        ! computes the decomposition in permafrost as a function of temperature (later : humidity and soil type?)
        !! ICI verifier D pour zi_soil?
-         call decomposition(Temp, D, dt, deepSOM_a, deepSOM_s, deepSOM_p, clay)
+         call decomposition(Temp, D, dt, deepSOM_a, deepSOM_s, deepSOM_p)
        ! cryoturbation et bioturbation
        !! ICI chercher zi_soil et zf_soil dans VAMPER ?? D ???
-         call cryoturbation(Temp, deepSOM_a, deepSOM_s, deepSOM_p, altmax_lastyear, max_cryoturb_alt, &
+         call cryoturbation(deepSOM_a, deepSOM_s, deepSOM_p, altmax_lastyear, max_cryoturb_alt, &
             min_cryoturb_alt, D, zf_soil, diff_k_const, bio_diff_k_const, dt,         &
             bioturbation_depth)
 #endif
+
+         if (end_year) then
+           altmax_lastyear = ALT
+           ALT = altmax_thisyear
+           altmax_thisyear = 0.0
+         endif
+
         enddo ! boucle temporelle
 
      END SUBROUTINE DO_vertclvars_step

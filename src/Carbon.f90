@@ -45,7 +45,7 @@ contains
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
-  subroutine carbon_init(deepSOM_a, deepSOM_s, deepSOM_p,  fc, clay, ALT, altmax_lastyear,compteur_tstep, end_year)
+  subroutine carbon_init(deepSOM_a, deepSOM_s, deepSOM_p,  fc, ALT)
   ! initialize the carbon variables to 0
 
     use parameter_mod, only: z_num
@@ -56,17 +56,15 @@ contains
     real,dimension(z_num), intent(inout) :: deepSOM_a, deepSOM_s, deepSOM_p
     REAL, DIMENSION(ncarb,ncarb), intent(out)  :: fc                         !! flux fractions within carbon pools
     REAL, DIMENSION(ncarb)                     :: fr                         !! fraction of decomposed carbon that goes into the atmosphere
-    REAL, intent(out)                          :: clay, ALT, altmax_lastyear
-    INTEGER, intent(out)                       :: compteur_tstep
-    LOGICAL, intent(out)                       :: end_year
+    REAL, intent(out)                          :: ALT ! , altmax_lastyear
+
+    REAL, PARAMETER :: clay=1.0
 
     deepSOM_a(:) = 0.0
     deepSOM_s(:) = 0.0
     deepSOM_p(:) = 0.0
 
-    clay=1.0
     ALT = 0.0
-    altmax_lastyear = 0.0
 
     ! calculate soil organic matter flux fractions
     fc(iactive,iactive) = 0.0
@@ -84,8 +82,6 @@ contains
     fr(:) = 1.0-fc(:,iactive)-fc(:,islow)-fc(:,ipassive) ! pour verifier, faire un print, doit etre 0
     !firstcall = .FALSE.
 
-    end_year = .FALSE.
-    compteur_tstep = 0
 
   end subroutine carbon_init
 !--------------------------
@@ -157,18 +153,18 @@ contains
 
 
 !--------------------------
-  subroutine carbon_redistribute(Temp, deepSOM_a, deepSOM_s, deepSOM_p, dz, ALT)
+  subroutine carbon_redistribute(deepSOM_a, ALT) !###  deepSOM_s, deepSOM_p, dz, Temp,
   ! initialize the carbon in the active layer by redistributing carbon
   ! from litter and soil from vecode
 
     use parameter_mod, only: z_num   ! nombre d'horizons (couches)
 
-    real, dimension(z_num),intent(in)              :: Temp
+!~     real, dimension(z_num),intent(in)              :: Temp
     real,                      intent(in)          :: ALT
-    real, dimension(z_num), intent(inout)          :: dz ! epaisseur de chaque couche
+!~     real, dimension(z_num), intent(inout)          :: dz ! epaisseur de chaque couche
     real                                           :: b3, b4 ! Carbon in litter and soil, for now fixed
-    real,dimension(z_num),intent(inout)            :: deepSOM_a, deepSOM_s, deepSOM_p
-    integer                                        :: k
+    real,dimension(z_num),intent(inout)            :: deepSOM_a !###, deepSOM_s, deepSOM_p
+!~     integer                                        :: k
     real                                           :: intdep !depth of integration
     real                                           :: z_lit !e folding depth
 
@@ -213,7 +209,7 @@ contains
 
 
 !--------------------------
-  subroutine decomposition(Temp, zi_soil, dt, deepSOM_a, deepSOM_s, deepSOM_p, clay) !h_pori?
+  subroutine decomposition(Temp, zi_soil, dt, deepSOM_a, deepSOM_s, deepSOM_p) !h_pori?, clay
   !This routine calculates soil organic matter decomposition
   !decomposition depending on temperature, humidity, soil texture
 
@@ -237,7 +233,6 @@ contains
     REAL                                        :: stomate_tau = 4.699E6
     REAL                                        :: depth_modifier = 1.E6             !! e-folding depth of turnover rates,following Koven et al.,2013,Biogeosciences. A very large value means no depth modification
 !    REAL, DIMENSION(:), INTENT(in)           :: clay            !! clay content
-    REAL , intent(in)                                       :: clay            !! clay content
     REAL, INTENT(in)                            :: dt          !! time step in seconds
     REAL                                        :: fbact_a, fbact_s, fbact_p
     REAL, DIMENSION(z_num)                      :: fbact                      !! turnover constant (day)
@@ -246,7 +241,7 @@ contains
     REAL                                        :: dC
     REAL                                        :: fpassive = 1617.45                !! convertiing factor to go from active pool turnover to passive pool turnover from Guimberteau et al 2018 GMD
     REAL                                        :: fslow = 37.0                      !! convertiing factor to go from active pool turnover to slow pool turnover from Guimberteau et al 2018 GMD
-    INTEGER                                     :: ij, il, iv, ip
+    INTEGER                                     :: ij, il
     REAL                                        :: temp_local
     REAL, DIMENSION(z_num), intent(inout)       :: deepSOM_a, deepSOM_s, deepSOM_p
     REAL, DIMENSION(ncarb, ncarb)               :: somflux
@@ -378,14 +373,14 @@ contains
 
 
 !--------------------------
-  subroutine cryoturbation(Temp, deepSOM_a, deepSOM_s, deepSOM_p, altmax_lastyear,max_cryoturb_alt,&
+  subroutine cryoturbation(deepSOM_a, deepSOM_s, deepSOM_p, altmax_lastyear,max_cryoturb_alt,&
    min_cryoturb_alt, zi_soil, zf_soil, diff_k_const, bio_diff_k_const, dt, &
        bioturbation_depth)
   ! Vertical mixing by cryoturbation with a diffusion scheme
 
     use parameter_mod, only: z_num, YearType ! nombre de jours par an
 
-    real, dimension(z_num), intent(in)    ::Temp !, h_pori
+!~     real, dimension(z_num), intent(in)    ::Temp !, h_pori
     REAL, DIMENSION(z_num), intent(inout) :: deepSOM_a, deepSOM_s, deepSOM_p
     real, intent(in)                      :: altmax_lastyear, max_cryoturb_alt, min_cryoturb_alt
     real                                  :: cryoturbation_depth
