@@ -47,7 +47,7 @@
 #if ( CARBON == 1 )
         USE parameter_mod, ONLY: bio_diff_k_const, diff_k_const, bioturbation_depth, min_cryoturb_alt, max_cryoturb_alt, zf_soil
         USE parameter_mod, ONLY: YearType
-        USE Carbon,        ONLY: compute_alt, carbon_redistribute, decomposition, cryoturbation
+        USE Carbon,        ONLY: carbon_redistribute, decomposition, cryoturbation
 #endif
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
