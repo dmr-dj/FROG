@@ -1,3 +1,4 @@
+#include "constant.h"
 module Carbon
 
   !use blbla, only: var
@@ -8,6 +9,8 @@ module Carbon
     INTEGER, PARAMETER :: islow = 2        !! Index for slow carbon pool (unitless)
     INTEGER, PARAMETER :: ipassive = 3     !! Index for passive carbon pool (unitless)
     INTEGER, PARAMETER :: ncarb = 3        !! Number of soil carbon pools (unitless)
+
+#if (CARBON > 0)
 
 contains
 
@@ -488,6 +491,8 @@ contains
 
   end subroutine cryoturbation
 !--------------------------
+
+#endif
 
 end module Carbon
 

@@ -100,7 +100,7 @@ module Fonction_temp
 
   FUNCTION diagnose_frost_Depth(Temp,Depth_vals) RESULT(freeze_temp_max_min)
 
-     use grids_more, only: undefined_value
+!~      use grids_more, only: undefined_value
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       BY REFERENCE VARIABLES
@@ -115,7 +115,7 @@ module Fonction_temp
 
      REAL, DIMENSION(3)                 :: freeze_temp_max_min ! maximum and minimum depth with freezing conditions + active_layer_depth
 
-     INTEGER :: kk, indx_max, indx_min
+     INTEGER :: indx_max, indx_min
 
      REAL, parameter           :: zero = 273.15
      LOGICAL, DIMENSION(z_num) :: mask_depth

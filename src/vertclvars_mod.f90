@@ -36,7 +36,7 @@
                                                                       ! T_air should be T_air(nb_steps_toDO) exactly
                                                                       ! n is porosity in the vertical
                                                                       ! Per_depth is the diagnosed "permafrost" or freezing depth (in meters)
-                                   ALT, altmax_lastyear, deepSOM_a, deepSOM_s, deepSOM_p, compteur_time_step )
+                                   ALT, altmax_lastyear, compteur_time_step, deepSOM_a, deepSOM_s, deepSOM_p )
 
         USE parameter_mod,     ONLY: organic_ind, z_num
         USE parameter_mod,     ONLY: D, dt, dz
@@ -68,7 +68,7 @@
 !~         REAL                      , INTENT(in),    OPTIONAL :: clay
         TYPE(cell_time)           , INTENT(inout)           :: compteur_time_step
 !~         LOGICAL                   , INTENT(inout), OPTIONAL :: end_year
-        REAL   ,DIMENSION(1:z_num), INTENT(inout)           :: deepSOM_a, deepSOM_s, deepSOM_p
+        REAL   ,DIMENSION(1:z_num), INTENT(inout),OPTIONAL  :: deepSOM_a, deepSOM_s, deepSOM_p
 
 
 
@@ -151,7 +151,7 @@
      SUBROUTINE vertclvars_init(Gfx_loc, Tinit_loc, Kp_loc, Cp_loc, organic_ind_loc, porosity_profvertcl, temperature_profvertcl  &
                               , T_bottom)
 
-       use parameter_mod, only: PorosityType, D, Bool_Organic, organic_depth, organic_ind, z_num
+       use parameter_mod, only: PorosityType, D, Bool_Organic, organic_depth, z_num !organic_ind,
        use parameter_mod, only: dz, T_freeze
        use Fonction_temp, only: AppHeatCapacity, ThermalConductivity
 

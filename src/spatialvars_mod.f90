@@ -50,6 +50,8 @@
             ! could add swe_f_t, snw_dp_t,rho_snow_t,T_snw
      REAL, DIMENSION(:,:), ALLOCATABLE :: restart_temperature  ! VERT/SPAT
 
+     real, dimension(:)   ,  allocatable, PUBLIC :: ALT_SV, altmax_ly_SV
+
 
 #if ( CARBON == 1 )
      real,dimension(:,:)  ,  allocatable, PUBLIC :: deepSOM_a & !dmr [TBD]
@@ -58,7 +60,6 @@
 !~      integer,dimension(:,:), allocatable, PUBLIC :: temp_oncepositive
 !~      real, dimension(:)   ,  allocatable, PUBLIC :: clay_SV
      real,dimension(:,:,:),  allocatable, PUBLIC :: fc_SV       !dmr [TBD]
-     real, dimension(:)   ,  allocatable, PUBLIC :: ALT_SV, altmax_ly_SV
 
     ! Timer variable carbon only
     LOGICAL, dimension(:),  allocatable, PUBLIC            :: end_year_SV          !=0 if not end of year, =1 if end of year
@@ -90,7 +91,9 @@
      SUBROUTINE spatialvars_allocate ! VERTCL, SPAT_VAR
 
        use parameter_mod, only: gridNoMax, timFNoMax, z_num
+#if ( CARBON == 1 )
        use carbon       , only: ncarb
+#endif
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       BY REFERENCE VARIABLES
@@ -150,7 +153,7 @@
 
      SUBROUTINE spatialvars_init ! VERTCL, SPAT_VAR
 
-       use parameter_mod,  only: gridNoMax, z_num, timFNoMax
+       use parameter_mod,  only: gridNoMax, z_num ! , timFNoMax
        use vertclvars_mod, only: vertclvars_init
 
            ! Temporary addendum [2025-04-16]
@@ -252,7 +255,7 @@
 
         LOGICAL                     , DIMENSION(:),   ALLOCATABLE :: varisDIM
 
-        INTEGER :: maskVarID=0, dim1, dim2, varunmasked
+        INTEGER ::  dim1, dim2, varunmasked ! maskVarID=0,
 
         REAL                      , DIMENSION(:,:),   ALLOCATABLE :: varDATA
         REAL                                                      :: var_undef = 0.0
@@ -397,7 +400,7 @@
 
         LOGICAL                     , DIMENSION(:),   ALLOCATABLE :: varisDIM
 
-        INTEGER :: maskVarID=0, dim1, dim2, dim3, varunmasked
+        INTEGER :: dim1, dim2, dim3, varunmasked ! maskVarID=0,
 
         REAL                      , DIMENSION(:,:,:), ALLOCATABLE :: varDATA
         REAL                                                      :: var_undef = 0.0
@@ -536,12 +539,19 @@
 
 !~          WRITE(*,*) "INTEGRATING ... ", gridp, "/", gridNoMax
 
+#if ( CARBON > 0 )
          CALL DO_vertclvars_step(stepstoDO,Kp(:,gridp),T_bottom_SV(gridp),Temp(:,gridp), forcage_temperature_surface(gridp,:) &
-                               , n(:,gridp),freeze_depth_SV(:,gridp)                                                          &
-                                   ! CARBON OPTIONAL VARIABLES ...
-                               , ALT_SV(gridp), altmax_ly_SV(gridp)                                                           &
-                               , deepSOM_a(:,gridp), deepSOM_s(:,gridp), deepSOM_p(:,gridp), compteur_tstep_SV(gridp)     )  !  &
-!~                                , end_year_SV(gridp))
+            , n(:,gridp),freeze_depth_SV(:,gridp), compteur_tstep_SV(gridp), ALT_SV(gridp), altmax_ly_SV(gridp) &                                                           &
+            ! CARBON ONLY VARIABLES
+                               , deepSOM_a(:,gridp), deepSOM_s(:,gridp), deepSOM_p(:,gridp) )
+
+#else
+
+         CALL DO_vertclvars_step(stepstoDO,Kp(:,gridp),T_bottom_SV(gridp),Temp(:,gridp), forcage_temperature_surface(gridp,:) &
+            , n(:,gridp),freeze_depth_SV(:,gridp), ALT_SV(gridp), altmax_ly_SV(gridp), compteur_tstep_SV(gridp) )
+
+
+#endif
 
        enddo
 !$omp end do
