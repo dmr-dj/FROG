@@ -541,14 +541,16 @@
 
 #if ( CARBON > 0 )
          CALL DO_vertclvars_step(stepstoDO,Kp(:,gridp),T_bottom_SV(gridp),Temp(:,gridp), forcage_temperature_surface(gridp,:) &
-            , n(:,gridp),freeze_depth_SV(:,gridp), compteur_tstep_SV(gridp), ALT_SV(gridp), altmax_ly_SV(gridp) &                                                           &
+                               , n(:,gridp),freeze_depth_SV(:,gridp), ALT_SV(gridp), altmax_ly_SV(gridp)                      &
+                               , compteur_tstep_SV(gridp)                                                                     &
             ! CARBON ONLY VARIABLES
-                               , deepSOM_a(:,gridp), deepSOM_s(:,gridp), deepSOM_p(:,gridp) )
+                               , deepSOM_a = deepSOM_a(:,gridp), deepSOM_s = deepSOM_s(:,gridp), deepSOM_p = deepSOM_p(:,gridp) )
 
 #else
 
          CALL DO_vertclvars_step(stepstoDO,Kp(:,gridp),T_bottom_SV(gridp),Temp(:,gridp), forcage_temperature_surface(gridp,:) &
-            , n(:,gridp),freeze_depth_SV(:,gridp), ALT_SV(gridp), altmax_ly_SV(gridp), compteur_tstep_SV(gridp) )
+                               , n(:,gridp),freeze_depth_SV(:,gridp), ALT_SV(gridp), altmax_ly_SV(gridp)                      &
+                               , compteur_tstep_SV(gridp) )
 
 
 #endif
