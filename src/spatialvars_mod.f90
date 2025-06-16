@@ -204,7 +204,7 @@
         Tinit_SV(:) = get_Spatial_2Dforcing(Tinit_spatial_file,Tinit_variable_name)
 #else
         !Tinit_SV(:) = T_init
-        Tinit_SV(:) = SUM(forcing_surface_temp(:,:),DIM=2)/timFNoMax
+        Tinit_SV(:) = SUM(forcing_surface_temp(:,:),DIM=2)/UBOUND(forcing_surface_temp,DIM=2)
 #endif
 
             !dmr Initialization of all columns, one by one
