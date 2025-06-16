@@ -592,9 +592,12 @@
 
        start_step = current_step%current_step
 
-       if ((current_step%current_step.EQ.0).and.(.NOT.ALLOCATED(temperature_forcing_next))) then ! first call ...
-           allocate(temperature_forcing_next(1:gridNoMax,1:stepstoDO))
+       if (current_step%current_step.EQ.0) then ! first ever time step
            start_step = 1 ! for the forcing index
+       endif
+
+       if (.NOT.ALLOCATED(temperature_forcing_next)) then
+           allocate(temperature_forcing_next(1:gridNoMax,1:stepstoDO))
        endif
 
        end_step = start_step + stepstoDO - 1
