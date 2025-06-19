@@ -7,6 +7,7 @@ program test
   implicit none
 
   logical :: well_done = .FALSE.
+  integer :: s, steps=1000
 
 
   well_done = INITIALIZE_VAMP()
@@ -14,7 +15,12 @@ program test
     WRITE(*,*) "VAMPER INITIALIZATION COMPLETE"
   endif
 
-  well_done = STEPFWD_VAMP()
+  do s=1, steps
+
+    well_done = STEPFWD_VAMP()
+
+  enddo
+
   if (well_done) then
     WRITE(*,*) "VAMPER INTEGRATION COMPLETED"
   endif

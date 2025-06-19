@@ -589,8 +589,8 @@
          nc_vartowrite(z,:,:) = un_flatten_it(var_to_write(z,:))
        enddo
 
-       WRITE(*,*) "VARIABLE TO NC WRITE: ", MINVAL(nc_vartowrite), MAXVAL(nc_vartowrite)
-       WRITE(*,*) "dims :: ", z_num, spat_dim1, spat_dim2
+       !WRITE(*,*) "VARIABLE TO NC WRITE: ", MINVAL(nc_vartowrite), MAXVAL(nc_vartowrite)
+       !WRITE(*,*) "dims :: ", z_num, spat_dim1, spat_dim2
 
        call handle_err(                                                                                &
             nf90_open(path = TRIM(netCDFout_file), mode = NF90_WRITE, ncid = ncid)                     & ! open existing netCDF dataset
@@ -626,8 +626,8 @@
          nc_vartowrite(:,:) = un_flatten_it(var_to_write(:))
 !~        enddo
 
-       WRITE(*,*) "VARIABLE TO NC WRITE: ", MINVAL(nc_vartowrite), MAXVAL(nc_vartowrite)
-       WRITE(*,*) "dims :: ", spat_dim1, spat_dim2
+       !WRITE(*,*) "VARIABLE TO NC WRITE: ", MINVAL(nc_vartowrite), MAXVAL(nc_vartowrite)
+       !WRITE(*,*) "dims :: ", spat_dim1, spat_dim2
 
        call handle_err(                                                                                &
             nf90_open(path = TRIM(netCDFout_file), mode = NF90_WRITE, ncid = ncid)                     & ! open existing netCDF dataset

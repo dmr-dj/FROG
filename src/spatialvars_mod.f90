@@ -590,7 +590,7 @@
 
        current_step = compteur_tstep_SV(1)
 
-       start_step = current_step%current_step
+       start_step = mod(current_step%current_step + 1,timFNoMax)
 
        if (current_step%current_step.EQ.0) then ! first ever time step
            start_step = 1 ! for the forcing index
@@ -602,7 +602,10 @@
 
        end_step = start_step + stepstoDO - 1
 
+      WRITE(*,*) "Updating forcing ", current_step, start_step, end_step, timFNoMax
+
        if (end_step.GT.timFNoMax) then ! forcing serie requested is too long ... split !!
+        WRITE(*,*) "endstep>timFNoMax "
 
         interim_nb = timFNoMax - start_step + 1
         temperature_forcing_next(:,1:interim_nb) = forcing_surface_temp(:,start_step:timFNoMax)

@@ -117,7 +117,7 @@ module Fonction_temp
 
      INTEGER :: indx_max, indx_min
 
-     REAL, parameter           :: zero = 273.15
+     REAL, parameter           :: zero = 0.0 !273.15
      LOGICAL, DIMENSION(z_num) :: mask_depth
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
