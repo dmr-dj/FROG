@@ -517,10 +517,10 @@
         use parameter_mod,  only: gridNoMax
         use vertclvars_mod, only: DO_vertclvars_step
         use grids_more,     only: WRITE_netCDF_output, indx_var_temp_ig, indx_var_palt, indx_var_plt
-        
-#if (CARBON == 1 ) 
-        use grids_more,     only: indx_var_carb        
-#endif 
+
+#if (CARBON == 1 )
+        use grids_more,     only: indx_var_carb
+#endif
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       BY REFERENCE VARIABLES
@@ -550,7 +550,8 @@
                                , n(:,gridp),freeze_depth_SV(:,gridp), ALT_SV(gridp), altmax_ly_SV(gridp)                      &
                                , compteur_tstep_SV(gridp)                                                                     &
             ! CARBON ONLY VARIABLES
-                               , deepSOM_a = deepSOM_a(:,gridp), deepSOM_s = deepSOM_s(:,gridp), deepSOM_p = deepSOM_p(:,gridp) )
+                               , deepSOM_a = deepSOM_a(:,gridp),deepSOM_s = deepSOM_s(:,gridp), deepSOM_p = deepSOM_p(:,gridp)&
+                               , deepSOM = deepSOM(:,gridp), fc = fc_SV(:,:,gridp)  )
 
 #else
 
@@ -572,7 +573,7 @@
        CALL WRITE_netCDF_output(freeze_depth_SV(1,:)-freeze_depth_SV(2,:), indx_var_plt)
 #if ( CARBON == 1 )
        CALL WRITE_netCDF_output(deepSOM, indx_var_carb)
-#endif 
+#endif
      END SUBROUTINE DO_spatialvars_step
 
 
