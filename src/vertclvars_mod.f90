@@ -36,7 +36,8 @@
                                                                       ! T_air should be T_air(nb_steps_toDO) exactly
                                                                       ! n is porosity in the vertical
                                                                       ! Per_depth is the diagnosed "permafrost" or freezing depth (in meters)
-                                   ALT, altmax_lastyear, compteur_time_step, deepSOM_a, deepSOM_s, deepSOM_p )
+                                   ALT, altmax_lastyear, compteur_time_step, deepSOM_a, deepSOM_s, deepSOM_p &
+                                   , deepSOM, fc)
 
         USE parameter_mod,     ONLY: organic_ind, z_num
         USE parameter_mod,     ONLY: D, dt, dz
@@ -47,7 +48,7 @@
 #if ( CARBON == 1 )
         USE parameter_mod, ONLY: bio_diff_k_const, diff_k_const, bioturbation_depth, min_cryoturb_alt, max_cryoturb_alt, zf_soil
         USE parameter_mod, ONLY: YearType
-        USE Carbon,        ONLY: carbon_redistribute, decomposition, cryoturbation
+        USE Carbon,        ONLY: carbon_main, ncarb  !carbon_redistribute, decomposition, cryoturbation
 #endif
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
@@ -69,6 +70,8 @@
         TYPE(cell_time)           , INTENT(inout)           :: compteur_time_step
 !~         LOGICAL                   , INTENT(inout), OPTIONAL :: end_year
         REAL   ,DIMENSION(1:z_num), INTENT(inout),OPTIONAL  :: deepSOM_a, deepSOM_s, deepSOM_p
+        REAL   ,DIMENSION(1:z_num), INTENT(inout), OPTIONAL :: deepSOM
+        REAL, DIMENSION(ncarb,ncarb), intent(inout), OPTIONAL:: fc !! flux fractions within carbon pools
 
 
 
@@ -121,16 +124,9 @@
        ! at the end of each year computes the actve layer thickness, needed for redistribution
 !~          call compute_alt(Temp, Temp_positive, ALT, compteur_time_step, end_year, altmax_lastyear, D)
        !write(*,*) 'ALT', ALT
-       ! redistribute carbon from biosphere model
-         call carbon_redistribute(deepSOM_a, ALT) !### Temp, deepSOM_s, deepSOM_p, dz,
-       ! computes the decomposition in permafrost as a function of temperature (later : humidity and soil type?)
-       !! ICI verifier D pour zi_soil?
-         call decomposition(Temp, D, dt, deepSOM_a, deepSOM_s, deepSOM_p)
-       ! cryoturbation et bioturbation
-       !! ICI chercher zi_soil et zf_soil dans VAMPER ?? D ???
-         call cryoturbation(deepSOM_a, deepSOM_s, deepSOM_p, altmax_lastyear, max_cryoturb_alt, &
-            min_cryoturb_alt, D, zf_soil, diff_k_const, bio_diff_k_const, dt,         &
-            bioturbation_depth)
+       call carbon_main (Temp, ALT, D ,deepSOM_a, deepSOM_s, deepSOM_p, dz, dt, max_cryoturb_alt,   &
+                          min_cryoturb_alt, diff_k_const, bio_diff_k_const, bioturbation_depth,       &
+                          deepSOM, fc)
 #endif
 
          if (end_year) then

@@ -56,7 +56,8 @@
 #if ( CARBON == 1 )
      real,dimension(:,:)  ,  allocatable, PUBLIC :: deepSOM_a & !dmr [TBD]
                                                   , deepSOM_s & !dmr [TBD]
-                                                  , deepSOM_p   !dmr [TBD]
+                                                  , deepSOM_p & !dmr [TBD]
+                                                  , deepSOM
 !~      integer,dimension(:,:), allocatable, PUBLIC :: temp_oncepositive
 !~      real, dimension(:)   ,  allocatable, PUBLIC :: clay_SV
      real,dimension(:,:,:),  allocatable, PUBLIC :: fc_SV       !dmr [TBD]
@@ -130,6 +131,7 @@
        allocate(deepSOM_a(1:z_num,1:gridNoMax))
        allocate(deepSOM_s(1:z_num,1:gridNoMax))
        allocate(deepSOM_p(1:z_num,1:gridNoMax))
+       allocate(deepSOM(1:z_num,1:gridNoMax))
 !~        allocate(temp_oncepositive(1:z_num,1:gridNoMax))
        allocate(fc_SV(1:ncarb,1:ncarb,1:gridNoMax))
 !~        allocate(clay_SV(1:gridNoMax))
@@ -515,6 +517,10 @@
         use parameter_mod,  only: gridNoMax
         use vertclvars_mod, only: DO_vertclvars_step
         use grids_more,     only: WRITE_netCDF_output, indx_var_temp_ig, indx_var_palt, indx_var_plt
+        
+#if (CARBON == 1 ) 
+        use grids_more,     only: indx_var_carb        
+#endif 
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       BY REFERENCE VARIABLES
@@ -564,7 +570,9 @@
        CALL WRITE_netCDF_output(Temp, indx_var_temp_ig)
        CALL WRITE_netCDF_output(ALT_SV, indx_var_palt)
        CALL WRITE_netCDF_output(freeze_depth_SV(1,:)-freeze_depth_SV(2,:), indx_var_plt)
-
+#if ( CARBON == 1 )
+       CALL WRITE_netCDF_output(deepSOM, indx_var_carb)
+#endif 
      END SUBROUTINE DO_spatialvars_step
 
 

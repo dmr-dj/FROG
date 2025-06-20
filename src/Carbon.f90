@@ -14,6 +14,56 @@ module Carbon
 
 contains
 
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+  subroutine carbon_main (Temp, ALT, D ,deepSOM_a, deepSOM_s, deepSOM_p, dz, dt, max_cryoturb_alt,   &
+                          min_cryoturb_alt, diff_k_const, bio_diff_k_const, bioturbation_depth,      &
+                          deepSOM, fc)
+     
+      use parameter_mod,  only : z_num
+      use parameter_mod, only: zf_soil
+
+     
+      real, dimension(z_num), intent(in)                  :: Temp
+      !integer, dimension(z_num), intent(inout)            :: Temp_positive
+      !integer, intent(in)                                 :: compteur_time_step
+      !logical, intent(in)                                 :: end_year 
+      !REAL, intent(in)                                    :: clay 
+      REAL, intent(inout)                                 :: ALT !,altmax_lastyear
+      real,dimension(z_num), intent(inout)                :: deepSOM_a, deepSOM_s, deepSOM_p
+      real, dimension(z_num), intent(inout)               :: dz ! epaisseur de chaque couche
+      real, dimension(z_num), intent(in)                  :: D
+      REAL, INTENT(in)                                    :: dt 
+      real, intent(in)                                    ::  max_cryoturb_alt, min_cryoturb_alt
+      !REAL, DIMENSION(0:z_num),  INTENT(in)               :: zf_soil        !! depths of full levels (m)
+      REAL, INTENT(in)                                    :: diff_k_const
+      REAL, INTENT(in)                                    :: bio_diff_k_const
+      real, intent(in)                                    :: bioturbation_depth
+      REAL, DIMENSION(ncarb,ncarb), intent(in)            :: fc                         !! flux fractions within carbon pools
+      REAL, dimension(z_num) , INTENT(out)                :: deepSOM
+ 
+  
+  
+      !call compute_alt(Temp, Temp_positive, ALT, compteur_time_step, end_year, altmax_lastyear, D)
+      ! write(*,*) 'ALT', ALT
+       ! redistribute carbon from biosphere model
+      call carbon_redistribute(Temp, deepSOM_a, deepSOM_s, deepSOM_p, dz, ALT)
+       ! computes the decomposition in permafrost as a function of temperature (later : humidity and soil type?)
+       !! ICI verifier D pour zi_soil?
+      call decomposition(Temp, D, dt, deepSOM_a, deepSOM_s, deepSOM_p, fc, dz)
+       ! cryoturbation et bioturbation
+       !! ICI chercher zi_soil et zf_soil dans VAMPER ?? D ???
+      call bio_cryoturbation(Temp, deepSOM_a, deepSOM_s, deepSOM_p, ALT, max_cryoturb_alt, &
+             min_cryoturb_alt, D, diff_k_const, bio_diff_k_const, dt,         &
+             bioturbation_depth, dz)
+  
+      deepSOM(:) = deepSOM_a(:) + deepSOM_p(:) + deepSOM_s(:)
+
+
+  end subroutine carbon_main
+  
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !--------------------------
   subroutine carbon_first_init
   !initialise all the variables before the horizontal and time loops
@@ -90,26 +140,38 @@ contains
 !--------------------------
 
 !--------------------------
-  subroutine carbon_redistribute(deepSOM_a, ALT) !###  deepSOM_s, deepSOM_p, dz, Temp,
+  subroutine carbon_redistribute(Temp, deepSOM_a, deepSOM_s, deepSOM_p, dz, ALT ) ! Temp,
   ! initialize the carbon in the active layer by redistributing carbon
   ! from litter and soil from vecode
 
     use parameter_mod, only: z_num   ! nombre d'horizons (couches)
+    use parameter_mod, only: zf_soil
 
-!~     real, dimension(z_num),intent(in)              :: Temp
+    real, dimension(z_num),intent(in)              :: Temp
     real,                      intent(in)          :: ALT
-!~     real, dimension(z_num), intent(inout)          :: dz ! epaisseur de chaque couche
+    real, dimension(z_num), intent(inout)          :: dz ! epaisseur de chaque couche
     real                                           :: b3, b4 ! Carbon in litter and soil, for now fixed
-    real,dimension(z_num),intent(inout)            :: deepSOM_a !###, deepSOM_s, deepSOM_p
-!~     integer                                        :: k
+    real,dimension(z_num),intent(inout)            :: deepSOM_a, deepSOM_s, deepSOM_p !soil organic matter (g /m^3 )
+    integer                                        :: k, il
     real                                           :: intdep !depth of integration
     real                                           :: z_lit !e folding depth
+    real                                           :: som_input_TS
+    real                                           :: dsom_litter
+    real, dimension(z_num)                         :: som_profile, dsom_litter_z !  double precision?
+    real                                           :: diff, verif_som ! double precision ?
+    real                                           ::totcarbon 
 
 !add input zfsoil
 !define som_profile vecteur
+    totcarbon = SUM ((deepSOM_a (:) + deepSOM_s(:) + deepSOM_p(:) )*dz(:)) 
+    !write (*,*) "debut routine redistribution" , totcarbon
+     
+    b3=1.! en g/m²  !!!! (du coup on divise som input par dz ) 
+    b4=1 ! en g /m²
+    som_input_TS=b3+b4 ! matiere organique qui arrive dans le sol (litiere + sol) ! attention  a l unite 
+!*time_step/one_day
+!add up the soil carbon from all veg pools, and change units from (gC/(m**2 of ground)/day) to gC/m^2 per timestep 
 
-    b3=50.! GtC ?
-    b4=100.
 
     z_lit=0.2 ! arbitrary, peut aussi dependre de la prof des racines
     intdep = max(ALT, z_lit) !depth of integration pour l instant = ALT, peut dependre de
@@ -117,28 +179,68 @@ contains
 
     ! initialise valeur carbon dans couche active
 
-    ! si couche active plus petite que les 2 premires couches on repartit dans les 2 premieres couches
-      !if (ALT.le.2) then
-        deepSOM_a(1)=b3/2+b4/2
-        deepSOM_a(2)=b3/2+b4/2
+    ! si couche active plus petite que les 2 premieres couches on repartit dans les 2 premieres couches
+    !write(*,*) 'profondeur deux premieres couches', (dz(1)+dz(2))
+    if (ALT.le.(dz(1)+dz(2))) then
+   ! if (ALT.le.(dz(1))) then
+        deepSOM_a(1)=deepSOM_a(1)+ (som_input_TS/2)/ dz(1)
+        deepSOM_a(2)=deepSOM_a(2)+ (som_input_TS/2) / dz(2)
         !mettre les autres aussi
-      !else
+        !write(*,*) 'case 1'
+    else
 
-    !som_profile(:)=0.0
-    !do il = 1, z_num ! sur la verticale
-!        som_profile(il) = 1.0 / ( 1.0 - EXP( -intdep / z_lit ) ) * &
-!                        ( EXP(-zf_soil(il-1)/z_lit)  - &
-!                        EXP( -zf_soil(il)/z_lit ) )
-    !enddo
-    ! The above calculation should result in a som_profile of 0.9999999 which is
+      dsom_litter=0.0
+      dsom_litter_z=0.0
+      
+      som_profile(:)=0.0
+      do il = 1, z_num ! sur la verticale
+        som_profile(il) = 1.0 / ( 1.0 - EXP( -intdep / z_lit ) ) * &
+                        ( EXP(-zf_soil(il-1)/z_lit)  - &
+                        EXP( -zf_soil(il)/z_lit ) )
+      enddo
+     !The above calculation should result in a som_profile of 0.9999999 which is
                    ! pretty good but not good enough to keep the mass balance
                    ! closed. Put the
                    ! residual in the top layer (just because that layer should
                    ! always be present)
-    !som_profile(1) = 1.0 - SUM(som_profile(2:z_num))
+      som_profile(1) = 1.0 - SUM(som_profile(2:z_num))
       !endif
 
-   !write(*,*) 'deepSOM_a dans redistribute', deepSOM_a(:)
+
+      ! Use the profile to redistribute the som_input
+      DO il = 1, z_num ! ngrnd
+                      ! Divide by the tickness of the layer, not the tickness of the whole 
+                      ! profile (which is the case when using z_lit). The unit of som_input_Ts
+                      ! is gC/m^2 per timestep. We want dsom_litter_z to be in gC/m^3 per
+                      ! timestep so divide by the layer depth over which the som input is to 
+                      ! be distributed.
+       dsom_litter_z(il) = som_input_TS * &
+                           som_profile(il)/ dz(il) !z_thickness(il)
+                      ! The original code already used zf_soil. This may have resulted in an
+                      ! inconsitency. Given that zi_soil has now been changed to zf_soil. The
+                      ! original code is consistent with the new approach that uses zf_soil
+       dsom_litter = dsom_litter + &
+                           dsom_litter_z(il) * dz(il) ! z_thickness(il)
+      END DO
+
+     !write(*,*) 'dsom_litter, som_input_TS', dsom_litter, som_input_TS
+     diff=dsom_litter-som_input_TS
+     dsom_litter_z(1)=dsom_litter_z(1)-diff/dz(1)
+     verif_som=sum(dsom_litter_z(:)* dz(:))
+     !write(*,*) 'dsom_litter, som_input_TS after, diff, dsom_litter_z', verif_som, som_input_TS, diff, dsom_litter_z
+
+     deepSOM_a(:)=deepSOM_a(:)+1/3.*dsom_litter_z(:) !* dz (:)
+     deepSOM_s(:)=deepSOM_s(:)+1/3.*dsom_litter_z(:) !* dz (:)
+     deepSOM_p(:)=deepSOM_p(:)+1/3.*dsom_litter_z(:) !* dz (:)
+
+ 
+     endif
+
+         totcarbon = SUM ((deepSOM_a (:) + deepSOM_s(:) + deepSOM_p(:) ) *dz(:)) 
+         !write (*,*) "fin routine redistribution" , totcarbon
+
+
+  ! write(*,*) 'deepSOM_a dans redistribute', deepSOM_a(:)
 
 
   end subroutine carbon_redistribute
@@ -146,7 +248,7 @@ contains
 
 
 !--------------------------
-  subroutine decomposition(Temp, zi_soil, dt, deepSOM_a, deepSOM_s, deepSOM_p) !h_pori?, clay
+  subroutine decomposition(Temp, zi_soil, dt, deepSOM_a, deepSOM_s, deepSOM_p, fc, dz) !h_pori?, clay
   !This routine calculates soil organic matter decomposition
   !decomposition depending on temperature, humidity, soil texture
 
@@ -174,16 +276,20 @@ contains
     REAL                                        :: fbact_a, fbact_s, fbact_p
     REAL, DIMENSION(z_num)                      :: fbact                      !! turnover constant (day)
     REAL, dimension(z_num)                      :: tempfunc_result
-    REAL, DIMENSION(ncarb,ncarb)                :: fc                         !! flux fractions within carbon pools
+    REAL, DIMENSION(ncarb,ncarb), intent(in)    :: fc                         !! flux fractions within carbon pools
     REAL                                        :: dC
     REAL                                        :: fpassive = 1617.45                !! convertiing factor to go from active pool turnover to passive pool turnover from Guimberteau et al 2018 GMD
     REAL                                        :: fslow = 37.0                      !! convertiing factor to go from active pool turnover to slow pool turnover from Guimberteau et al 2018 GMD
-    INTEGER                                     :: ij, il
+    INTEGER                                     :: ij, il, iv, ip
     REAL                                        :: temp_local
-    REAL, DIMENSION(z_num), intent(inout)       :: deepSOM_a, deepSOM_s, deepSOM_p
+    REAL, DIMENSION(z_num), intent(inout)       :: deepSOM_a, deepSOM_s, deepSOM_p !soil organic matter (g /m^3 )
     REAL, DIMENSION(ncarb, ncarb)               :: somflux
-
-
+    REAL :: totalcarbon
+    real, dimension(z_num), intent(in)          :: dz
+   
+    
+    totalcarbon = SUM ((deepSOM_a (:)  + deepSOM_s (:) + deepSOM_p (:))*dz(:)) 
+    !write (*,*) " decomposition start ", totalcarbon
 ! Donne le taux de decomposition fbact (temps de résidence)
     temp_kelvin(:)=Temp(:)+ZeroCelsius
 ! cutoff respiration when T < -1C
@@ -193,10 +299,10 @@ contains
           tempfunc_result(:) = (temp_kelvin(:) - (ZeroCelsius - 1.)) * &
                EXP( log(q10) * ( ZeroCelsius - (ZeroCelsius+30.) ) / 10. )
        ELSEWHERE  ! zero
-          tempfunc_result(:) = 0.0
+          tempfunc_result(:) = EPSILON(0.)
        ENDWHERE
 
-       tempfunc_result(:) = MAX(MIN( 1.0, tempfunc_result(:) ), 0.0)
+       tempfunc_result(:) = MAX(MIN( 1.0, tempfunc_result(:) ), EPSILON(0.))
 
     IF ( limit_decomp_moisture ) THEN
        ! stomate moisture control function
@@ -208,7 +314,14 @@ contains
 
     DO ij = 1, z_num
       fbact(ij) = stomate_tau/(moistfunc_result(ij) * tempfunc_result(ij)) / EXP(-zi_soil(ij)/depth_modifier)
+    !write(*,*)'stomate_tau, moistfunc_result(ij), tempfunc_result(ij), zi_soil(ij), depth_modifier' &
+    !         , stomate_tau, moistfunc_result(ij), tempfunc_result(ij), zi_soil(ij), depth_modifier
+
     ENDDO
+    
+    
+
+    !write(*,*) 'fbact', fbact(:)
 
 
 
@@ -241,6 +354,7 @@ contains
             !
             !cas oxic (pour nous)
             dC = deepSOM_a(il) * dt/fbact_a ! difference (deltacarbon)
+            !write(*,*) 'dC active', dC
 
             !dC = dC * ( 1. - som_turn_iactive_clay_frac * clay(ip) ) ! modification avec la texture du sol, a voir ?
 
@@ -301,29 +415,35 @@ contains
 
         !ENDIF ! veget_mask_2d
 
-!    ENDDO ! End loop over GridNoMax
-
-
+   ! ENDDO ! End loop over GridNoMax
+       totalcarbon = SUM ((deepSOM_a (:)  + deepSOM_s (:) + deepSOM_p (:))*dz(:)) 
+       !write (*,*) " decomposition fin ", totalcarbon
 
   end subroutine decomposition
 !--------------------------
 
 
 !--------------------------
-  subroutine cryoturbation(deepSOM_a, deepSOM_s, deepSOM_p, altmax_lastyear,max_cryoturb_alt,&
-   min_cryoturb_alt, zi_soil, zf_soil, diff_k_const, bio_diff_k_const, dt, &
-       bioturbation_depth)
+  subroutine bio_cryoturbation(Temp, deepSOM_a, deepSOM_s, deepSOM_p, ALT, max_cryoturb_alt,&
+   min_cryoturb_alt, zi_soil, diff_k_const, bio_diff_k_const, dt, &
+       bioturbation_depth, dz)
+
+!!! attention verigier dans cette routine si on utilise ALT ou altmax_lastyear a
+!la place !!!
+
   ! Vertical mixing by cryoturbation with a diffusion scheme
 
     use parameter_mod, only: z_num, YearType ! nombre de jours par an
+    use parameter_mod, only: zf_soil
 
-!~     real, dimension(z_num), intent(in)    ::Temp !, h_pori
-    REAL, DIMENSION(z_num), intent(inout) :: deepSOM_a, deepSOM_s, deepSOM_p
-    real, intent(in)                      :: altmax_lastyear, max_cryoturb_alt, min_cryoturb_alt
+    real, dimension(z_num), intent(in)    ::Temp !, h_pori
+    REAL, DIMENSION(z_num), intent(inout) :: deepSOM_a, deepSOM_s, deepSOM_p !soil organic matter (g /m^3 )
+    real, intent(in)                      :: ALT
+    real, intent(in)                      :: max_cryoturb_alt, min_cryoturb_alt !altmax_lastyear
     real                                  :: cryoturbation_depth
     logical                               :: cryoturb_location, bioturb_location
     REAL, DIMENSION(z_num), INTENT(in)    :: zi_soil ! !! depths of intermediate levels (m)! profondeur de la couche = D dans VAMPER
-    REAL, DIMENSION(0:z_num),  INTENT(in) :: zf_soil        !! depths of full levels (m)
+    !REAL, DIMENSION(0:z_num),  INTENT(in) :: zf_soil        !! depths of full levels (m)
     REAL, DIMENSION(z_num)            :: diff_k               !! Diffusion constant (m^2/s)
     REAL, INTENT(in)                         :: diff_k_const
     REAL, INTENT(in)                          :: bio_diff_k_const
@@ -334,25 +454,32 @@ contains
     real :: xe_a, xe_s, xe_p
     real, intent(in) :: bioturbation_depth
     integer :: il
+    real :: totalcarbon 
+    real :: altSOM_a_old , altSOM_s_old, altSOM_p_old !soil organic matter (g /m^2 )
+    real, dimension(z_num), intent(in)          :: dz
 
+! Test carbon tot
+
+       totalcarbon = SUM ((deepSOM_a (:)  + deepSOM_s (:) + deepSOM_p (:))*dz(:)) 
+       !write (*,*) " tot carbon start biocryo" , totalcarbon
 
 ! Calcul des coefficients
-
+      
        cryoturb_location = .false.
        bioturb_location = .false.
 
 ! Si on a du gel - degel en surface : on fait de la cryoturbation (max_cryoturb_alt =3m)
-       cryoturb_location =  ( altmax_lastyear .LT. max_cryoturb_alt ) &
+       cryoturb_location =  ( ALT .LT. max_cryoturb_alt ) &
 !In the former vertical discretization scheme the first level was at 0.016 cm; now it's only 0.00048 so we set an equivalent threshold directly as a fixed depth of 1 cm,
-            .AND. ( altmax_lastyear .GE. min_cryoturb_alt )
+            .AND. ( ALT .GE. min_cryoturb_alt )
 !       IF (use_fixed_cryoturbation_depth) THEN
 !          cryoturbation_depth(:,:) = fixed_cryoturbation_depth(:,:) ! garder ce cas pour faire des tests en particulier comparaisons avec donnes sur site
 !       ELSE
-          cryoturbation_depth = altmax_lastyear ! ce cas a utiliser par defaut
+          cryoturbation_depth = ALT ! ce cas a utiliser par defaut
 !       ENDIF
 
 ! partout ou pas de cryoturbation - > bioturbation avec coefficient plus petit
-       bioturb_location = ( altmax_lastyear .GE. max_cryoturb_alt )
+       bioturb_location = ( ALT .GE. max_cryoturb_alt )
 
 ! si on est dans une zone de cryoturbation
        IF ( cryoturb_location ) THEN
@@ -427,11 +554,11 @@ contains
 
        IF ( cryoturb_location .OR. bioturb_location )THEN
                    ! 1. calculate the total soil organic matter
-                   !DO il = 1, ngrnd
-                   !   altSOM_a_old(ip,iv,iele) = altSOM_a_old(ip,iv,iele) + deepSOM_a(ip,il,iv,iele)*(zf_soil(il)-zf_soil(il-1))
-                   !   altSOM_s_old(ip,iv,iele) = altSOM_s_old(ip,iv,iele) + deepSOM_s(ip,il,iv,iele)*(zf_soil(il)-zf_soil(il-1))
-                   !   altSOM_p_old(ip,iv,iele) = altSOM_p_old(ip,iv,iele) + deepSOM_p(ip,il,iv,iele)*(zf_soil(il)-zf_soil(il-1))
-                   !ENDDO
+                   DO il = 1, z_num
+                      altSOM_a_old = altSOM_a_old + deepSOM_a(il)*(zf_soil(il)-zf_soil(il-1)) 
+                      altSOM_s_old = altSOM_s_old + deepSOM_s(il)*(zf_soil(il)-zf_soil(il-1))
+                      altSOM_p_old = altSOM_p_old + deepSOM_p(il)*(zf_soil(il)-zf_soil(il-1))
+                   ENDDO
 
                    ! 2. diffuse the soil organic matter
                    deepSOM_a(1) = (deepSOM_a(1)+mu_soil_rev*beta_a(1)) / &
@@ -448,14 +575,15 @@ contains
                    ENDDO
 
                    !! 3. recalculate the total soil organic matter
-                   !DO il = 1, ngrnd
-                   !   altSOM_a(ip,iv,iele) = altSOM_a(ip,iv,iele) + deepSOM_a(ip,il,iv,iele)*(zf_soil(il)-zf_soil(il-1))
-                   !   altSOM_s(ip,iv,iele) = altSOM_s(ip,iv,iele) + deepSOM_s(ip,il,iv,iele)*(zf_soil(il)-zf_soil(il-1))
-                   !   altSOM_p(ip,iv,iele) = altSOM_p(ip,iv,iele) + deepSOM_p(ip,il,iv,iele)*(zf_soil(il)-zf_soil(il-1))
+                 !  DO il = 1, z_num
+                  !    altSOM_a = altSOM_a + deepSOM_a(il)*(zf_soil(il)-zf_soil(il-1))
+                   !   altSOM_s = altSOM_s + deepSOM_s(il)*(zf_soil(il)-zf_soil(il-1))
+                    !  altSOM_p = altSOM_p + deepSOM_p(il)*(zf_soil(il)-zf_soil(il-1))
                    !ENDDO
 
 
-
+                   ! A verifier si correction est utile legere augmentation du carbone 
+                   
                    ! 4. subtract the organic matter in the top layer(s) so that the total organic matter content of the active layer is conserved.
                    ! for now remove this correction term...
 !                   surfC_totake_a(ip,iv) = (altC_a(ip,iv)-altC_a_old(ip,iv))/(zf_soil(altmax_ind(ip,iv))-zf_soil(0))
@@ -486,10 +614,11 @@ contains
 !                   ENDIF
 
        ENDIF
+        
+        totalcarbon = SUM ((deepSOM_a (:)  + deepSOM_s (:) + deepSOM_p (:)) *dz(:)) 
+        !write (*,*) " tot carbon fin biocryo" , totalcarbon
 
-
-
-  end subroutine cryoturbation
+  end subroutine bio_cryoturbation
 !--------------------------
 
 #endif
