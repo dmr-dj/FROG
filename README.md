@@ -29,4 +29,4 @@ Currently implemented with a test case from the Boike dataset (ref. to add and c
 [issues-shield]: https://img.shields.io/github/issues/dmr-dj/VAMPER-v2
 [issues-url]: https://github.com/dmr-dj/VAMPER-v2/issues
 [license-shield]: https://img.shields.io/github/license/dmr-dj/VAMPER-v2
-[license-url]: https://github.com/dmr-dj/VAMPER-v2/blob/master/LICENSE.txt
+[license-url]: https://github.com/dmr-dj/VAMPER-v2/blob/main/LICENSE
