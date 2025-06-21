@@ -68,7 +68,7 @@
 ! --- for output generation / netCDF
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-      INTEGER         :: spat_dim2, spat_dim1
+      INTEGER         :: spat_dim2, spat_dim1, time_id
       REAL, PUBLIC    :: undefined_value
       CHARACTER(LEN=str_len) :: typology_file  ! ="file_typology-r128x64.nc"
       CHARACTER(LEN=str_len) :: netCDFout_file ! ="VAMPER-output.nc"
@@ -95,9 +95,8 @@
       INTEGER :: current_time_record
 
       INTEGER, DIMENSION(nb_out_vars) :: output_var_dimid
-      INTEGER, PARAMETER              :: indx_var_temp_ig = 1, indx_var_palt=2, indx_var_plt=3
+      INTEGER, PARAMETER              :: indx_var_temp_ig = 1, indx_var_palt=2, indx_var_plt=3, indx_var_carb = 4
 
-      INTEGER, PARAMETER              :: indx_var_carb = 4
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 ! ---
@@ -250,6 +249,8 @@
       ! I look forward to get a grid with one spatial variable and two dimensions for now, plus a time dimension
       ! Hence I should get nDims = 3, nVars = 3,  time, hence unlimdimid != -1
 
+
+      time_id = unlimdimid
 
       WRITE(*,*) "info file", nDims, nVars, unlimdimid
 
@@ -594,7 +595,11 @@
        INTEGER, INTENT(in) :: indx_var
        REAL, DIMENSION(z_num,spat_dim1,spat_dim2) :: nc_vartowrite ! lev, lon, lat, time
 
-       current_time_record = current_time_record + 1
+       if (indx_var.EQ.indx_var_temp_ig) then
+
+         current_time_record = current_time_record + 1
+
+       endif
 
        do z=1,z_num
          nc_vartowrite(z,:,:) = un_flatten_it(var_to_write(z,:))
@@ -617,6 +622,23 @@
        call handle_err(                                                                                & ! close netcdf dataset
             nf90_close(ncid)                                                                           &
                       , __LINE__)
+
+       if (indx_var.EQ.indx_var_temp_ig) then
+          call handle_err(                                                                                &
+               nf90_open(path = TRIM(netCDFout_file), mode = NF90_WRITE, ncid = ncid)                     & ! open existing netCDF dataset
+                         , __LINE__)
+          call handle_err(                                                                                &
+               nf90_inq_varid(ncid, "time", time_id)                                                      &
+                         , __LINE__)
+
+          call handle_err(                                                                                &
+               nf90_put_var(ncid, time_id,current_time_record*365., start=(/current_time_record/))             &  ! provide new variable values
+                        , __LINE__)
+
+          call handle_err(                                                                                & ! close netcdf dataset
+               nf90_close(ncid)                                                                           &
+                         , __LINE__)
+       endif
 
 
       END SUBROUTINE WRITE_netCDF_output3D
