@@ -111,7 +111,7 @@
 
      end function INITIALIZE_VAMP
 
-     function STEPFWD_VAMP() result(is_a_success)
+     function STEPFWD_VAMP(coupled_temp_set) result(is_a_success)
 
        USE spatialvars_mod, ONLY: UPDATE_climate_forcing, DO_spatialvars_step
 
@@ -127,13 +127,23 @@
        logical :: is_a_success
 
        REAL, DIMENSION(:,:), ALLOCATABLE :: temperature_forcing_nextsteps
+       REAL, DIMENSION(:,:), INTENT(in), OPTIONAL :: coupled_temp_set    ! must be (1:gridNoMax,1:stepstoDO)
+
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       MAIN BODY OF THE ROUTINE
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
+#if (OFFLINE_RUN == 1)
         ! UPDATE_CLIMATE_FORCING
         CALL UPDATE_climate_forcing(nb_coupling_steps,temperature_forcing_nextsteps)
-
+#else
+        ! FORCING is coming from the coupled component
+        if (PRESENT(coupled_temp_set)) then
+          CALL SET_coupled_climate_forcing(nb_coupling_steps,temperature_forcing_nextsteps, coupled_temp_set)
+        else
+          WRITE(*,*) "[ABORT] :: we are in coupled setup, need a forcing field for temperature"
+        endif
+#endif
         ! DO_VAMPER_STEP
         CALL DO_spatialvars_step(nb_coupling_steps, temperature_forcing_nextsteps)
 

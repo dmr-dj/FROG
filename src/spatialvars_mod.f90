@@ -630,4 +630,26 @@
 
      END SUBROUTINE UPDATE_climate_forcing
 
+     SUBROUTINE SET_coupled_climate_forcing(stepstoDO,temperature_forcing_next, coupled_temp_set)
+
+       use parameter_mod,  only: gridNoMax
+
+       INTEGER, INTENT(in) :: stepstoDO
+       REAL, DIMENSION(:,:), ALLOCATABLE, INTENT(out) :: temperature_forcing_next ! will be (1:gridNoMax,1:stepstoDO)
+       REAL, DIMENSION(:,:),              INTENT(in)  :: coupled_temp_set         ! must be (1:gridNoMax,1:stepstoDO)
+
+
+! Need to assume that there, the grid is worked upon in its entirety (no parallelization) ...
+
+
+       if (.NOT.ALLOCATED(temperature_forcing_next)) then
+           allocate(temperature_forcing_next(1:gridNoMax,1:stepstoDO))
+       endif
+
+      temperature_forcing_next(:,:) = coupled_temp_set(:,:)
+
+
+     END SUBROUTINE SET_coupled_climate_forcing
+
+
     END MODULE spatialvars_mod
