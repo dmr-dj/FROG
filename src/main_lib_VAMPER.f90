@@ -27,7 +27,25 @@
 
       PUBLIC :: INITIALIZE_VAMP, STEPFWD_VAMP
 
+      INTEGER :: nb_coupling_steps
+
      contains
+
+
+     function SET_COUPLING_STEP() result(is_a_success)
+
+     use parameter_mod, only: YearType
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       LOCAL VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+       logical :: is_a_success
+
+       nb_coupling_steps = YearType ! for now, implement a first version of the coupling on a yearly basis
+       is_a_success = .true.
+
+     end function SET_COUPLING_STEP
 
 
      function INITIALIZE_VAMP() result(is_a_success)
@@ -52,6 +70,8 @@
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       MAIN BODY OF THE ROUTINE
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+        is_a_success = SET_COUPLING_STEP()
 
         ! Function to initialize the domain (SPATIAL / Unique point)
         !   -> sets nb_unmaskedp the number of unmasked points, i.e. nb of computation points
@@ -103,17 +123,17 @@
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
        logical :: is_a_success
-       INTEGER :: nb_steps_toDO = 365 !730
+
        REAL, DIMENSION(:,:), ALLOCATABLE :: temperature_forcing_nextsteps
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       MAIN BODY OF THE ROUTINE
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
         ! UPDATE_CLIMATE_FORCING
-        CALL UPDATE_climate_forcing(nb_steps_toDO,temperature_forcing_nextsteps)
+        CALL UPDATE_climate_forcing(nb_coupling_steps,temperature_forcing_nextsteps)
 
         ! DO_VAMPER_STEP
-        CALL DO_spatialvars_step(nb_steps_toDO, temperature_forcing_nextsteps)
+        CALL DO_spatialvars_step(nb_coupling_steps, temperature_forcing_nextsteps)
 
         is_a_success = .TRUE.
 
