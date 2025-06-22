@@ -19,7 +19,6 @@
     MODULE spatialvars_mod
 
 #include "constant.h"
-#define OFFLINE_RUN 1
 
     USE timer_mod, only: cell_time
 

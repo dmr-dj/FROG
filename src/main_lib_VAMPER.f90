@@ -71,7 +71,6 @@
 !       MAIN BODY OF THE ROUTINE
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-        is_a_success = SET_COUPLING_STEP()
 
         ! Function to initialize the domain (SPATIAL / Unique point)
         !   -> sets nb_unmaskedp the number of unmasked points, i.e. nb of computation points
@@ -85,6 +84,9 @@
 
         ! Time initialization
         call t_disc
+
+        ! Coupling timestep (a.k.a. internal timestep)
+        is_a_success = SET_COUPLING_STEP()
 
         ! Vertical discretization
         call z_disc
