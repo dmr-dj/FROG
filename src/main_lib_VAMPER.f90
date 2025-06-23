@@ -113,7 +113,12 @@
 
      function STEPFWD_VAMP(coupled_temp_set) result(is_a_success)
 
-       USE spatialvars_mod, ONLY: UPDATE_climate_forcing, DO_spatialvars_step
+       USE spatialvars_mod, ONLY: DO_spatialvars_step
+#if (OFFLINE_RUN == 1)
+       USE spatialvars_mod, ONLY: UPDATE_climate_forcing
+#else
+       USE spatialvars_mod, ONLY: SET_coupled_climate_forcing
+#endif
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       BY REFERENCE VARIABLES
