@@ -35,6 +35,9 @@ MODULE parameter_mod
 
   integer, parameter  :: str_len = 256
 
+! dmr  Temperature of 0°C in K                   (in K)
+  real, parameter :: tK_zero_C  = 273.15
+
 
 
 !   FORCING FILES FOR OFFLINE RUN & GRID DEFINITION
