@@ -193,6 +193,7 @@
 
 #if (OFFLINE_RUN == 1)
         call get_clim_forcing(forc_tas_file, name_tas_variable,forcing_surface_temp)
+        call fix_Kelvin_or_Celsius(forcing_surface_temp)
 #endif
 
 #if (SP_GHF == 1)
@@ -224,6 +225,19 @@
 
 
      END SUBROUTINE spatialvars_init
+
+     SUBROUTINE fix_Kelvin_or_Celsius(Temp_field)
+
+      use parameter_mod, only: tK_zero_C
+
+      REAL, DIMENSION(:,:), INTENT(inout) :: Temp_field
+
+      if (MINVAL(Temp_field).GT.100.0) then
+        Temp_field(:,:) = Temp_field(:,:) - tK_zero_C
+      endif
+
+     END SUBROUTINE fix_Kelvin_or_Celsius
+
 
      FUNCTION get_Spatial_2Dforcing(nc_file_to_read,name_surf_variable) result(ReadInit_SV)
 
@@ -624,9 +638,6 @@
        else ! enough data already
          temperature_forcing_next(:,:) = forcing_surface_temp(:,start_step:end_step)
        endif
-
-!~        !dmr [TEMPORARY ADD ON]
-!~        temperature_forcing_next(:,:) = temperature_forcing_next(:,:) - 273.15
 
      END SUBROUTINE UPDATE_climate_forcing
 
