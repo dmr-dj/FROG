@@ -36,12 +36,16 @@ SED:=sed
 RM:=rm -f
 MKDIR:=mkdir -p
 TEST:=test
+AR:=ar
+ARFLAGS = qcs
+
 
 ## known fortran extensions
 FORTEXT:=f F fpp FPP for FOR ftn FTN f90 F90 f95 F95 f03 F03 f08 F08
 
 ## locate the source files
 SOURCES:=$(shell find src/. -regextype posix-awk -regex '.*\.($(subst $( ),|,$(FORTEXT)))$$')
+LIBSOURCES:=$(shell find src/. ! -name 'test*' -regextype posix-awk -regex '.*\.($(subst $( ),|,$(FORTEXT)))$$')
 
 ## compilation and syntax-compilation commands
 COMPILE.f08 = $(FC) $(F_FLAGS_EXTD) $(FFLAGS) $(INCLUDES) $(TARGET_ARCH) -c
@@ -74,6 +78,7 @@ define source-to-extension
       $(subst .$(ext),.$2,$(filter %.$(ext),$1))))
 endef
 OBJECTS:=$(call source-to-extension,$(SOURCES),o)
+LIBOBJECTS:=$(call source-to-extension,$(LIBSOURCES),o)
 ANCHORS:=$(call source-to-extension,$(SOURCES),anc)
 
 ## default target, main and clean targets
@@ -81,6 +86,10 @@ all: VAMPER.x
 
 VAMPER.x: $(OBJECTS)
 	$(FC) $(INCLUDES) -o $@ $+ $(LIBS)
+
+libvamper.a: $(LIBOBJECTS)
+	$(RM) $@
+	$(AR) $(ARFLAGS) $@ $(LIBOBJECTS)
 
 .PHONY: clean
 clean:
