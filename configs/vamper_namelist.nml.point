@@ -1,10 +1,10 @@
 ! mbv  Namelist parametres 
 &inputFiles
-  forc_tas_file       = "Boikedata_lonlat.nc"
+  forc_tas_file       = "Input_Data/point_Boike/Boikedata_lonlat.nc"
   name_tas_variable   = "tas"
-  GHF_spatial_file    = "GHFl_r128x64-maskocean.nc"
+  GHF_spatial_file    = " "
   GHF_variable_name   = "GHF_mean"
-  Tinit_spatial_file  = "tas_ewembi_1979-2016-r128x64-maskocean-timemean-clean.nc4"
+  Tinit_spatial_file  = " "
   Tinit_variable_name = "topo"
 /
 

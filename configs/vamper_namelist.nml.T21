@@ -1,11 +1,11 @@
 ! mbv  Namelist parametres
 &inputFiles
-  forc_tas_file       = "atminst003000-maskedocean.nc"
+  forc_tas_file       = "Input_Data/T21_ECBilt/atminst003000-maskedocean.nc"
   name_tas_variable   = "tfrac"
-  GHF_spatial_file    = "GHFl_T21-masked-final.nc"
+  GHF_spatial_file    = "Input_Data/T21_ECBilt/GHFl_T21-masked-final.nc"
   GHF_variable_name   = "GHF_mean"
-  Tinit_spatial_file  = "tas_ewembi_1979-2016-r128x64-maskocean-timemean-clean.nc4"
-  Tinit_variable_name = "topo"
+  Tinit_spatial_file  = " "
+  Tinit_variable_name = " "
 /
 
 &Param

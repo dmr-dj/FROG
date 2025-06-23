@@ -1,6 +1,6 @@
 &inputsGrid
-  mask_file = "atminst003000-maskedocean.nc"
-  typology_file = "file_typology-T21.nc"
+  mask_file = "Input_Data/T21_ECBilt/atminst003000-maskedocean.nc"
+  typology_file = "Input_Data/T21_ECBilt/file_typology-T21.nc"
   netCDFout_file = "VAMPER-output.nc"
 
 /
