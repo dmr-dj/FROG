@@ -1,0 +1,6 @@
+&inputsGrid
+  mask_file = "atminst003000-maskedocean.nc"
+  typology_file = "file_typology-T21.nc"
+  netCDFout_file = "VAMPER-output.nc"
+
+/

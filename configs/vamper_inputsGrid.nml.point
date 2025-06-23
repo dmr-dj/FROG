@@ -1,0 +1,6 @@
+&inputsGrid
+  mask_file = "Boikedata_lonlat.nc"
+  typology_file = "file_typology-OnePointBoike.nc"
+  netCDFout_file = "VAMPER-output.nc"
+
+/
