@@ -136,7 +136,7 @@
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
        do t=1, len_time
-         flattened_time_array(:,t) = flatten_it(spatial_time_array(:,:,t))
+         flattened_time_array(:,t) = flatten_it(TRANSPOSE(spatial_time_array(:,:,t)))
        enddo
 
      end function flatten_it_3D

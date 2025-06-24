@@ -657,8 +657,9 @@
            allocate(temperature_forcing_next(1:gridNoMax,1:stepstoDO))
        endif
 
-      temperature_forcing_next(:,:) = coupled_temp_set(:,:)
+       temperature_forcing_next(:,:) = coupled_temp_set(:,:)
 
+       call fix_Kelvin_or_Celsius(temperature_forcing_next)
 
      END SUBROUTINE SET_coupled_climate_forcing
 
