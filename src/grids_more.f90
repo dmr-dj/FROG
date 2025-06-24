@@ -108,10 +108,42 @@
 
       PUBLIC :: INIT_maskGRID, INIT_netCDF_output, indx_var_temp_ig, indx_var_palt, indx_var_plt, WRITE_netCDF_output
 
-      PUBLIC :: indx_var_carb
+      PUBLIC :: indx_var_carb, flatten_it_3D
 
 
       CONTAINS
+! ---
+
+     function flatten_it_3D(spatial_time_array,len_time) result(flattened_time_array)
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       BY REFERENCE VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+       real, dimension(:,:,:), intent(in) :: spatial_time_array
+       integer               , intent(in) :: len_time
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       LOCAL VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+       real, dimension(nb_unmaskedp,len_time) :: flattened_time_array
+
+       integer :: i,j, t
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       MAIN BODY OF THE ROUTINE
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+       do t=1, len_time
+         flattened_time_array(:,t) = flatten_it(spatial_time_array(:,:,t))
+       enddo
+
+     end function flatten_it_3D
+
+
+
+
 
 ! ---
 
@@ -138,7 +170,9 @@
 
        do j=1, UBOUND(two_to_oneDims,DIM=2)
          do i=1, UBOUND(two_to_oneDims,DIM=1)
-           flattened_array(two_to_oneDims(i,j)) = spatial_array(i,j)
+           if (two_to_oneDims(i,j).NE.-1) then
+             flattened_array(two_to_oneDims(i,j)) = spatial_array(i,j)
+           endif
          enddo
        enddo
 

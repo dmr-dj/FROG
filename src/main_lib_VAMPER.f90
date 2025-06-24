@@ -25,7 +25,7 @@
 
       PRIVATE
 
-      PUBLIC :: INITIALIZE_VAMP, STEPFWD_VAMP
+      PUBLIC :: INITIALIZE_VAMP, STEPFWD_VAMP, GET_COUPLING_STEP
 
       INTEGER :: nb_coupling_steps
 
@@ -46,6 +46,16 @@
        is_a_success = .true.
 
      end function SET_COUPLING_STEP
+
+
+     function GET_COUPLING_STEP() result(the_coupling_step)
+
+       integer :: the_coupling_step
+
+       the_coupling_step = nb_coupling_steps
+
+     end function GET_COUPLING_STEP
+
 
 
      function INITIALIZE_VAMP() result(is_a_success)
@@ -118,6 +128,7 @@
        USE spatialvars_mod, ONLY: UPDATE_climate_forcing
 #else
        USE spatialvars_mod, ONLY: SET_coupled_climate_forcing
+       USE grids_more, ONLY: flatten_it_3D
 #endif
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
@@ -132,7 +143,8 @@
        logical :: is_a_success
 
        REAL, DIMENSION(:,:), ALLOCATABLE :: temperature_forcing_nextsteps
-       REAL, DIMENSION(:,:), INTENT(in), OPTIONAL :: coupled_temp_set    ! must be (1:gridNoMax,1:stepstoDO)
+       REAL, DIMENSION(:,:,:), INTENT(in), OPTIONAL :: coupled_temp_set    ! will be (spat_coord1, spat_coord2, 1:stepstoDo)
+                                                                           ! must be (1:gridNoMax,1:stepstoDO)
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       MAIN BODY OF THE ROUTINE
@@ -144,7 +156,14 @@
 #else
         ! FORCING is coming from the coupled component
         if (PRESENT(coupled_temp_set)) then
-          CALL SET_coupled_climate_forcing(nb_coupling_steps,temperature_forcing_nextsteps, coupled_temp_set)
+
+          WRITE(*,*) "Received temperature : ", MINVAL(coupled_temp_set), MAXVAL(coupled_temp_set)
+
+          CALL SET_coupled_climate_forcing(nb_coupling_steps, temperature_forcing_nextsteps,                                    &
+                                           coupled_temp_set = flatten_it_3D(coupled_temp_set,UBOUND(coupled_temp_set,dim=3))    &
+                                          )
+          WRITE(*,*) "[INFO] :: we are in coupled setup"
+
         else
           WRITE(*,*) "[ABORT] :: we are in coupled setup, need a forcing field for temperature"
         endif
