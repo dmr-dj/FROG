@@ -29,6 +29,18 @@
 
       INTEGER :: nb_coupling_steps
 
+#if ( OFFLINE_RUN == 0 )
+      TYPE cpl_fields
+        REAL, DIMENSION(:,:,:), ALLOCATABLE :: TempForc
+#if ( CARBON == 1 )
+        REAL, DIMENSION(:,:),   ALLOCATABLE :: B3_vegForc
+        REAL, DIMENSION(:,:),   ALLOCATABLE :: B4_vegForc
+#endif
+      END TYPE cpl_fields
+#endif
+
+      PUBLIC :: cpl_fields
+
      contains
 
 
@@ -121,7 +133,7 @@
 
      end function INITIALIZE_VAMP
 
-     function STEPFWD_VAMP(coupled_temp_set, coupled_b3, coupled_b4) result(is_a_success)
+     function STEPFWD_VAMP(coupled_fields) result(is_a_success)
 
        USE spatialvars_mod, ONLY: DO_spatialvars_step
 #if (OFFLINE_RUN == 1)
@@ -143,10 +155,13 @@
        logical :: is_a_success
 
        REAL, DIMENSION(:,:), ALLOCATABLE :: temperature_forcing_nextsteps
-       REAL, DIMENSION(:,:,:), INTENT(in), OPTIONAL :: coupled_temp_set     ! will be (spat_coord1, spat_coord2, 1:stepstoDo)
-                                                                            ! must be (1:gridNoMax,1:stepstoDO)
-       REAL, DIMENSION(:,:), INTENT(in), OPTIONAL :: coupled_b3, coupled_b4 ! will be (spat_coord1, spat_coord2)
-                                                                            ! must be (1:gridNoMax)
+
+       type(cpl_fields), intent(in), optional :: coupled_fields
+
+!~        REAL, DIMENSION(:,:,:), INTENT(in), OPTIONAL :: coupled_temp_set     ! will be (spat_coord1, spat_coord2, 1:stepstoDo)
+!~                                                                             ! must be (1:gridNoMax,1:stepstoDO)
+!~        REAL, DIMENSION(:,:), INTENT(in), OPTIONAL :: coupled_b3, coupled_b4 ! will be (spat_coord1, spat_coord2)
+!~                                                                             ! must be (1:gridNoMax)
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       MAIN BODY OF THE ROUTINE
@@ -157,13 +172,13 @@
         CALL UPDATE_climate_forcing(nb_coupling_steps,temperature_forcing_nextsteps)
 #else
         ! FORCING is coming from the coupled component
-        if (PRESENT(coupled_temp_set)) then
+        if (PRESENT(coupled_fields)) then
 
           CALL SET_coupled_climate_forcing(nb_coupling_steps, temperature_forcing_nextsteps,                                    &
-                                           coupled_temp_set = flatten_it_3D(coupled_temp_set,UBOUND(coupled_temp_set,dim=3))    &
+                   coupled_temp_set = flatten_it_3D(coupled_fields%TempForc,UBOUND(coupled_fields%TempForc,dim=3))              &
 #if ( CARBON == 1 )
-                                         , b3_content = flatten_it(TRANSPOSE(coupled_b3(:,:)))                                  &
-                                         , b4_content = flatten_it(TRANSPOSE(coupled_b4(:,:)))                                  &
+                                         , b3_content = flatten_it(TRANSPOSE(coupled_fields%B3_vegForc(:,:)))                   &
+                                         , b4_content = flatten_it(TRANSPOSE(coupled_fields%B4_vegForc(:,:)))                   &
 #endif
                                           )
         else
