@@ -64,6 +64,7 @@
     ! Timer variable carbon only
     LOGICAL, dimension(:),  allocatable, PUBLIC            :: end_year_SV          !=0 if not end of year, =1 if end of year
 
+    REAL, DIMENSION(:), allocatable, PUBLIC :: b3_SV, b4_SV
 #endif
 
 
@@ -137,7 +138,8 @@
        allocate(altmax_ly_SV(1:gridNoMax))
        allocate(compteur_tstep_SV(1:gridNoMax))
        allocate(end_year_SV(1:gridNoMax))
-
+       allocate(b3_SV(1:gridNoMax))
+       allocate(b4_SV(1:gridNoMax))
 
 #endif
 
@@ -216,7 +218,8 @@
 
 #if ( CARBON == 1 )
             !dmr Initialization of all columns, one by one
-          call carbon_init(deepSOM_a(:,gridp), deepSOM_s(:,gridp), deepSOM_p(:,gridp), fc_SV(:,:,gridp),ALT_SV(gridp))
+          call carbon_init(deepSOM_a(:,gridp), deepSOM_s(:,gridp), deepSOM_p(:,gridp), fc_SV(:,:,gridp),ALT_SV(gridp)       &
+                          ,b3_SV(gridp), b4_SV(gridp))
 #endif
 
           compteur_tstep_SV(gridp) = init_time_cell(0,.FALSE.,.FALSE.,logic_month_day)
@@ -564,7 +567,7 @@
                                , compteur_tstep_SV(gridp)                                                                     &
             ! CARBON ONLY VARIABLES
                                , deepSOM_a = deepSOM_a(:,gridp),deepSOM_s = deepSOM_s(:,gridp), deepSOM_p = deepSOM_p(:,gridp)&
-                               , deepSOM = deepSOM(:,gridp), fc = fc_SV(:,:,gridp)  )
+                               , deepSOM = deepSOM(:,gridp), fc = fc_SV(:,:,gridp), b3_lok=b3_SV(gridp), b4_lok=b4_SV(gridp))
 
 #else
 

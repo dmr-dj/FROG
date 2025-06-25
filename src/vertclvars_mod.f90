@@ -37,7 +37,7 @@
                                                                       ! n is porosity in the vertical
                                                                       ! Per_depth is the diagnosed "permafrost" or freezing depth (in meters)
                                    ALT, altmax_lastyear, compteur_time_step, deepSOM_a, deepSOM_s, deepSOM_p &
-                                   , deepSOM, fc)
+                                   , deepSOM, fc, b3_lok, b4_lok)
 
         USE parameter_mod,     ONLY: organic_ind, z_num
         USE parameter_mod,     ONLY: D, dt, dz
@@ -72,6 +72,7 @@
         REAL   ,DIMENSION(1:z_num), INTENT(inout),OPTIONAL  :: deepSOM_a, deepSOM_s, deepSOM_p
         REAL   ,DIMENSION(1:z_num), INTENT(inout), OPTIONAL :: deepSOM
         REAL, DIMENSION(ncarb,ncarb), intent(inout), OPTIONAL:: fc !! flux fractions within carbon pools
+        REAL, OPTIONAL,                   INTENT(in)        :: b3_lok, b4_lok
 
 
 
@@ -126,7 +127,7 @@
        !write(*,*) 'ALT', ALT
        call carbon_main (Temp, ALT, D ,deepSOM_a, deepSOM_s, deepSOM_p, dz, dt, max_cryoturb_alt,   &
                           min_cryoturb_alt, diff_k_const, bio_diff_k_const, bioturbation_depth,       &
-                          deepSOM, fc)
+                          deepSOM, fc, b3_lok, b4_lok)
 #endif
 
          if (end_year) then

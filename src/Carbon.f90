@@ -18,7 +18,7 @@ contains
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
   subroutine carbon_main (Temp, ALT, D ,deepSOM_a, deepSOM_s, deepSOM_p, dz, dt, max_cryoturb_alt,   &
                           min_cryoturb_alt, diff_k_const, bio_diff_k_const, bioturbation_depth,      &
-                          deepSOM, fc)
+                          deepSOM, fc, b3_l, b4_l)
 
       use parameter_mod,  only : z_num
       use parameter_mod, only: zf_soil
@@ -41,13 +41,14 @@ contains
       real, intent(in)                                    :: bioturbation_depth
       REAL, DIMENSION(ncarb,ncarb), intent(in)            :: fc                         !! flux fractions within carbon pools
       REAL, dimension(z_num) , INTENT(out)                :: deepSOM
+      REAL, intent(in)                                    :: b3_l, b4_l
 
 
 
       !call compute_alt(Temp, Temp_positive, ALT, compteur_time_step, end_year, altmax_lastyear, D)
       ! write(*,*) 'ALT', ALT
        ! redistribute carbon from biosphere model
-      call carbon_redistribute(Temp, deepSOM_a, deepSOM_s, deepSOM_p, dz, ALT)
+      call carbon_redistribute(Temp, deepSOM_a, deepSOM_s, deepSOM_p, dz, ALT,b3_l,b4_l)
        ! computes the decomposition in permafrost as a function of temperature (later : humidity and soil type?)
        !! ICI verifier D pour zi_soil?
       call decomposition(Temp, D, dt, deepSOM_a, deepSOM_s, deepSOM_p, fc, dz)
@@ -98,7 +99,7 @@ contains
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
-  subroutine carbon_init(deepSOM_a, deepSOM_s, deepSOM_p,  fc, ALT)
+  subroutine carbon_init(deepSOM_a, deepSOM_s, deepSOM_p,  fc, ALT, b3_spat, b4_spat)
   ! initialize the carbon variables to 0
 
     use parameter_mod, only: z_num
@@ -109,7 +110,7 @@ contains
     real,dimension(z_num), intent(inout) :: deepSOM_a, deepSOM_s, deepSOM_p
     REAL, DIMENSION(ncarb,ncarb), intent(out)  :: fc                         !! flux fractions within carbon pools
     REAL, DIMENSION(ncarb)                     :: fr                         !! fraction of decomposed carbon that goes into the atmosphere
-    REAL, intent(out)                          :: ALT ! , altmax_lastyear
+    REAL, intent(out)                          :: ALT, b3_spat, b4_spat ! , altmax_lastyear
 
     REAL, PARAMETER :: clay=1.0
 
@@ -118,6 +119,10 @@ contains
     deepSOM_p(:) = 0.0
 
     ALT = 0.0
+
+    ! Only in mode uncoupled, fixed to a specific value
+    b3_spat = 1.
+    b4_spat = 1.
 
     ! calculate soil organic matter flux fractions
     fc(iactive,iactive) = 0.0
@@ -140,7 +145,7 @@ contains
 !--------------------------
 
 !--------------------------
-  subroutine carbon_redistribute(Temp, deepSOM_a, deepSOM_s, deepSOM_p, dz, ALT ) ! Temp,
+  subroutine carbon_redistribute(Temp, deepSOM_a, deepSOM_s, deepSOM_p, dz, ALT, b3, b4 ) ! Temp,
   ! initialize the carbon in the active layer by redistributing carbon
   ! from litter and soil from vecode
 
@@ -150,8 +155,8 @@ contains
     real, dimension(z_num),intent(in)              :: Temp
     real,                      intent(in)          :: ALT
     real, dimension(z_num), intent(inout)          :: dz ! epaisseur de chaque couche
-    real                                           :: b3, b4 ! Carbon in litter and soil, for now fixed
     real,dimension(z_num),intent(inout)            :: deepSOM_a, deepSOM_s, deepSOM_p !soil organic matter (g /m^3 )
+    real                , intent(in)               :: b3, b4 ! Carbon in litter and soil, should be in g/m2
     integer                                        :: k, il
     real                                           :: intdep !depth of integration
     real                                           :: z_lit !e folding depth
@@ -166,8 +171,8 @@ contains
     totcarbon = SUM ((deepSOM_a (:) + deepSOM_s(:) + deepSOM_p(:) )*dz(:))
     !write (*,*) "debut routine redistribution" , totcarbon
 
-    b3=1.! en g/m²  !!!! (du coup on divise som input par dz )
-    b4=1 ! en g /m²
+!~     b3=1.! en g/m²  !!!! (du coup on divise som input par dz )
+!~     b4=1 ! en g /m²
     som_input_TS=b3+b4 ! matiere organique qui arrive dans le sol (litiere + sol) ! attention  a l unite
 !*time_step/one_day
 !add up the soil carbon from all veg pools, and change units from (gC/(m**2 of ground)/day) to gC/m^2 per timestep
