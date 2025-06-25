@@ -121,14 +121,14 @@
 
      end function INITIALIZE_VAMP
 
-     function STEPFWD_VAMP(coupled_temp_set) result(is_a_success)
+     function STEPFWD_VAMP(coupled_temp_set, coupled_b3, coupled_b4) result(is_a_success)
 
        USE spatialvars_mod, ONLY: DO_spatialvars_step
 #if (OFFLINE_RUN == 1)
        USE spatialvars_mod, ONLY: UPDATE_climate_forcing
 #else
        USE spatialvars_mod, ONLY: SET_coupled_climate_forcing
-       USE grids_more, ONLY: flatten_it_3D
+       USE grids_more, ONLY: flatten_it_3D, flatten_it
 #endif
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
@@ -143,8 +143,10 @@
        logical :: is_a_success
 
        REAL, DIMENSION(:,:), ALLOCATABLE :: temperature_forcing_nextsteps
-       REAL, DIMENSION(:,:,:), INTENT(in), OPTIONAL :: coupled_temp_set    ! will be (spat_coord1, spat_coord2, 1:stepstoDo)
-                                                                           ! must be (1:gridNoMax,1:stepstoDO)
+       REAL, DIMENSION(:,:,:), INTENT(in), OPTIONAL :: coupled_temp_set     ! will be (spat_coord1, spat_coord2, 1:stepstoDo)
+                                                                            ! must be (1:gridNoMax,1:stepstoDO)
+       REAL, DIMENSION(:,:), INTENT(in), OPTIONAL :: coupled_b3, coupled_b4 ! will be (spat_coord1, spat_coord2)
+                                                                            ! must be (1:gridNoMax)
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       MAIN BODY OF THE ROUTINE
@@ -157,16 +159,17 @@
         ! FORCING is coming from the coupled component
         if (PRESENT(coupled_temp_set)) then
 
-          WRITE(*,*) "Received temperature : ", MINVAL(coupled_temp_set), MAXVAL(coupled_temp_set)
-
           CALL SET_coupled_climate_forcing(nb_coupling_steps, temperature_forcing_nextsteps,                                    &
                                            coupled_temp_set = flatten_it_3D(coupled_temp_set,UBOUND(coupled_temp_set,dim=3))    &
+#if ( CARBON == 1 )
+                                         , b3_content = flatten_it(TRANSPOSE(coupled_b3(:,:)))                                  &
+                                         , b4_content = flatten_it(TRANSPOSE(coupled_b4(:,:)))                                  &
+#endif
                                           )
-          WRITE(*,*) "[INFO] :: we are in coupled setup"
-
         else
-          WRITE(*,*) "[ABORT] :: we are in coupled setup, need a forcing field for temperature"
+          WRITE(*,*) "[ABORT] :: we are in coupled setup, need a forcing input fields"
         endif
+
 #endif
         ! DO_VAMPER_STEP
         CALL DO_spatialvars_step(nb_coupling_steps, temperature_forcing_nextsteps)

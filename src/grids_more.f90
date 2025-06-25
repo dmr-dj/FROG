@@ -108,7 +108,7 @@
 
       PUBLIC :: INIT_maskGRID, INIT_netCDF_output, indx_var_temp_ig, indx_var_palt, indx_var_plt, WRITE_netCDF_output
 
-      PUBLIC :: indx_var_carb, flatten_it_3D
+      PUBLIC :: indx_var_carb, flatten_it_3D, flatten_it
 
 
       CONTAINS

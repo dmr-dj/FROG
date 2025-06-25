@@ -29,42 +29,39 @@
 
             ! SPATIAL GLOBAL VARIABLES
 
-     real, dimension(:,:),allocatable, PUBLIC :: Temp      & !dmr [SPAT_VAR], soil temperature over the vertical // prognostic
+     real, dimension(:,:),allocatable         :: Temp      & !dmr [SPAT_VAR], soil temperature over the vertical // prognostic
                                                 ,Kp        & !dmr [CNTST]     heat conductivity constant over the depth, current value is 2
                                                 ,n         & !dmr [SPAT_VAR], porosity on the vertical
                                                 ,Cp        & !dmr [SPAT_VAR]  specific heat capacity
                                                 ,pori      & !dmr [???  TBC]
                                                 ,porf        !dmr [???  TBC]
 
-     real, dimension(:), allocatable, PUBLIC  ::  GeoHFlux    &
+     real, dimension(:), allocatable          ::  GeoHFlux    &
                                                 , Tinit_SV    &
                                                 , T_bottom_SV
 
-     real, dimension(:,:), allocatable, PUBLIC :: freeze_depth_SV
+     real, dimension(:,:), allocatable :: freeze_depth_SV
 
-     integer, dimension(:), allocatable, PUBLIC :: orgalayer_indx
+     integer, dimension(:), allocatable :: orgalayer_indx
 
             ! CLIMATE FORCING VARIABLES
      REAL, DIMENSION(:,:), ALLOCATABLE :: forcing_surface_temp ! two dimensions / spatial and time in that order
             ! could add swe_f_t, snw_dp_t,rho_snow_t,T_snw
      REAL, DIMENSION(:,:), ALLOCATABLE :: restart_temperature  ! VERT/SPAT
 
-     real, dimension(:)   ,  allocatable, PUBLIC :: ALT_SV, altmax_ly_SV
+     real, dimension(:)   ,  allocatable :: ALT_SV, altmax_ly_SV
 
 
 #if ( CARBON == 1 )
-     real,dimension(:,:)  ,  allocatable, PUBLIC :: deepSOM_a & !dmr [TBD]
+     real,dimension(:,:)  ,  allocatable         :: deepSOM_a & !dmr [TBD]
                                                   , deepSOM_s & !dmr [TBD]
                                                   , deepSOM_p & !dmr [TBD]
                                                   , deepSOM
-!~      integer,dimension(:,:), allocatable, PUBLIC :: temp_oncepositive
-!~      real, dimension(:)   ,  allocatable, PUBLIC :: clay_SV
-     real,dimension(:,:,:),  allocatable, PUBLIC :: fc_SV       !dmr [TBD]
+     real,dimension(:,:,:),  allocatable         :: fc_SV       !dmr [TBD]
 
-    ! Timer variable carbon only
-    LOGICAL, dimension(:),  allocatable, PUBLIC            :: end_year_SV          !=0 if not end of year, =1 if end of year
-
-    REAL, DIMENSION(:), allocatable, PUBLIC :: b3_SV, b4_SV
+     ! Timer variable carbon only
+     logical, dimension(:), allocatable          :: end_year_SV          !=0 if not end of year, =1 if end of year
+     real, dimension(:)   , allocatable          :: b3_SV, b4_SV
 #endif
 
 
@@ -644,14 +641,14 @@
 
      END SUBROUTINE UPDATE_climate_forcing
 
-     SUBROUTINE SET_coupled_climate_forcing(stepstoDO,temperature_forcing_next, coupled_temp_set)
+     SUBROUTINE SET_coupled_climate_forcing(stepstoDO,temperature_forcing_next, coupled_temp_set, b3_content, b4_content)
 
        use parameter_mod,  only: gridNoMax
 
        INTEGER, INTENT(in) :: stepstoDO
-       REAL, DIMENSION(:,:), ALLOCATABLE, INTENT(out) :: temperature_forcing_next ! will be (1:gridNoMax,1:stepstoDO)
-       REAL, DIMENSION(:,:),              INTENT(in)  :: coupled_temp_set         ! must be (1:gridNoMax,1:stepstoDO)
-
+       REAL, DIMENSION(:,:), ALLOCATABLE, INTENT(out)           :: temperature_forcing_next ! will be (1:gridNoMax,1:stepstoDO)
+       REAL, DIMENSION(:,:),              INTENT(in)            :: coupled_temp_set         ! must be (1:gridNoMax,1:stepstoDO)
+       REAL, DIMENSION(:)               , INTENT(in), OPTIONAL  :: b3_content, b4_content   ! will be (1:gridNoMax)
 
 ! Need to assume that there, the grid is worked upon in its entirety (no parallelization) ...
 
@@ -663,6 +660,16 @@
        temperature_forcing_next(:,:) = coupled_temp_set(:,:)
 
        call fix_Kelvin_or_Celsius(temperature_forcing_next)
+
+#if ( CARBON == 1 )
+       if ((PRESENT(b3_content)).AND.(PRESENT(b4_content))) then
+         b3_SV = b3_content
+         b4_SV = b4_content
+       else
+         WRITE(*,*) "[ABORT] Missing forcing for b3, b4 in coupled mode"
+       endif
+#endif
+
 
      END SUBROUTINE SET_coupled_climate_forcing
 
