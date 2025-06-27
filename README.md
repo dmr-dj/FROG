@@ -7,11 +7,11 @@
 [![Issues][issues-shield]][issues-url]
 [![Apache-2.0 License][license-shield]][license-url]
 
-# VAMPER-F
-VAMPER-v2 is a new implementation of the initial VAMPER Ground Temperature Model, in FORTRAN. It has been expanded to include carbon in the soil.
+# FROG - a FORTRAN FROzen Ground model
+FROG is a re-implementation of the initial VAMPER Ground Temperature Model, in FORTRAN and has been expanded to include cryoturbation of carbon in the soil.
 
 ## Dependencies
-The implementation is dependent on a NetCDF library to be installed with a Fortran compiler, with the Fortran bindings for NetCDF.
+The implementation is dependent on a NetCDF library to be installed with a Fortran compiler, with the Fortran bindings for NetCDF. It also depends on the LAPACK routines. 
 
 ## Test case
 Currently implemented with a test case from the Boike dataset (ref. to add and check).
