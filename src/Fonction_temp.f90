@@ -21,7 +21,7 @@
 module Fonction_temp
 
   use parameter_mod, only : C_ice,C_dry_soil,C_organic,C_water,freezing_range,Latent_Heat,rho_ice,z_num,K_fluids
-  use parameter_mod, only :rho_organic,rho_soil,rho_water,K_other_minerals,K_organic,K_quartz,q_quartz,Bool_geometric,K_ice
+  use parameter_mod, only : rho_organic,rho_soil,rho_water,K_other_minerals,K_organic,K_quartz,q_quartz,Bool_geometric,K_ice
 
   implicit none
 
@@ -80,15 +80,19 @@ module Fonction_temp
   end subroutine AppHeatCapacity
 
 
-  subroutine ThermalConductivity(layer , h_n, h_pori, h_porf, org_ind, Temp, Ther_cond )
+  subroutine ThermalConductivity(h_n, h_pori, h_porf, org_ind, Temp, THCD_out )
 
     use parameter_mod, only: tK_zero_C
 
-    integer, intent(in) :: layer, org_ind
-    real, intent(in) :: h_n, h_pori, h_porf, Temp
-    real, intent(out) :: Ther_cond
+    integer, intent(in) :: org_ind
+    real, dimension(z_num), intent(in) :: h_n, h_pori, h_porf, Temp
+    real, dimension(z_num), intent(out) :: THCD_out
 
     real :: Ksoil, Kice, Kfluids
+    real, dimension(z_num) :: Ther_cond
+    integer :: layer
+
+    do layer=1,z_num-1
 
     if (org_ind > layer) then
 
@@ -101,19 +105,26 @@ module Fonction_temp
 
     end if
 
-    Kfluids = 0.1145 + 0.0016318 * (tK_zero_C + Temp)
+    Kfluids = 0.1145 + 0.0016318 * (tK_zero_C + Temp(layer))
 
-    Kice = 0.4865 + 488.19/(tK_zero_C +Temp)
+    Kice = 0.4865 + 488.19/(tK_zero_C +Temp(layer))
 
     if (Bool_geometric == 1) then
 
-       Ther_cond = (Ksoil**(1-h_n) * Kice**(h_pori) * Kfluids**(h_porf))
+       Ther_cond(layer) = (Ksoil**(1-h_n(layer)) * Kice**(h_pori(layer)) * Kfluids**(h_porf(layer)))
 
     else
 
-       Ther_cond = ((Ksoil**0.5)*(1-h_n) + (K_ice**0.5)*(h_pori) + (K_fluids**0.5)*(h_porf))**2
+       Ther_cond(layer) = ((Ksoil**0.5)*(1-h_n(layer)) + (K_ice**0.5)*(h_pori(layer)) + (K_fluids**0.5)*(h_porf(layer)))**2
 
     end if
+
+    enddo
+
+!~     THCD_out(1:z_num-1) = (Ther_cond(1:z_num-1)+Ther_cond(2:z_num))*0.5
+    THCD_out(1:z_num-1) = Ther_cond(1:z_num-1)
+    THCD_out(z_num) = 2.0
+
 
   end subroutine ThermalConductivity
 

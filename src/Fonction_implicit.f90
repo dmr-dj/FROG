@@ -38,11 +38,11 @@
          use Fonction_temp, only : AppHeatCapacity, ThermalConductivity, AppHeatCapacitySnow, ThermalConductivitySnow
 
 
-         real, dimension(:)                 , intent(in) :: T_old    !dmr Previous time step soild temperature [C]
+         real, dimension(1:z_max)           , intent(in) :: T_old    !dmr Previous time step soild temperature [C]
          real                               , intent(in) :: Tu       !dmr Temperature forcing at the surface   [C]
          real                               , intent(in) :: Tb       !dmr Temperature fixed at the bottom      [C]
          real                               , intent(in) :: dt       !dmr timestep duration                    [s]
-         real, dimension(:)                 , intent(in) :: dz       !dmr layer thickness in the soil          [m]
+         real, dimension(1:z_max)           , intent(in) :: dz       !dmr layer thickness in the soil          [m]
          real, dimension(:)                 , intent(in) :: n        !dmr porosity in each soil layer          [1]
          integer                            , intent(in) :: org_ind  !dmr organic index ...
          real, dimension(1:z_max)           , intent(out):: Timp     !dmr placeholder for new temperature      [C]
@@ -118,21 +118,17 @@
 
 #endif
 
-      !dmr [FUTURE] Only concerned with the soil part for this section
-
              !dmr Given Temperature and porosity (n), this computes a new Cp value and porf, pori on the vertical
            call AppHeatCapacity(z_num,T_iter(z_eff:z_max),T_freeze,n,org_ind,Cp_temp,porf,pori)
 
-           do ll=z_eff,z_max-1
-             ll_soil = ll-z_eff+1
-              !dmr Given the number of layer, porosity, porosities, Temperature, computes the Kp of the layer
-             call ThermalConductivity(ll,n(ll_soil),pori(ll_soil),porf(ll_soil),org_ind,T_iter(ll),Kp(ll_soil))
-             Kp(z_max) = 2
-           end do
+!~            do ll=z_eff,z_max-1
+!~              ll_soil = ll-z_eff+1
+!~               !dmr Given the number of layer, porosity, porosities, Temperature, computes the Kp of the layer
+!~              call ThermalConductivity(ll,n(ll_soil),pori(ll_soil),porf(ll_soil),org_ind,T_iter(ll),Kp(ll_soil))
+!~              Kp(z_max) = 2
+!~            end do
+           call ThermalConductivity(n,pori,porf,org_ind,T_iter(z_eff:z_max),Kp_m)
 
-           Kp_m(1:z_num-1) = (Kp(1:z_num-1)+Kp(2:z_num))*0.5
-
-      !dmr [FUTURE]
 
            do ll=1+1,z_max-1
 

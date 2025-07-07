@@ -233,15 +233,16 @@
                                           !Calculation of heat capacity of soil, Cp, porf & pori are intent(out)
           call AppHeatCapacity(z_num,temperature_profvertcl,T_freeze,porosity_profvertcl, organic_ind_loc, Cp_loc, porf, pori)
 
-          do kk=1,z_num-1
+!~           do kk=1,z_num-1
 
-             h_pori(kk) = (pori(kk) + pori(kk+1))/2
-             h_porf(kk) = (porf(kk) + porf(kk+1))/2
-             h_n(kk) = (porosity_profvertcl(kk) + porosity_profvertcl(kk+1))/2
+!~              h_pori(kk) = (pori(kk) + pori(kk+1))/2
+!~              h_porf(kk) = (porf(kk) + porf(kk+1))/2
+!~              h_n(kk) = (porosity_profvertcl(kk) + porosity_profvertcl(kk+1))/2
+!~              call ThermalConductivity(kk,h_n(kk),h_pori(kk),h_porf(kk), organic_ind_loc, temperature_profvertcl(kk), Kp_loc(kk))
+!~           end do
+
                                           !Calculation of the thermal condutivity of soil, Kp is the only intent(out)
-             call ThermalConductivity(kk,h_n(kk),h_pori(kk),h_porf(kk), organic_ind_loc, temperature_profvertcl(kk), Kp_loc(kk))
-
-          end do
+          call ThermalConductivity(h_n,h_pori,h_porf, organic_ind_loc, temperature_profvertcl, Kp_loc)
 
        end do
 
