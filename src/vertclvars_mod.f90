@@ -111,7 +111,7 @@
 
        !-------------- Numerical difference routine when there is no snow --------!
 
-         call Implicit_T(T_old,T_soil,T_bottom,dt,dz,n,organic_ind,Temp,Kp)
+         call Implicit_T(T_old,T_soil,T_bottom,dt,dz,n,organic_ind,Temp,Kp,z_num)
 
 
 
