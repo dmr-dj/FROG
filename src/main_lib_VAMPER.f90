@@ -29,7 +29,6 @@
 
       INTEGER :: nb_coupling_steps
 
-#if ( OFFLINE_RUN == 0 )
       TYPE cpl_fields
         REAL, DIMENSION(:,:,:), ALLOCATABLE :: TempForc
 #if ( CARBON == 1 )
@@ -37,7 +36,6 @@
         REAL, DIMENSION(:,:),   ALLOCATABLE :: B4_vegForc
 #endif
       END TYPE cpl_fields
-#endif
 
       PUBLIC :: cpl_fields
 
