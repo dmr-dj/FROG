@@ -108,10 +108,23 @@
          T_soil = T_air(ll)
          T_old(1:z_num) = Temp(1:z_num)
 
+#if ( SNOW_EFFECT == 1 )
+         ! would need a forcing here in terms of Snow
+         ! This need to provide z_snow, rho_snow
+         ! i.e. the number of snow layers and their respective density
+         ! Temperature of the snow layers should be provided as well (through an extended T_variable ...)
+
+         call Implicit_T(T_old,T_soil,T_bottom,dt,dz,n,organic_ind,Temp,Kp,z_num, z_snow=2, rho_snow=(/350.0,350.0/))
+
+#else
 
        !-------------- Numerical difference routine when there is no snow --------!
 
          call Implicit_T(T_old,T_soil,T_bottom,dt,dz,n,organic_ind,Temp,Kp,z_num)
+
+
+
+#endif
 
 
 

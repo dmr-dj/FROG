@@ -1,8 +1,25 @@
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+!   Copyright 2024 Didier M. Roche (a.k.a. dmr)
+
+!   Licensed under the Apache License, Version 2.0 (the "License");
+!   you may not use this file except in compliance with the License.
+!   You may obtain a copy of the License at
+
+!       http://www.apache.org/licenses/LICENSE-2.0
+
+!   Unless required by applicable law or agreed to in writing, software
+!   distributed under the License is distributed on an "AS IS" BASIS,
+!   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+!   See the License for the specific language governing permissions and
+!   limitations under the License.
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+#include "constant.h"
+
       module Fonction_implicit
 
-
-        use parameter_mod, only : z_num, rho_ice, Gfx, T_freeze,rho_snow_freeze,s_l_max
-        use Fonction_temp, only : AppHeatCapacity, ThermalConductivity
 
         implicit none
 
@@ -14,28 +31,57 @@
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-        subroutine Implicit_T(T_old,Tu,Tb,dt,dz,n,org_ind,Timp,Kp,z_max)
+        subroutine Implicit_T(T_old,Tu,Tb,dt,dz,n,org_ind,Timp,Kp,z_max, z_snow, rho_snow)
 
-         integer, intent(in) :: z_max
-         integer, intent(in) :: org_ind
-         real, intent(in) :: dt,Tu,Tb
-         real, dimension(:), intent(in) :: T_old, n, dz
-         real, dimension(1:z_max), intent(out) :: Timp, Kp
+
+         use parameter_mod, only : z_num, rho_ice, Gfx, T_freeze,rho_snow_freeze,s_l_max
+         use Fonction_temp, only : AppHeatCapacity, ThermalConductivity, AppHeatCapacitySnow, ThermalConductivitySnow
+
+
+         real, dimension(:)                 , intent(in) :: T_old    !dmr Previous time step soild temperature [C]
+         real                               , intent(in) :: Tu       !dmr Temperature forcing at the surface   [C]
+         real                               , intent(in) :: Tb       !dmr Temperature fixed at the bottom      [C]
+         real                               , intent(in) :: dt       !dmr timestep duration                    [s]
+         real, dimension(:)                 , intent(in) :: dz       !dmr layer thickness in the soil          [m]
+         real, dimension(:)                 , intent(in) :: n        !dmr porosity in each soil layer          [1]
+         integer                            , intent(in) :: org_ind  !dmr organic index ...
+         real, dimension(1:z_max)           , intent(out):: Timp     !dmr placeholder for new temperature      [C]
+         real, dimension(1:z_max)           , intent(out):: Kp       !dmr placeholder for new Kp per layer     [?]
+         integer                            , intent(in) :: z_max    !dmr maximum number of vertical layers (all included, snow + soil)
+
+         integer,                optional   , intent(in) :: z_snow   !dmr current number of snow layers        [1]
+         real, dimension(:),     optional,    intent(in) :: rho_snow !dmr density of snow per snow layer       [?]
 
          real, dimension(1:z_max) :: pori, porf, Cp_temp
          real, dimension(1:z_max,1:z_max) :: MM
          real, dimension(1:z_max) :: Knows
          real :: m_Gfx, A, B, C, Z1
-         integer :: kk, ll
-         real, dimension(1:z_max) :: T_last, Kp_s
+         integer :: kk, ll, ll_soil
+         real, dimension(1:z_max) :: T_last, Kp_m
          real, dimension(1:z_max) :: T_iter
          real, dimension(1:z_max) :: DD
          real, dimension(1:z_max-1) :: DL, DU
          integer :: info_dgesv
+         integer :: z_eff
+
+#if ( SNOW_EFFECT == 1 )
+         ! dmr locally computed
+         real, dimension(:), allocatable :: Cp_s, Kp_s
+#endif
+
 
          m_Gfx = gfx/1000.0
+         z_eff = z_max-z_num+1
+
 
          T_last(1:z_max) = T_old(1:z_max)
+
+#if ( SNOW_EFFECT == 1 )
+         if (PRESENT(z_snow)) then
+           allocate(Cp_s(z_snow))
+           allocate(Kp_s(z_snow))
+         endif
+#endif
 
          do kk=1,5 ! dmr --- why doing this 5 times ??
 
@@ -50,28 +96,50 @@
             T_iter(1:z_max) = 0.5*(T_iter(1:z_max)+T_last(1:z_max))
            end if
 
+
+#if ( SNOW_EFFECT == 1 )
+           !dmr [NOTA] Proposing a new structure where there could be two layer types: snow and soil in that order
+           !dmr        snow: 1->snow
+           !dmr        soil: snow->z_max, with the constraint that it entails z_num layers from (z_max-z_num+1):z_max
+
+           call AppHeatCapacitySnow(rho_snow,Cp_s)
+           call ThermalConductivitySnow(rho_snow,Kp_s)
+
+      !dmr For the SNOW:
+      !dmr       Need to define the snow sections
+      !dmr       T_old, dz, n
+
+      !dmr       do kk = 1,s_l
+      !dmr         Cp_s(kk) = (2.108*1000000.0)*rho_snow_freeze/rho_ice
+      !dmr         K_s(kk) = 2.9*(rho_snow_freeze**2)*0.000001
+      !dmr         dz_s(kk) = snw_dp
+      !dmr         T_last(kk) = Tsnw(kk)
+      !dmr       end do
+
+#endif
+
       !dmr [FUTURE] Only concerned with the soil part for this section
 
              !dmr Given Temperature and porosity (n), this computes a new Cp value and porf, pori on the vertical
-           call AppHeatCapacity(z_num,T_iter,T_freeze,n,org_ind,Cp_temp,porf,pori)
+           call AppHeatCapacity(z_num,T_iter(z_eff:z_max),T_freeze,n,org_ind,Cp_temp,porf,pori)
 
-           do ll=1,z_num-1
-              !dmr Given the number of layer, thickness, porosity, Temperature, computes the Kp of the layer
-             call ThermalConductivity(ll,n(ll),pori(ll),porf(ll),org_ind,T_iter(ll),Kp(ll))
-             Kp(z_num) = 2
+           do ll=z_eff,z_max-1
+             ll_soil = ll-z_eff+1
+              !dmr Given the number of layer, porosity, porosities, Temperature, computes the Kp of the layer
+             call ThermalConductivity(ll,n(ll_soil),pori(ll_soil),porf(ll_soil),org_ind,T_iter(ll),Kp(ll_soil))
+             Kp(z_max) = 2
            end do
 
-           Kp_s(1:z_num-1) = (Kp(1:z_num-1)+Kp(2:z_num))*0.5
+           Kp_m(1:z_num-1) = (Kp(1:z_num-1)+Kp(2:z_num))*0.5
 
-      !dmr [FUTURE] Only concerned with the soil part for this section
+      !dmr [FUTURE]
 
-!~            do ll=2,z_num-1
            do ll=1+1,z_max-1
 
              Z1 = T_last(ll)
 
-             A=(dt/((dz(ll-1)+dz(ll))*0.5*dz(ll)) * (Kp_s(ll-1)/Cp_temp(ll)))
-             B=(dt/((dz(ll+1)+dz(ll))*0.5*dz(ll)) * (Kp_s(ll)/Cp_temp(ll)))
+             A=(dt/((dz(ll-1)+dz(ll))*0.5*dz(ll)) * (Kp_m(ll-1)/Cp_temp(ll)))
+             B=(dt/((dz(ll+1)+dz(ll))*0.5*dz(ll)) * (Kp_m(ll)/Cp_temp(ll)))
 
              C= 1+A+B
 
@@ -85,7 +153,7 @@
 
            end do
 
-           A=(dt/((dz(z_max-1)+dz(z_max))*0.5*dz(z_max-1)) * (Kp_s(z_max-1)/Cp_temp(z_max-1)))
+           A=(dt/((dz(z_max-1)+dz(z_max))*0.5*dz(z_max-1)) * (Kp_m(z_max-1)/Cp_temp(z_max-1)))
            C=1.0+A
            Knows(1) = Tu
            Knows(z_max)=Tb
@@ -143,7 +211,7 @@
 
            T_iter(1:z_max) = Knows(1:z_max)
 
-         end do
+         end do !! on kk 1,5
 
 
          Timp(1:z_max) = T_iter(1:z_max)
