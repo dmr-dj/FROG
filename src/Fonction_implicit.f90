@@ -31,12 +31,14 @@
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-        subroutine Implicit_T(T_old,Tu,Tb,dt,dz,n,org_ind,Timp,Kp,z_max, z_snow, rho_snow)
+        subroutine Implicit_T(z_max,z_snow, T_old,Tu,Tb,dt,dz,n,org_ind,Timp,Kp, rho_snow)
 
 
          use parameter_mod, only : z_num, rho_ice, Gfx, T_freeze,rho_snow_freeze,s_l_max
          use Fonction_temp, only : AppHeatCapacity, ThermalConductivity, AppHeatCapacitySnow, ThermalConductivitySnow
 
+         integer                            , intent(in) :: z_max    !dmr maximum number of vertical layers (all included, snow + soil)
+         integer,                             intent(in) :: z_snow   !dmr current number of snow layers        [1]
 
          real, dimension(1:z_max)           , intent(in) :: T_old    !dmr Previous time step soild temperature [C]
          real                               , intent(in) :: Tu       !dmr Temperature forcing at the surface   [C]
@@ -47,10 +49,7 @@
          integer                            , intent(in) :: org_ind  !dmr organic index ...
          real, dimension(1:z_max)           , intent(out):: Timp     !dmr placeholder for new temperature      [C]
          real, dimension(1:z_max)           , intent(out):: Kp       !dmr placeholder for new Kp per layer     [?]
-         integer                            , intent(in) :: z_max    !dmr maximum number of vertical layers (all included, snow + soil)
-
-         integer,                optional   , intent(in) :: z_snow   !dmr current number of snow layers        [1]
-         real, dimension(:),     optional,    intent(in) :: rho_snow !dmr density of snow per snow layer       [?]
+         real, dimension(1:z_snow), optional, intent(in) :: rho_snow !dmr density of snow per snow layer       [?]
 
          real, dimension(1:z_max) :: pori, porf, Cp_temp
          real, dimension(1:z_max,1:z_max) :: MM
@@ -77,7 +76,7 @@
          T_last(1:z_max) = T_old(1:z_max)
 
 #if ( SNOW_EFFECT == 1 )
-         if (PRESENT(z_snow)) then
+         if (PRESENT(rho_snow)) then
            allocate(Cp_s(z_snow))
            allocate(Kp_s(z_snow))
          endif
@@ -98,28 +97,18 @@
 
 
 #if ( SNOW_EFFECT == 1 )
-           !dmr [NOTA] Proposing a new structure where there could be two layer types: snow and soil in that order
-           !dmr        snow: 1->snow
-           !dmr        soil: snow->z_max, with the constraint that it entails z_num layers from (z_max-z_num+1):z_max
+           if (PRESENT(rho_snow)) then
 
-           call AppHeatCapacitySnow(rho_snow,Cp_s)
-           call ThermalConductivitySnow(rho_snow,Kp_s)
+              !dmr [NOTA] Proposing a new structure where there could be two layer types: snow and soil in that order
+              !dmr        snow: 1->snow
+              !dmr        soil: snow->z_max, with the constraint that it entails z_num layers from (z_max-z_num+1):z_max
 
-      !dmr For the SNOW:
-      !dmr       Need to define the snow sections
-      !dmr       T_old, dz, n
+             call AppHeatCapacitySnow(rho_snow,Cp_s)
+             call ThermalConductivitySnow(rho_snow,Kp_s)
 
-      !dmr       do kk = 1,s_l
-      !dmr         Cp_s(kk) = (2.108*1000000.0)*rho_snow_freeze/rho_ice
-      !dmr         K_s(kk) = 2.9*(rho_snow_freeze**2)*0.000001
-      !dmr         dz_s(kk) = snw_dp
-      !dmr         T_last(kk) = Tsnw(kk)
-      !dmr       end do
-
-           Cp_temp(1:z_snow) = Cp_s(:)
-           Kp_m(1:z_snow)    = Kp_s(:)
-
-
+             Cp_temp(1:z_snow) = Cp_s(:)
+             Kp_m(1:z_snow)    = Kp_s(:)
+           endif
 #endif
 
              !dmr Given Temperature and porosity (n), this computes a new Cp value and porf, pori on the vertical

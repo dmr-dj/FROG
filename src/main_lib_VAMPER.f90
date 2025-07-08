@@ -35,6 +35,9 @@
         REAL, DIMENSION(:,:),   ALLOCATABLE :: B3_vegForc
         REAL, DIMENSION(:,:),   ALLOCATABLE :: B4_vegForc
 #endif
+#if ( SNOW_EFFECT == 1 )
+        REAL, DIMENSION(:,:,:), ALLOCATABLE :: dsnow_thick
+#endif
       END TYPE cpl_fields
 
       PUBLIC :: cpl_fields
@@ -179,8 +182,12 @@
           CALL SET_coupled_climate_forcing(nb_coupling_steps, temperature_forcing_nextsteps,                                    &
                    coupled_temp_set = flatten_it_3D(coupled_fields%TempForc,UBOUND(coupled_fields%TempForc,dim=3))              &
 #if ( CARBON == 1 )
-                                         , b3_content = flatten_it(TRANSPOSE(coupled_fields%B3_vegForc(:,:)))                   &
-                                         , b4_content = flatten_it(TRANSPOSE(coupled_fields%B4_vegForc(:,:)))                   &
+                 , b3_content = flatten_it(TRANSPOSE(coupled_fields%B3_vegForc(:,:)))                                           &
+                 , b4_content = flatten_it(TRANSPOSE(coupled_fields%B4_vegForc(:,:)))                                           &
+#endif
+#if ( SNOW_EFFECT == 1 )
+                 , snowthick_forc_nxt = snowthickness_forcing_nextsteps                                                         &
+                 , coupled_dsnow_set  = flatten_it_3D(coupled_fields%dsnow_thick,UBOUND(coupled_fields%dsnow_thick,dim=3))      &
 #endif
                                           )
 

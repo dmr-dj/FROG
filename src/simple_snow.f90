@@ -77,7 +77,7 @@
        rho_layer(:) = 0
        midpt_layer(:) = 0
 
-       WRITE(*,*) "CHECK RHO_SNOW", midpt_layer(0), rho_layer(0)
+!~        WRITE(*,*) "CHECK RHO_SNOW", midpt_layer(0), rho_layer(0)
        do i=1,max_nb_snow_layers
          midpt_layer(i) = depth_layer(i-1) + thick_layer(i)/2.
          rho_layer(i) = get_rhowsnow(midpt_layer(i))

@@ -135,9 +135,9 @@
 
 #if ( SNOW_EFFECT == 1 )
 
-         ! [TODO]
+         ! [SNOW]
          !    1. From snow thickness, compute number of snow layers and vertical density
-         !    3. Construct the merged array for Temperature containing the snow and the normal soil
+         !    2. Construct the merged array for Temperature containing the snow and the normal soil
 
          if (snowlayer_thick_forcing(ll).GT.depth_layer(1)) then ! there is snow on the ground
 
@@ -163,6 +163,7 @@
 !~ snowlayer_thick_forcing, Temp_snow_col     &
 !~                                    , snowlayer_depth, snowlayer_nb
 !~          WRITE(*,*) "Column CALL", Temp_snow_col
+!~             WRITE(*,*) "SNOW CASE nb_snowlayers = ", nb_snowlayers, snowlayer_thick_forcing(ll)
 
          ! would need a forcing here in terms of Snow
          ! This need to provide z_snow, rho_snow
@@ -175,8 +176,8 @@
 !~          real, dimension(1:z_max)           , intent(out):: Kp       !dmr placeholder for new Kp per layer     [?]
 
 
-            call Implicit_T(T_old_WC,T_soil,T_bottom,dt,dz_WC,n,organic_ind,Temp_WC,Kp_WC,nb_layers_WC,            &
-                            z_snow=nb_snowlayers, rho_snow=rho_snow(:))
+            call Implicit_T(nb_layers_WC,nb_snowlayers,T_old_WC,T_soil,T_bottom,dt,dz_WC,n,organic_ind,Temp_WC,Kp_WC,   &
+                             rho_snow=rho_snow(1:nb_snowlayers))
 
             !dmr Then update Temp with the lower part
             Temp(1:z_num) = Temp_WC(nb_snowlayers+1:nb_layers_WC)
@@ -198,7 +199,7 @@
          else ! No Snow, proceeding normally
 
             !-------------- Numerical difference routine when there is no snow --------!
-            call Implicit_T(T_old,T_soil,T_bottom,dt,dz,n,organic_ind,Temp,Kp,z_num)
+            call Implicit_T(z_num, 0, T_old,T_soil,T_bottom,dt,dz,n,organic_ind,Temp,Kp)
 
 
          endif
@@ -208,7 +209,7 @@
 
        !-------------- Numerical difference routine when there is no snow --------!
 
-         call Implicit_T(T_old,T_soil,T_bottom,dt,dz,n,organic_ind,Temp,Kp,z_num)
+         call Implicit_T(z_num, 0, T_old,T_soil,T_bottom,dt,dz,n,organic_ind,Temp,Kp)
 
 
 

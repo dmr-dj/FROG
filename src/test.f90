@@ -7,7 +7,7 @@ program test
   implicit none
 
   logical :: well_done = .FALSE.
-  integer :: s, steps=1000
+  integer :: s, steps=10
 
 
   well_done = INITIALIZE_VAMP()

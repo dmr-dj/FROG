@@ -700,24 +700,39 @@
 
      END SUBROUTINE UPDATE_climate_forcing
 
-     SUBROUTINE SET_coupled_climate_forcing(stepstoDO,temperature_forcing_next, coupled_temp_set, b3_content, b4_content)
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!dmr
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+
+     SUBROUTINE SET_coupled_climate_forcing(stepstoDO,temperature_forcing_next, coupled_temp_set, b3_content, b4_content &
+                                          , snowthick_forc_nxt, coupled_dsnow_set )
 
        use parameter_mod,  only: gridNoMax
 
        INTEGER, INTENT(in) :: stepstoDO
-       REAL, DIMENSION(:,:), ALLOCATABLE, INTENT(out)           :: temperature_forcing_next ! will be (1:gridNoMax,1:stepstoDO)
-       REAL, DIMENSION(:,:),              INTENT(in)            :: coupled_temp_set         ! must be (1:gridNoMax,1:stepstoDO)
-       REAL, DIMENSION(:)               , INTENT(in), OPTIONAL  :: b3_content, b4_content   ! will be (1:gridNoMax)
+       REAL, DIMENSION(:,:), ALLOCATABLE, INTENT(out)           :: temperature_forcing_next   ! will be (1:gridNoMax,1:stepstoDO)
+       REAL, DIMENSION(:,:),              INTENT(in)            :: coupled_temp_set           ! must be (1:gridNoMax,1:stepstoDO)
+       REAL, DIMENSION(:)               , INTENT(in),  OPTIONAL :: b3_content, b4_content     ! will be (1:gridNoMax)
+       REAL, DIMENSION(:,:),              INTENT(in),  OPTIONAL :: coupled_dsnow_set          ! must be (1:gridNoMax,1:stepstoDO)
+       REAL, DIMENSION(:,:),ALLOCATABLE , INTENT(out), OPTIONAL :: snowthick_forc_nxt ! must be (1:gridNoMax,1:stepstoDO)
 
 ! Need to assume that there, the grid is worked upon in its entirety (no parallelization) ...
 
 
        if (.NOT.ALLOCATED(temperature_forcing_next)) then
            allocate(temperature_forcing_next(1:gridNoMax,1:stepstoDO))
+           allocate(snowthick_forc_nxt(1:gridNoMax,1:stepstoDO))
        endif
 
        temperature_forcing_next(:,:) = coupled_temp_set(:,:)
-
+#if ( SNOW_EFFECT == 1 )
+       if (PRESENT(coupled_dsnow_set)) then
+         snowthick_forc_nxt(:,:) = coupled_dsnow_set(:,:)
+       else
+         WRITE(*,*) "[ABORT] Missing forcing for dsnow in coupled mode"
+       endif
+#endif
        call fix_Kelvin_or_Celsius(temperature_forcing_next)
 
 #if ( CARBON == 1 )
