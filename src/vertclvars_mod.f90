@@ -37,7 +37,12 @@
                                                                       ! n is porosity in the vertical
                                                                       ! Per_depth is the diagnosed "permafrost" or freezing depth (in meters)
                                    ALT, altmax_lastyear, compteur_time_step, deepSOM_a, deepSOM_s, deepSOM_p &
-                                   , deepSOM, fc, b3_lok, b4_lok, snowlayer_thick)
+                                   , deepSOM, fc, b3_lok, b4_lok, snowlayer_thick_forcing, Temp_snow_col     &
+                                   , snowlayer_depth, snowlayer_nb)
+
+
+
+
 
         USE parameter_mod,     ONLY: organic_ind, z_num
         USE parameter_mod,     ONLY: D, dt, dz
@@ -79,7 +84,13 @@
         REAL, DIMENSION(ncarb,ncarb), intent(inout),OPTIONAL:: fc !! flux fractions within carbon pools
 
         REAL, OPTIONAL,                   INTENT(in)        :: b3_lok, b4_lok
-        REAL, DIMENSION(1:nb_steps_toDO), OPTIONAL, INTENT(in)        :: snowlayer_thick !! a time series of the snowlayer thickness [m]
+
+
+          ! SNOW VARIABLES
+        REAL, DIMENSION(1:nb_steps_toDO), OPTIONAL, INTENT(in)        :: snowlayer_thick_forcing !! a time series of the snowlayer thickness [m]
+        REAL, DIMENSION(:)              , OPTIONAL, INTENT(INOUT)     :: Temp_snow_col   !! Snow temperature, whole column (max_nb_snow_layers)
+        INTEGER                         , OPTIONAL, INTENT(INOUT)     :: snowlayer_nb    !! Nb of active snow layers
+        REAL                            , OPTIONAL, INTENT(INOUT)     :: snowlayer_depth !! Thickness of snow layers
 
 
 

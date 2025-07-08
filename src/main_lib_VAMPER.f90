@@ -152,7 +152,7 @@
 
        logical :: is_a_success
 
-       REAL, DIMENSION(:,:), ALLOCATABLE :: temperature_forcing_nextsteps
+       REAL, DIMENSION(:,:), ALLOCATABLE :: temperature_forcing_nextsteps, snowthickness_forcing_nextsteps
 
        type(cpl_fields), intent(in), optional :: coupled_fields
 
@@ -167,7 +167,11 @@
 
 #if (OFFLINE_RUN == 1)
         ! UPDATE_CLIMATE_FORCING
-        CALL UPDATE_climate_forcing(nb_coupling_steps,temperature_forcing_nextsteps)
+        CALL UPDATE_climate_forcing(nb_coupling_steps,temperature_forcing_nextsteps &
+#if ( SNOW_EFFECT == 1 )
+                                  , snowthickness_forcing_nextsteps                 &
+#endif
+                                   )
 #else
         ! FORCING is coming from the coupled component
         if (PRESENT(coupled_fields)) then
@@ -179,13 +183,20 @@
                                          , b4_content = flatten_it(TRANSPOSE(coupled_fields%B4_vegForc(:,:)))                   &
 #endif
                                           )
+
+!dmr [TODO] UPDATED NEED FOR THE COUPLED CASE RE. SNOW THICKNESS !!!
+
         else
           WRITE(*,*) "[ABORT] :: we are in coupled setup, need a forcing input fields"
         endif
 
 #endif
         ! DO_VAMPER_STEP
-        CALL DO_spatialvars_step(nb_coupling_steps, temperature_forcing_nextsteps)
+        CALL DO_spatialvars_step(nb_coupling_steps, temperature_forcing_nextsteps                                               &
+#if ( SNOW_EFFECT == 1 )
+                               , snowthickness_forcing_nextsteps                                                                &
+#endif
+                                )
 
         is_a_success = .TRUE.
 

@@ -46,6 +46,10 @@
 
             ! CLIMATE FORCING VARIABLES
      REAL, DIMENSION(:,:), ALLOCATABLE :: forcing_surface_temp ! two dimensions / spatial and time in that order
+#if ( SNOW_EFFECT == 1 )
+     REAL, DIMENSION(:,:), ALLOCATABLE :: forcing_snow_thick
+#endif
+
             ! could add swe_f_t, snw_dp_t,rho_snow_t,T_snw
      REAL, DIMENSION(:,:), ALLOCATABLE :: restart_temperature  ! VERT/SPAT
 
@@ -63,6 +67,13 @@
      logical, dimension(:), allocatable          :: end_year_SV          !=0 if not end of year, =1 if end of year
      real, dimension(:)   , allocatable          :: b3_SV, b4_SV
 #endif
+
+#if ( SNOW_EFFECT == 1 )
+     real, dimension(:,:) ,allocatable           :: Temp_snow           !dmr [VERTCL, SPAT_VAR] temperature in snow layers               [C]
+     real, dimension(:)   ,allocatable           :: depth_snow_layer    !dmr [SPAT_VAR]         depth of snow in the snow layers         [m]
+     integer, dimension(:),allocatable           :: nb_snow_layer       !dmr [SPAT_VAR]         number of snow layers from discretization [1]
+#endif
+
 
 
 !   Main Timer variable
@@ -140,8 +151,18 @@
 
 #endif
 
+#if ( SNOW_EFFECT == 1)
+       allocate(Temp_snow(1:z_num,1:gridNoMax))    !dmr [VERTCL, SPAT_VAR] temperature in snow layers               [C]
+       allocate(depth_snow_layer(1:gridNoMax))     !dmr [SPAT_VAR]         depth of snow in the snow layers         [m]
+       allocate(nb_snow_layer(1:gridNoMax))        !dmr [SPAT_VAR]         nuber of snow layers from discretization [1]
+#endif
+
        allocate(forcing_surface_temp(1:gridNoMax,1:timFNoMax))
        allocate(restart_temperature(1:z_num,1:gridNoMax)) ! contains the restart temperature at init
+
+#if ( SNOW_EFFECT == 1)
+       allocate(forcing_snow_thick(1:gridNoMax,1:timFNoMax))
+#endif
 
 
      END SUBROUTINE spatialvars_allocate
@@ -195,6 +216,12 @@
         call fix_Kelvin_or_Celsius(forcing_surface_temp)
 #endif
 
+!dmr --- Would need to repeat the work for get_clim_forcing to get the snow thickness ...
+!dmr [TBD] another day ... 2025-07-08
+#if (OFFLINE_RUN == 1)
+        forcing_snow_thick(:,:) = 1.5
+#endif
+
 #if (SP_GHF == 1)
         GeoHFlux(1:gridNoMax) = get_Spatial_2Dforcing(GHF_spatial_file,GHF_variable_name)
 #else
@@ -221,7 +248,15 @@
 
           compteur_tstep_SV(gridp) = init_time_cell(0,.FALSE.,.FALSE.,logic_month_day)
 
+
         enddo
+
+#if ( SNOW_EFFECT == 1 )
+        Temp_snow(:,:) = 0.0 !dmr simplest possible init without data ... To be fixed!
+        depth_snow_layer(:) = 3.0
+        nb_snow_layer(:) = 0
+
+#endif
 
 
      END SUBROUTINE spatialvars_init
@@ -525,7 +560,7 @@
      END SUBROUTINE get_clim_forcing
 
 
-     SUBROUTINE DO_spatialvars_step(stepstoDO,forcage_temperature_surface)
+     SUBROUTINE DO_spatialvars_step(stepstoDO,forcage_temperature_surface, forcage_epaisseurneige)
 
         use parameter_mod,  only: gridNoMax
         use vertclvars_mod, only: DO_vertclvars_step
@@ -541,6 +576,8 @@
 
         INTEGER, INTENT(in) :: stepstoDO
         REAL, DIMENSION(1:gridNoMax,1:stepstoDO), INTENT(in) :: forcage_temperature_surface
+        REAL, DIMENSION(1:gridNoMax,1:stepstoDO), INTENT(in), OPTIONAL :: forcage_epaisseurneige
+
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       LOCAL VARIABLES
@@ -559,21 +596,40 @@
 !~          WRITE(*,*) "INTEGRATING ... ", gridp, "/", gridNoMax
 
 #if ( CARBON > 0 )
+#if ( SNOW_EFFECT == 1 )
+         CALL DO_vertclvars_step(stepstoDO,Kp(:,gridp),T_bottom_SV(gridp),Temp(:,gridp), forcage_temperature_surface(gridp,:) &
+                               , n(:,gridp),freeze_depth_SV(:,gridp), ALT_SV(gridp), altmax_ly_SV(gridp)                      &
+                               , compteur_tstep_SV(gridp)                                                                     &
+            ! CARBON ONLY VARIABLES
+                               , deepSOM_a = deepSOM_a(:,gridp),deepSOM_s = deepSOM_s(:,gridp), deepSOM_p = deepSOM_p(:,gridp)&
+                               , deepSOM = deepSOM(:,gridp), fc = fc_SV(:,:,gridp), b3_lok=b3_SV(gridp), b4_lok=b4_SV(gridp)  &
+            ! SNOW ONLY VARIABLES
+                               , snowlayer_thick_forcing = forcage_epaisseurneige,  Temp_snow_col=Temp_snow(:,gridp)          &
+                               , snowlayer_depth = depth_snow_layer(gridp), snowlayer_nb = nb_snow_layer(gridp)               &
+                               )
+#else
          CALL DO_vertclvars_step(stepstoDO,Kp(:,gridp),T_bottom_SV(gridp),Temp(:,gridp), forcage_temperature_surface(gridp,:) &
                                , n(:,gridp),freeze_depth_SV(:,gridp), ALT_SV(gridp), altmax_ly_SV(gridp)                      &
                                , compteur_tstep_SV(gridp)                                                                     &
             ! CARBON ONLY VARIABLES
                                , deepSOM_a = deepSOM_a(:,gridp),deepSOM_s = deepSOM_s(:,gridp), deepSOM_p = deepSOM_p(:,gridp)&
                                , deepSOM = deepSOM(:,gridp), fc = fc_SV(:,:,gridp), b3_lok=b3_SV(gridp), b4_lok=b4_SV(gridp))
-
+#endif
+#else /* ON THE CARBON PART */
+#if ( SNOW_EFFECT == 1 )
+         CALL DO_vertclvars_step(stepstoDO,Kp(:,gridp),T_bottom_SV(gridp),Temp(:,gridp), forcage_temperature_surface(gridp,:) &
+                               , n(:,gridp),freeze_depth_SV(:,gridp), ALT_SV(gridp), altmax_ly_SV(gridp)                      &
+                               , compteur_tstep_SV(gridp)                                                                     &
+            ! SNOW ONLY VARIABLES
+                               , snowlayer_thick_forcing = forcage_epaisseurneige,  Temp_snow_col=Temp_snow(:,gridp)          &
+                               , snowlayer_depth = depth_snow_layer(gridp), snowlayer_nb = nb_snow_layer(gridp)               &
+                               )
 #else
-
          CALL DO_vertclvars_step(stepstoDO,Kp(:,gridp),T_bottom_SV(gridp),Temp(:,gridp), forcage_temperature_surface(gridp,:) &
                                , n(:,gridp),freeze_depth_SV(:,gridp), ALT_SV(gridp), altmax_ly_SV(gridp)                      &
                                , compteur_tstep_SV(gridp) )
-
-
 #endif
+#endif /* ON THE CARBON PART */
 
        enddo
 !$omp end do
@@ -591,7 +647,7 @@
 
 
 
-     SUBROUTINE UPDATE_climate_forcing(stepstoDO,temperature_forcing_next)
+     SUBROUTINE UPDATE_climate_forcing(stepstoDO,temperature_forcing_next, snowthickness_forcing_next)
 
        use parameter_mod,  only: gridNoMax, timFNoMax
        use timer_mod, only: cell_time
@@ -599,6 +655,7 @@
 
        INTEGER, INTENT(in) :: stepstoDO
        REAL, DIMENSION(:,:), ALLOCATABLE, INTENT(out) :: temperature_forcing_next ! will be (1:gridNoMax,1:stepstoDO)
+       REAL, DIMENSION(:,:), ALLOCATABLE, INTENT(out), OPTIONAL :: snowthickness_forcing_next
 
 ! Need to assume that there, the grid is worked upon in its entirety (no parallelization) ...
 
@@ -622,6 +679,10 @@
            allocate(temperature_forcing_next(1:gridNoMax,1:stepstoDO))
        endif
 
+       if ((PRESENT(snowthickness_forcing_next)).AND.(.NOT.ALLOCATED(snowthickness_forcing_next))) then
+           allocate(snowthickness_forcing_next(1:gridNoMax,1:stepstoDO))
+       endif
+
        end_step = start_step + stepstoDO - 1
 
       WRITE(*,*) "Updating forcing ", current_step, start_step, end_step, timFNoMax
@@ -635,8 +696,16 @@
         interim_end = stepstoDO - interim_nb + 1
         temperature_forcing_next(:,interim_nb:stepstoDO) = forcing_surface_temp(:,1:interim_end)
 
+        if (PRESENT(snowthickness_forcing_next)) then
+          snowthickness_forcing_next(:,1:interim_nb) = forcing_snow_thick(:,start_step:timFNoMax)
+          snowthickness_forcing_next(:,interim_nb:stepstoDO) = forcing_snow_thick(:,1:interim_end)
+        endif
+
        else ! enough data already
          temperature_forcing_next(:,:) = forcing_surface_temp(:,start_step:end_step)
+         if (PRESENT(snowthickness_forcing_next)) then
+            snowthickness_forcing_next(:,:) = forcing_snow_thick(:,start_step:end_step)
+         endif
        endif
 
      END SUBROUTINE UPDATE_climate_forcing
