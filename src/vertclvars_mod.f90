@@ -137,9 +137,15 @@
          !    1. From snow thickness, compute number of snow layers and vertical density
          !    3. Construct the merged array for Temperature containing the snow and the normal soil
 
-!~          if (snowlayer_thick(ll).GT.depth_layer(1)) then ! there is snow on the ground
-            call get_snow_profile(0.11,nb_snowlayers,rho_snow, dz_snowlayers)
-!~          endif
+         if (snowlayer_thick_forcing(ll).GT.depth_layer(1)) then ! there is snow on the ground
+            call get_snow_profile(snowlayer_thick_forcing(ll),nb_snowlayers,rho_snow, dz_snowlayers)
+         endif
+
+!~ PROGNOSTIC VARIABLES FROM SNOW THAT NEED UPDATING
+!~ snowlayer_thick_forcing, Temp_snow_col     &
+!~                                    , snowlayer_depth, snowlayer_nb
+!~          WRITE(*,*) "Column CALL", Temp_snow_col
+
 
          ! would need a forcing here in terms of Snow
          ! This need to provide z_snow, rho_snow

@@ -595,41 +595,22 @@
 
 !~          WRITE(*,*) "INTEGRATING ... ", gridp, "/", gridNoMax
 
-#if ( CARBON > 0 )
-#if ( SNOW_EFFECT == 1 )
+
+
          CALL DO_vertclvars_step(stepstoDO,Kp(:,gridp),T_bottom_SV(gridp),Temp(:,gridp), forcage_temperature_surface(gridp,:) &
                                , n(:,gridp),freeze_depth_SV(:,gridp), ALT_SV(gridp), altmax_ly_SV(gridp)                      &
                                , compteur_tstep_SV(gridp)                                                                     &
+#if ( CARBON > 0 )
             ! CARBON ONLY VARIABLES
                                , deepSOM_a = deepSOM_a(:,gridp),deepSOM_s = deepSOM_s(:,gridp), deepSOM_p = deepSOM_p(:,gridp)&
                                , deepSOM = deepSOM(:,gridp), fc = fc_SV(:,:,gridp), b3_lok=b3_SV(gridp), b4_lok=b4_SV(gridp)  &
-            ! SNOW ONLY VARIABLES
-                               , snowlayer_thick_forcing = forcage_epaisseurneige,  Temp_snow_col=Temp_snow(:,gridp)          &
-                               , snowlayer_depth = depth_snow_layer(gridp), snowlayer_nb = nb_snow_layer(gridp)               &
-                               )
-#else
-         CALL DO_vertclvars_step(stepstoDO,Kp(:,gridp),T_bottom_SV(gridp),Temp(:,gridp), forcage_temperature_surface(gridp,:) &
-                               , n(:,gridp),freeze_depth_SV(:,gridp), ALT_SV(gridp), altmax_ly_SV(gridp)                      &
-                               , compteur_tstep_SV(gridp)                                                                     &
-            ! CARBON ONLY VARIABLES
-                               , deepSOM_a = deepSOM_a(:,gridp),deepSOM_s = deepSOM_s(:,gridp), deepSOM_p = deepSOM_p(:,gridp)&
-                               , deepSOM = deepSOM(:,gridp), fc = fc_SV(:,:,gridp), b3_lok=b3_SV(gridp), b4_lok=b4_SV(gridp))
 #endif
-#else /* ON THE CARBON PART */
 #if ( SNOW_EFFECT == 1 )
-         CALL DO_vertclvars_step(stepstoDO,Kp(:,gridp),T_bottom_SV(gridp),Temp(:,gridp), forcage_temperature_surface(gridp,:) &
-                               , n(:,gridp),freeze_depth_SV(:,gridp), ALT_SV(gridp), altmax_ly_SV(gridp)                      &
-                               , compteur_tstep_SV(gridp)                                                                     &
             ! SNOW ONLY VARIABLES
                                , snowlayer_thick_forcing = forcage_epaisseurneige,  Temp_snow_col=Temp_snow(:,gridp)          &
                                , snowlayer_depth = depth_snow_layer(gridp), snowlayer_nb = nb_snow_layer(gridp)               &
-                               )
-#else
-         CALL DO_vertclvars_step(stepstoDO,Kp(:,gridp),T_bottom_SV(gridp),Temp(:,gridp), forcage_temperature_surface(gridp,:) &
-                               , n(:,gridp),freeze_depth_SV(:,gridp), ALT_SV(gridp), altmax_ly_SV(gridp)                      &
-                               , compteur_tstep_SV(gridp) )
 #endif
-#endif /* ON THE CARBON PART */
+                               )
 
        enddo
 !$omp end do
