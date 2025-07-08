@@ -37,7 +37,7 @@
                                                                       ! n is porosity in the vertical
                                                                       ! Per_depth is the diagnosed "permafrost" or freezing depth (in meters)
                                    ALT, altmax_lastyear, compteur_time_step, deepSOM_a, deepSOM_s, deepSOM_p &
-                                   , deepSOM, fc, b3_lok, b4_lok)
+                                   , deepSOM, fc, b3_lok, b4_lok, snowlayer_thick)
 
         USE parameter_mod,     ONLY: organic_ind, z_num
         USE parameter_mod,     ONLY: D, dt, dz
@@ -49,6 +49,10 @@
         USE parameter_mod, ONLY: bio_diff_k_const, diff_k_const, bioturbation_depth, min_cryoturb_alt, max_cryoturb_alt, zf_soil
         USE parameter_mod, ONLY: YearType
         USE Carbon,        ONLY: carbon_main, ncarb  !carbon_redistribute, decomposition, cryoturbation
+#endif
+
+#if ( SNOW_EFFECT == 1 )
+        USE simple_snow,   ONLY: get_snow_profile, depth_layer
 #endif
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
@@ -69,10 +73,13 @@
 !~         REAL                      , INTENT(in),    OPTIONAL :: clay
         TYPE(cell_time)           , INTENT(inout)           :: compteur_time_step
 !~         LOGICAL                   , INTENT(inout), OPTIONAL :: end_year
+
         REAL   ,DIMENSION(1:z_num), INTENT(inout),OPTIONAL  :: deepSOM_a, deepSOM_s, deepSOM_p
         REAL   ,DIMENSION(1:z_num), INTENT(inout), OPTIONAL :: deepSOM
-        REAL, DIMENSION(ncarb,ncarb), intent(inout), OPTIONAL:: fc !! flux fractions within carbon pools
+        REAL, DIMENSION(ncarb,ncarb), intent(inout),OPTIONAL:: fc !! flux fractions within carbon pools
+
         REAL, OPTIONAL,                   INTENT(in)        :: b3_lok, b4_lok
+        REAL, DIMENSION(1:nb_steps_toDO), OPTIONAL, INTENT(in)        :: snowlayer_thick !! a time series of the snowlayer thickness [m]
 
 
 
@@ -86,6 +93,11 @@
         LOGICAL                  :: success
         LOGICAL                  :: end_year
         REAL                     :: altmax_thisyear
+
+#if ( SNOW_EFFECT == 1 )
+        integer                  :: nb_snowlayers = 0
+        real, dimension(:), allocatable :: rho_snow, dz_snowlayers
+#endif
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       MAIN BODY OF THE ROUTINE
@@ -109,6 +121,15 @@
          T_old(1:z_num) = Temp(1:z_num)
 
 #if ( SNOW_EFFECT == 1 )
+
+         ! [TODO]
+         !    1. From snow thickness, compute number of snow layers and vertical density
+         !    3. Construct the merged array for Temperature containing the snow and the normal soil
+
+!~          if (snowlayer_thick(ll).GT.depth_layer(1)) then ! there is snow on the ground
+            call get_snow_profile(0.11,nb_snowlayers,rho_snow, dz_snowlayers)
+!~          endif
+
          ! would need a forcing here in terms of Snow
          ! This need to provide z_snow, rho_snow
          ! i.e. the number of snow layers and their respective density
@@ -164,6 +185,7 @@
        use parameter_mod, only: PorosityType, D, Bool_Organic, organic_depth, z_num !organic_ind,
        use parameter_mod, only: dz, T_freeze
        use Fonction_temp, only: AppHeatCapacity, ThermalConductivity
+       use simple_snow,   only: init_snow_profile
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       BY REFERENCE VARIABLES
@@ -245,6 +267,10 @@
           call ThermalConductivity(h_n,h_pori,h_porf, organic_ind_loc, temperature_profvertcl, Kp_loc)
 
        end do
+
+#if ( SNOW_EFFECT == 1 )
+       call init_snow_profile()
+#endif
 
 
      END SUBROUTINE vertclvars_init
