@@ -116,10 +116,15 @@
       !dmr         T_last(kk) = Tsnw(kk)
       !dmr       end do
 
+           Cp_temp(1:z_snow) = Cp_s(:)
+           Kp_m(1:z_snow)    = Kp_s(:)
+
+
 #endif
 
              !dmr Given Temperature and porosity (n), this computes a new Cp value and porf, pori on the vertical
-           call AppHeatCapacity(z_num,T_iter(z_eff:z_max),T_freeze,n,org_ind,Cp_temp,porf,pori)
+           call AppHeatCapacity(z_num,T_iter(z_eff:z_max),T_freeze,n,org_ind,Cp_temp(z_eff:z_max)      &
+                               ,porf(z_eff:z_max),pori(z_eff:z_max))
 
 !~            do ll=z_eff,z_max-1
 !~              ll_soil = ll-z_eff+1
@@ -127,7 +132,8 @@
 !~              call ThermalConductivity(ll,n(ll_soil),pori(ll_soil),porf(ll_soil),org_ind,T_iter(ll),Kp(ll_soil))
 !~              Kp(z_max) = 2
 !~            end do
-           call ThermalConductivity(n,pori,porf,org_ind,T_iter(z_eff:z_max),Kp_m)
+           call ThermalConductivity(n,pori(z_eff:z_max),porf(z_eff:z_max),org_ind,T_iter(z_eff:z_max)   &
+                              ,Kp_m(z_eff:z_max))
 
 
            do ll=1+1,z_max-1

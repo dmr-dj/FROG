@@ -103,6 +103,9 @@
 #if ( CARBON == 1 )
        use carbon       , only: ncarb
 #endif
+#if ( SNOW_EFFECT == 1)
+       use simple_snow, only: max_nb_snow_layers
+#endif
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       BY REFERENCE VARIABLES
@@ -152,7 +155,7 @@
 #endif
 
 #if ( SNOW_EFFECT == 1)
-       allocate(Temp_snow(1:z_num,1:gridNoMax))    !dmr [VERTCL, SPAT_VAR] temperature in snow layers               [C]
+       allocate(Temp_snow(1:max_nb_snow_layers,1:gridNoMax))    !dmr [VERTCL, SPAT_VAR] temperature in snow layers  [C]
        allocate(depth_snow_layer(1:gridNoMax))     !dmr [SPAT_VAR]         depth of snow in the snow layers         [m]
        allocate(nb_snow_layer(1:gridNoMax))        !dmr [SPAT_VAR]         nuber of snow layers from discretization [1]
 #endif
@@ -211,16 +214,18 @@
             logic_month_day = .FALSE.
         endif
 
-#if (OFFLINE_RUN == 1)
+#if ( OFFLINE_RUN == 1 )
         call get_clim_forcing(forc_tas_file, name_tas_variable,forcing_surface_temp)
         call fix_Kelvin_or_Celsius(forcing_surface_temp)
-#endif
-
 !dmr --- Would need to repeat the work for get_clim_forcing to get the snow thickness ...
 !dmr [TBD] another day ... 2025-07-08
-#if (OFFLINE_RUN == 1)
+#if ( SNOW_EFFECT == 1 )
         forcing_snow_thick(:,:) = 1.5
 #endif
+
+#endif
+
+
 
 #if (SP_GHF == 1)
         GeoHFlux(1:gridNoMax) = get_Spatial_2Dforcing(GHF_spatial_file,GHF_variable_name)
@@ -677,16 +682,20 @@
         interim_end = stepstoDO - interim_nb + 1
         temperature_forcing_next(:,interim_nb:stepstoDO) = forcing_surface_temp(:,1:interim_end)
 
+#if ( SNOW_EFFECT == 1 )
         if (PRESENT(snowthickness_forcing_next)) then
           snowthickness_forcing_next(:,1:interim_nb) = forcing_snow_thick(:,start_step:timFNoMax)
           snowthickness_forcing_next(:,interim_nb:stepstoDO) = forcing_snow_thick(:,1:interim_end)
         endif
+#endif
 
        else ! enough data already
          temperature_forcing_next(:,:) = forcing_surface_temp(:,start_step:end_step)
+#if ( SNOW_EFFECT == 1 )
          if (PRESENT(snowthickness_forcing_next)) then
             snowthickness_forcing_next(:,:) = forcing_snow_thick(:,start_step:end_step)
          endif
+#endif
        endif
 
      END SUBROUTINE UPDATE_climate_forcing

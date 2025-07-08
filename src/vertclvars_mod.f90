@@ -106,8 +106,10 @@
         REAL                     :: altmax_thisyear
 
 #if ( SNOW_EFFECT == 1 )
-        integer                  :: nb_snowlayers = 0
+        integer                  :: nb_snowlayers = 0, nb_layers_WC
         real, dimension(:), allocatable :: rho_snow, dz_snowlayers
+
+        real, dimension(:), allocatable :: T_old_WC, dz_WC, Temp_WC, Kp_WC
 #endif
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
@@ -138,21 +140,69 @@
          !    3. Construct the merged array for Temperature containing the snow and the normal soil
 
          if (snowlayer_thick_forcing(ll).GT.depth_layer(1)) then ! there is snow on the ground
+
             call get_snow_profile(snowlayer_thick_forcing(ll),nb_snowlayers,rho_snow, dz_snowlayers)
-         endif
+
+
+            !dmr --- Create merged variables to provide WholeColumn (WC) data
+
+            nb_layers_WC = nb_snowlayers+z_num
+
+            allocate(T_old_WC(nb_layers_WC))
+            allocate(dz_WC(nb_layers_WC))
+            allocate(Temp_WC(nb_layers_WC))
+            allocate(Kp_WC(nb_layers_WC))
+
+            T_old_WC(1:nb_snowlayers) = Temp_snow_col(1:nb_snowlayers) ! do not take into account the fact that the nb_snow layers may have varied ... data presence?
+            dz_WC(1:nb_snowlayers)    = dz_snowlayers(1:nb_snowlayers)
+            T_old_WC(nb_snowlayers+1:nb_layers_WC) = T_old(:)
+            dz_WC(nb_snowlayers+1:nb_layers_WC) = dz(:)
+
 
 !~ PROGNOSTIC VARIABLES FROM SNOW THAT NEED UPDATING
 !~ snowlayer_thick_forcing, Temp_snow_col     &
 !~                                    , snowlayer_depth, snowlayer_nb
 !~          WRITE(*,*) "Column CALL", Temp_snow_col
 
-
          ! would need a forcing here in terms of Snow
          ! This need to provide z_snow, rho_snow
          ! i.e. the number of snow layers and their respective density
          ! Temperature of the snow layers should be provided as well (through an extended T_variable ...)
 
-         call Implicit_T(T_old,T_soil,T_bottom,dt,dz,n,organic_ind,Temp,Kp,z_num, z_snow=2, rho_snow=(/350.0,350.0/))
+!~          real, dimension(1:z_max)           , intent(in) :: T_old    !dmr Previous time step soild temperature [C]
+!~          real, dimension(1:z_max)           , intent(in) :: dz       !dmr layer thickness in the soil          [m]
+!~          real, dimension(1:z_max)           , intent(out):: Timp     !dmr placeholder for new temperature      [C]
+!~          real, dimension(1:z_max)           , intent(out):: Kp       !dmr placeholder for new Kp per layer     [?]
+
+
+            call Implicit_T(T_old_WC,T_soil,T_bottom,dt,dz_WC,n,organic_ind,Temp_WC,Kp_WC,nb_layers_WC,            &
+                            z_snow=nb_snowlayers, rho_snow=rho_snow(:))
+
+            !dmr Then update Temp with the lower part
+            Temp(1:z_num) = Temp_WC(nb_snowlayers+1:nb_layers_WC)
+            Kp(1:z_num)   = Kp_WC(nb_snowlayers+1:nb_layers_WC)
+            Temp_snow_col(1:nb_snowlayers) = Temp_WC(1:nb_snowlayers)
+            snowlayer_depth = SUM(dz_snowlayers(1:nb_snowlayers),DIM=1)
+            snowlayer_nb    = nb_snowlayers
+
+!~             WRITE(*,*) "STATS WITH SNOW"
+!~             WRITE(*,*) Temp_snow_col(1:nb_snowlayers)
+!~             WRITE(*,*) snowlayer_depth, snowlayer_nb
+!~             WRITE(*,*) Kp(1:nb_snowlayers)
+
+            deallocate(T_old_WC)
+            deallocate(dz_WC)
+            deallocate(Temp_WC)
+            deallocate(Kp_WC)
+
+         else ! No Snow, proceeding normally
+
+            !-------------- Numerical difference routine when there is no snow --------!
+            call Implicit_T(T_old,T_soil,T_bottom,dt,dz,n,organic_ind,Temp,Kp,z_num)
+
+
+         endif
+
 
 #else
 
