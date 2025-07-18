@@ -35,9 +35,11 @@
         REAL, DIMENSION(:,:),   ALLOCATABLE :: B3_vegForc
         REAL, DIMENSION(:,:),   ALLOCATABLE :: B4_vegForc
 #endif
+
 #if ( SNOW_EFFECT == 1 )
         REAL, DIMENSION(:,:,:), ALLOCATABLE :: dsnow_thick
 #endif
+
       END TYPE cpl_fields
 
       PUBLIC :: cpl_fields
@@ -157,7 +159,11 @@
 
        REAL, DIMENSION(:,:), ALLOCATABLE :: temperature_forcing_nextsteps, snowthickness_forcing_nextsteps
 
+#if ( OFFLINE_RUN == 0 )
        type(cpl_fields), intent(in), optional :: coupled_fields
+#else
+       logical         , intent(in), optional :: coupled_fields ! dummy unused
+#endif
 
 !~        REAL, DIMENSION(:,:,:), INTENT(in), OPTIONAL :: coupled_temp_set     ! will be (spat_coord1, spat_coord2, 1:stepstoDo)
 !~                                                                             ! must be (1:gridNoMax,1:stepstoDO)
