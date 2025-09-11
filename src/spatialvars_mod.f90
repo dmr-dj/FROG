@@ -653,6 +653,8 @@
        INTEGER :: start_step, end_step, interim_nb, interim_end
        TYPE(cell_time) :: current_step
 
+       WRITE(*,*) "Updating forcing ", current_step, start_step, end_step, timFNoMax
+
        current_step = compteur_tstep_SV(1)
 
        start_step = mod(current_step%current_step + 1,timFNoMax)
@@ -665,13 +667,13 @@
            allocate(temperature_forcing_next(1:gridNoMax,1:stepstoDO))
        endif
 
-       if ((PRESENT(snowthickness_forcing_next)).AND.(.NOT.ALLOCATED(snowthickness_forcing_next))) then
-           allocate(snowthickness_forcing_next(1:gridNoMax,1:stepstoDO))
+       if (PRESENT(snowthickness_forcing_next)) then
+           if (.NOT.ALLOCATED(snowthickness_forcing_next)) then
+               allocate(snowthickness_forcing_next(1:gridNoMax,1:stepstoDO))
+           endif
        endif
 
        end_step = start_step + stepstoDO - 1
-
-      WRITE(*,*) "Updating forcing ", current_step, start_step, end_step, timFNoMax
 
        if (end_step.GT.timFNoMax) then ! forcing serie requested is too long ... split !!
         WRITE(*,*) "endstep>timFNoMax "
