@@ -82,12 +82,12 @@ LIBOBJECTS:=$(call source-to-extension,$(LIBSOURCES),o)
 ANCHORS:=$(call source-to-extension,$(SOURCES),anc)
 
 ## default target, main and clean targets
-all: VAMPER.x
+all: FROG.x
 
-VAMPER.x: $(OBJECTS)
+FROG.x: $(OBJECTS)
 	$(FC) $(INCLUDES) -o $@ $+ $(LIBS)
 
-libvamper.a: $(LIBOBJECTS)
+libfrog.a: $(LIBOBJECTS)
 	$(RM) $@
 	$(AR) $(ARFLAGS) $@ $(LIBOBJECTS)
 
