@@ -2,7 +2,7 @@
 
 program test
 
-  use main_lib_VAMPER, only: INITIALIZE_VAMP, STEPFWD_VAMP
+  use main_lib_FROG, only: INITIALIZE_VAMP, STEPFWD_VAMP
 
   implicit none
 
@@ -12,7 +12,7 @@ program test
 
   well_done = INITIALIZE_VAMP()
   if (well_done) then
-    WRITE(*,*) "VAMPER INITIALIZATION COMPLETE"
+    WRITE(*,*) "FROG INITIALIZATION COMPLETE"
   endif
 
   do s=1, steps
@@ -22,7 +22,7 @@ program test
   enddo
 
   if (well_done) then
-    WRITE(*,*) "VAMPER INTEGRATION COMPLETED"
+    WRITE(*,*) "FROG INTEGRATION COMPLETED"
   endif
 
  end program test

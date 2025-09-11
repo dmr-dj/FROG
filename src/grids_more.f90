@@ -71,7 +71,7 @@
       INTEGER         :: spat_dim2, spat_dim1, time_id
       REAL, PUBLIC    :: undefined_value
       CHARACTER(LEN=str_len) :: typology_file  ! ="file_typology-r128x64.nc"
-      CHARACTER(LEN=str_len) :: netCDFout_file ! ="VAMPER-output.nc"
+      CHARACTER(LEN=str_len) :: netCDFout_file ! ="FROG-output.nc"
 
 
 
@@ -241,7 +241,7 @@
 
 ! dmr   For namelist reading ...
 
-        CHARACTER(len=str_len), PARAMETER                         :: file_path ="vamper_inputsGrid.nml"
+        CHARACTER(len=str_len), PARAMETER                         :: file_path ="frog_inputsGrid.nml"
         INTEGER                                                   :: rc,fu
         NAMELIST /inputsGrid/ mask_file, typology_file, netCDFout_file
 
@@ -426,7 +426,7 @@
 
       forcing_timelength = dimLEN(unlimdimid)
 
-      WRITE(*,*) "Currently, VAMPER seems to be off for a run with", nb_unmaskedp, " datapoints."
+      WRITE(*,*) "Currently, FROG seems to be off for a run with", nb_unmaskedp, " datapoints."
       WRITE(*,*) "Forcing file provides data for ", dimLEN(unlimdimid), "time steps"
 
       END SUBROUTINE INIT_maskGRID

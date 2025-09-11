@@ -1,9 +1,9 @@
 # 2024-03-29 / LIPaS / (c) dmr-dj
 
-title="vamper-f / LIPaS configuration file"
+title="FROG / LIPaS configuration file"
 
 [pkginfo]
-name="VAMPER-F"
+name="FROG"
 owner="Didier Roche, Nathaelle Bouttes, Amaury Lambin"
 license="Apache-2.0"
 date=""
@@ -11,7 +11,7 @@ type="external"
 
 [retrieve]
 method="git"
-path="https://github.com/dmr-dj/vamper-f.git"
+path="https://github.com/dmr-dj/FROG.git"
 
 [dependencies]
 pkgs="lapack"

@@ -351,7 +351,7 @@ CONTAINS
 !déclaration des variables
 
     INTEGER :: rc,fu
-    CHARACTER(len= 19)  :: file_path ="vamper_namelist.nml"
+    CHARACTER(len= 19)  :: file_path ="frog_namelist.nml"
 
 
     NAMELIST /inputFiles/ forc_tas_file, name_tas_variable, GHF_spatial_file, GHF_variable_name, Tinit_spatial_file    &
@@ -407,7 +407,7 @@ CONTAINS
     INTEGER           :: fo, rc
     CHARACTER(len=30) :: to_print
 
-    CHARACTER(len=19) :: file_path_chck = "vamper_namelist.chk"
+    CHARACTER(len=19) :: file_path_chck = "frog_namelist.chk"
 
 
     ! Write out a file to check the parameters that have been read

@@ -53,7 +53,7 @@ contains
        !! ICI verifier D pour zi_soil?
       call decomposition(Temp, D, dt, deepSOM_a, deepSOM_s, deepSOM_p, fc, dz)
        ! cryoturbation et bioturbation
-       !! ICI chercher zi_soil et zf_soil dans VAMPER ?? D ???
+       !! ICI chercher zi_soil et zf_soil dans FROG ?? D ???
       call bio_cryoturbation(Temp, deepSOM_a, deepSOM_s, deepSOM_p, ALT, max_cryoturb_alt, &
              min_cryoturb_alt, D, diff_k_const, bio_diff_k_const, dt,         &
              bioturbation_depth, dz)
@@ -274,7 +274,7 @@ contains
 
     logical, parameter                          :: limit_decomp_moisture = .false. ! to be changed to true if humidity in model
     real, dimension(z_num)           :: moistfunc_result
-    REAL, DIMENSION(z_num), INTENT(in)          :: zi_soil ! profondeur de la couche = D dans VAMPER
+    REAL, DIMENSION(z_num), INTENT(in)          :: zi_soil ! profondeur de la couche = D dans FROG
     REAL                                        :: stomate_tau = 4.699E6
     REAL                                        :: depth_modifier = 1.E6             !! e-folding depth of turnover rates,following Koven et al.,2013,Biogeosciences. A very large value means no depth modification
 !    REAL, DIMENSION(:), INTENT(in)           :: clay            !! clay content
@@ -448,7 +448,7 @@ contains
     real, intent(in)                      :: max_cryoturb_alt, min_cryoturb_alt !altmax_lastyear
     real                                  :: cryoturbation_depth
     logical                               :: cryoturb_location, bioturb_location
-    REAL, DIMENSION(z_num), INTENT(in)    :: zi_soil ! !! depths of intermediate levels (m)! profondeur de la couche = D dans VAMPER
+    REAL, DIMENSION(z_num), INTENT(in)    :: zi_soil ! !! depths of intermediate levels (m)! profondeur de la couche = D dans FROG
     !REAL, DIMENSION(0:z_num),  INTENT(in) :: zf_soil        !! depths of full levels (m)
     REAL, DIMENSION(z_num)            :: diff_k               !! Diffusion constant (m^2/s)
     REAL, INTENT(in)                         :: diff_k_const

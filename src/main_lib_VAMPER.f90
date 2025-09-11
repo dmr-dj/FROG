@@ -17,7 +17,7 @@
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
 
-    MODULE main_lib_VAMPER
+    MODULE main_lib_FROG
 
 #include "constant.h"
 
@@ -204,7 +204,7 @@
         endif
 
 #endif
-        ! DO_VAMPER_STEP
+        ! DO_FROG_STEP
         CALL DO_spatialvars_step(nb_coupling_steps, temperature_forcing_nextsteps                                               &
 #if ( SNOW_EFFECT == 1 )
                                , snowthickness_forcing_nextsteps                                                                &
@@ -216,4 +216,4 @@
      end function STEPFWD_VAMP
 
 
-    END MODULE main_lib_VAMPER
+    END MODULE main_lib_FROG
