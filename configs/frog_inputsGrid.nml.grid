@@ -1,6 +1,6 @@
 &inputsGrid
   mask_file = "Input_Data/grid_EWEMBI/tas_ewembi_1979-2016-r128x64-maskocean.nc4"
   typology_file = "Input_Data/grid_EWEMBI/file_typology-r128x64.nc"
-  netCDFout_file = "VAMPER-output.nc"
+  netCDFout_file = "FROG-output.nc"
 
 /

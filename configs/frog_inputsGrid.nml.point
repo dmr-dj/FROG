@@ -1,6 +1,6 @@
 &inputsGrid
   mask_file = "Input_Data/point_Boike/Boikedata_lonlat.nc"
   typology_file = "Input_Data/point_Boike/file_typology-OnePointBoike.nc"
-  netCDFout_file = "VAMPER-output.nc"
+  netCDFout_file = "FROG-output.nc"
 
 /
