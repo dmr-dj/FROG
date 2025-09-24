@@ -14,7 +14,7 @@ method="git"
 path="https://github.com/dmr-dj/FROG.git"
 
 [dependencies]
-pkgs="lapack"
+pkgs="netcdf,lapack"
 
 [build]
 lang="FF"
