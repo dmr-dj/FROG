@@ -66,6 +66,7 @@
      ! Timer variable carbon only
      logical, dimension(:), allocatable          :: end_year_SV          !=0 if not end of year, =1 if end of year
      real, dimension(:)   , allocatable          :: b4_SV !b3_SV, 
+     real, dimension(:)   , allocatable          :: Fv_SV
 #endif
 
 #if ( SNOW_EFFECT == 1 )
@@ -151,6 +152,7 @@
        allocate(end_year_SV(1:gridNoMax))
        !allocate(b3_SV(1:gridNoMax))
        allocate(b4_SV(1:gridNoMax))
+       allocate(Fv_SV(1:gridNoMax))
 
 #endif
 
@@ -247,8 +249,9 @@
 
 #if ( CARBON == 1 )
             !dmr Initialization of all columns, one by one
+          ! Here we call initialisation with b4 to ahve correct first amount of carbon from vecode
           call carbon_init(deepSOM_a(:,gridp), deepSOM_s(:,gridp), deepSOM_p(:,gridp), fc_SV(:,:,gridp),ALT_SV(gridp)       &
-                          , b4_SV(gridp)) !b3_SV(gridp), 
+                          , b4_SV(gridp), Temp(:,gridp)) !b3_SV(gridp), 
 #endif
 
           compteur_tstep_SV(gridp) = init_time_cell(0,.FALSE.,.FALSE.,logic_month_day)
@@ -609,6 +612,7 @@
             ! CARBON ONLY VARIABLES
                                , deepSOM_a = deepSOM_a(:,gridp),deepSOM_s = deepSOM_s(:,gridp), deepSOM_p = deepSOM_p(:,gridp)&
                                , deepSOM = deepSOM(:,gridp), fc = fc_SV(:,:,gridp),  b4_lok=b4_SV(gridp)                      & 
+                               , Fv_lok=Fv_SV(gridp)                                                                         &
                                !,b3_lok=b3_SV(gridp),
 #endif
 #if ( SNOW_EFFECT == 1 )
@@ -710,7 +714,7 @@
 
      SUBROUTINE SET_coupled_climate_forcing(stepstoDO,temperature_forcing_next, coupled_temp_set, b4_content                  &
      !b3_content,
-                                          , snowthick_forc_nxt, coupled_dsnow_set )
+                                          , Fv_content, snowthick_forc_nxt, coupled_dsnow_set )
 
        use parameter_mod,  only: gridNoMax
 
@@ -718,6 +722,7 @@
        REAL, DIMENSION(:,:), ALLOCATABLE, INTENT(out)           :: temperature_forcing_next   ! will be (1:gridNoMax,1:stepstoDO)
        REAL, DIMENSION(:,:),              INTENT(in)            :: coupled_temp_set           ! must be (1:gridNoMax,1:stepstoDO)
        REAL, DIMENSION(:)               , INTENT(in),  OPTIONAL :: b4_content                 ! will be (1:gridNoMax) b3_content, 
+       REAL, DIMENSION(:)               , INTENT(in),  OPTIONAL :: Fv_content                 ! will be (1:gridNoMax) b3_content, 
        REAL, DIMENSION(:,:),              INTENT(in),  OPTIONAL :: coupled_dsnow_set          ! must be (1:gridNoMax,1:stepstoDO)
        REAL, DIMENSION(:,:),ALLOCATABLE , INTENT(out), OPTIONAL :: snowthick_forc_nxt ! must be (1:gridNoMax,1:stepstoDO)
 
@@ -743,9 +748,11 @@
 
 #if ( CARBON == 1 )
        !if ((PRESENT(b3_content)).AND.(PRESENT(b4_content))) then
-       if (PRESENT(b4_content)) then
+       if ((PRESENT(Fv_content)).AND.(PRESENT(b4_content))) then
+       !if (PRESENT(b4_content)) then
          !b3_SV = b3_content
          b4_SV = b4_content
+         Fv_SV = Fv_content
        else
          WRITE(*,*) "[ABORT] Missing forcing for b3, b4 in coupled mode"
        endif

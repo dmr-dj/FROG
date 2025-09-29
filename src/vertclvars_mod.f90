@@ -37,7 +37,7 @@
                                                                       ! n is porosity in the vertical
                                                                       ! Per_depth is the diagnosed "permafrost" or freezing depth (in meters)
                                    ALT, altmax_lastyear, compteur_time_step, deepSOM_a, deepSOM_s, deepSOM_p &
-                                   , deepSOM, fc,  b4_lok, snowlayer_thick_forcing, Temp_snow_col     &
+                                   , deepSOM, fc,  b4_lok, Fv_lok, snowlayer_thick_forcing, Temp_snow_col     &
                                    , snowlayer_depth, snowlayer_nb) !b3_lok,
 
 
@@ -84,6 +84,7 @@
         REAL, DIMENSION(ncarb,ncarb), intent(inout),OPTIONAL:: fc !! flux fractions within carbon pools
 
         REAL, OPTIONAL,                   INTENT(in)        ::  b4_lok !b3_lok,
+        REAL, OPTIONAL,                   INTENT(in)        ::  Fv_lok 
 
 
           ! SNOW VARIABLES
@@ -227,9 +228,9 @@
        ! at the end of each year computes the actve layer thickness, needed for redistribution
 !~          call compute_alt(Temp, Temp_positive, ALT, compteur_time_step, end_year, altmax_lastyear, D)
        !write(*,*) 'ALT', ALT
-       call carbon_main (Temp, ALT, D ,deepSOM_a, deepSOM_s, deepSOM_p, dz, dt, max_cryoturb_alt,   &
+       call carbon_main (Temp, ALT, deepSOM_a, deepSOM_s, deepSOM_p, dt, max_cryoturb_alt,            &
                           min_cryoturb_alt, diff_k_const, bio_diff_k_const, bioturbation_depth,       &
-                          deepSOM, fc,  b4_lok) !b3_lok,
+                          deepSOM, fc, Fv_lok) !b3_lok, b4_lok
 #endif
 
          if (end_year) then
