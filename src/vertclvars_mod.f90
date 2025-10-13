@@ -37,8 +37,8 @@
                                                                       ! n is porosity in the vertical
                                                                       ! Per_depth is the diagnosed "permafrost" or freezing depth (in meters)
                                    ALT, altmax_lastyear, compteur_time_step, deepSOM_a, deepSOM_s, deepSOM_p &
-                                   , deepSOM, fc,  b4_lok, Fv_lok, snowlayer_thick_forcing, Temp_snow_col     &
-                                   , snowlayer_depth, snowlayer_nb) !b3_lok,
+                                   , deepSOM, fc,  b4_lok, Fv_lok, fracgr_lok, darea_lok, snowlayer_thick_forcing, Temp_snow_col     &
+                                   , snowlayer_depth, snowlayer_nb, deepSOM_tot) !b3_lok,
 
 
 
@@ -85,6 +85,9 @@
 
         REAL, OPTIONAL,                   INTENT(in)        ::  b4_lok !b3_lok,
         REAL, OPTIONAL,                   INTENT(in)        ::  Fv_lok 
+        REAL, OPTIONAL,                   INTENT(in)        ::  fracgr_lok 
+        REAL, OPTIONAL,                   INTENT(in)        ::  darea_lok 
+        REAL, OPTIONAL,                   INTENT(inout)     ::  deepSOM_tot 
 
 
           ! SNOW VARIABLES
@@ -230,7 +233,7 @@
        !write(*,*) 'ALT', ALT
        call carbon_main (Temp, ALT, deepSOM_a, deepSOM_s, deepSOM_p, dt, max_cryoturb_alt,            &
                           min_cryoturb_alt, diff_k_const, bio_diff_k_const, bioturbation_depth,       &
-                          deepSOM, fc, Fv_lok) !b3_lok, b4_lok
+                          deepSOM, fc, Fv_lok, fracgr_lok, darea_lok, deepSOM_tot) !b3_lok, b4_lok
 #endif
 
          if (end_year) then

@@ -18,7 +18,7 @@ contains
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
   subroutine carbon_main (Temp, ALT, deepSOM_a, deepSOM_s, deepSOM_p, dt, max_cryoturb_alt,      &
                           min_cryoturb_alt, diff_k_const, bio_diff_k_const, bioturbation_depth,      &
-                          deepSOM, fc, Fv_l) !b3_l, 
+                          deepSOM, fc, Fv_l, fracgr, darea, deepSOM_tot) !b3_l, 
 
       use parameter_mod,  only : z_num
       use parameter_mod, only: zf_soil
@@ -42,7 +42,10 @@ contains
       real, intent(in)                                    :: bioturbation_depth
       REAL, DIMENSION(ncarb,ncarb), intent(in)            :: fc                         !! flux fractions within carbon pools
       REAL, dimension(z_num) , INTENT(out)                :: deepSOM
+      REAL, INTENT(out)                                   :: deepSOM_tot
       REAL, intent(in)                                    :: Fv_l !b3_l,
+      REAL, intent(in)                                    :: fracgr ! fraction of land in cell
+      REAL, intent(in)                                    :: darea ! fraction of land in cell
 
 
 
@@ -60,6 +63,7 @@ contains
              bioturbation_depth)
 
       deepSOM(:) = deepSOM_a(:) + deepSOM_p(:) + deepSOM_s(:)
+      deepSOM_tot = sum(deepSOM(:)*dz(:))*darea*fracgr
 
 
   end subroutine carbon_main
@@ -181,7 +185,7 @@ contains
 !~     b3=1.! en g/m²  !!!! (du coup on divise som input par dz )
 !~     b4=1 ! en g /m²
     !som_input_TS=b3+b4 ! matiere organique qui arrive dans le sol (litiere + sol) ! attention  a l unite
-    som_input_TS=b4 ! matiere organique qui arrive dans le sol (sol) ! attention  a l unite
+    som_input_TS=b4*1000 ! b4 de ilovecim en kg/m2-> en g/m2 , matiere organique qui arrive dans le sol (sol) ! attention  a l unite
 !*time_step/one_day
 !add up the soil carbon from all veg pools, and change units from (gC/(m**2 of ground)/day) to gC/m^2 per timestep
 

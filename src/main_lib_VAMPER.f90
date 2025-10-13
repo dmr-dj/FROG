@@ -35,6 +35,8 @@
         !REAL, DIMENSION(:,:),   ALLOCATABLE :: B3_vegForc
         REAL, DIMENSION(:,:),   ALLOCATABLE :: B4_vegForc
         REAL, DIMENSION(:,:),   ALLOCATABLE :: Fv_vegForc
+        REAL, DIMENSION(:,:),   ALLOCATABLE :: fracgr_vegForc
+        REAL, DIMENSION(:,:),   ALLOCATABLE :: darea_vegForc
 #endif
 
 #if ( SNOW_EFFECT == 1 )
@@ -192,6 +194,8 @@
                  !, b3_content = flatten_it(TRANSPOSE(coupled_fields%B3_vegForc(:,:)))                                           &
                  , b4_content = flatten_it(TRANSPOSE(coupled_fields%B4_vegForc(:,:)))                                           &
                  , Fv_content = flatten_it(TRANSPOSE(coupled_fields%Fv_vegForc(:,:)))                                           &
+                 , fracgr_content = flatten_it(TRANSPOSE(coupled_fields%fracgr_vegForc(:,:)))                                   &
+                 , darea_content = flatten_it(TRANSPOSE(coupled_fields%darea_vegForc(:,:)))                                     &
 #endif
 #if ( SNOW_EFFECT == 1 )
                  , snowthick_forc_nxt = snowthickness_forcing_nextsteps                                                         &
