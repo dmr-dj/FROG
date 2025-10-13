@@ -37,7 +37,7 @@
                                                                       ! n is porosity in the vertical
                                                                       ! Per_depth is the diagnosed "permafrost" or freezing depth (in meters)
                                    ALT, altmax_lastyear, compteur_time_step, deepSOM_a, deepSOM_s, deepSOM_p &
-                                   , deepSOM, fc,  b4_lok, Fv_lok, fracgr_lok, darea_lok, snowlayer_thick_forcing, Temp_snow_col     &
+                                   , deepSOM, fc,  b4_lok, Fv_lok, fracgr_lok, darea_lok, snowlayer_thick_forcing, Temp_snow_col &
                                    , snowlayer_depth, snowlayer_nb, deepSOM_tot) !b3_lok,
 
 

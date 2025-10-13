@@ -621,7 +621,7 @@
             ! CARBON ONLY VARIABLES
                                , deepSOM_a = deepSOM_a(:,gridp),deepSOM_s = deepSOM_s(:,gridp), deepSOM_p = deepSOM_p(:,gridp)&
                                , deepSOM = deepSOM(:,gridp), fc = fc_SV(:,:,gridp),  b4_lok=b4_SV(gridp)                      & 
-                               , Fv_lok=Fv_SV(gridp), fracgr_lok=fracgr_SV(gridp), darea_lok=darea_SV(gridp)                                                                         &
+                               , Fv_lok=Fv_SV(gridp), fracgr_lok=fracgr_SV(gridp), darea_lok=darea_SV(gridp)                  &
                                !,b3_lok=b3_SV(gridp),
 #endif
 #if ( SNOW_EFFECT == 1 )
