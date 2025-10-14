@@ -80,6 +80,7 @@
 #endif
 
 
+     real, dimension(:,:),allocatable            :: temp_mean_SV       !dmr placeholder for mean temperature output 
 
 !   Main Timer variable
 
@@ -162,6 +163,10 @@
        allocate(deepSOM_tot(1:gridNoMax))
 
 #endif
+
+       ! OUTPUT variables
+
+       allocate(temp_mean_SV(1:z_num,1:gridNoMax)) !dmr SPAT_VAR
 
 #if ( SNOW_EFFECT == 1)
        allocate(Temp_snow(1:max_nb_snow_layers,1:gridNoMax))    !dmr [VERTCL, SPAT_VAR] temperature in snow layers  [C]
@@ -579,7 +584,7 @@
 
         use parameter_mod,  only: gridNoMax
         use vertclvars_mod, only: DO_vertclvars_step
-        use grids_more,     only: WRITE_netCDF_output, indx_var_temp_ig, indx_var_palt, indx_var_plt
+        use grids_more,     only: WRITE_netCDF_output, indx_var_temp_ig, indx_var_palt, indx_var_plt 
 
 #if (CARBON == 1 )
         use grids_more,     only: indx_var_carb
@@ -622,14 +627,16 @@
                                , deepSOM_a = deepSOM_a(:,gridp),deepSOM_s = deepSOM_s(:,gridp), deepSOM_p = deepSOM_p(:,gridp)&
                                , deepSOM = deepSOM(:,gridp), fc = fc_SV(:,:,gridp),  b4_lok=b4_SV(gridp)                      & 
                                , Fv_lok=Fv_SV(gridp), fracgr_lok=fracgr_SV(gridp), darea_lok=darea_SV(gridp)                  &
-                               !,b3_lok=b3_SV(gridp),
+                               , deepSOM_tot = deepSOM_tot(gridp)                                                             &                       !,b3_lok=b3_SV(gridp),
 #endif
 #if ( SNOW_EFFECT == 1 )
             ! SNOW ONLY VARIABLES
                                , snowlayer_thick_forcing = forcage_epaisseurneige,  Temp_snow_col=Temp_snow(:,gridp)          &
                                , snowlayer_depth = depth_snow_layer(gridp), snowlayer_nb = nb_snow_layer(gridp)               &
 #endif
-                               , deepSOM_tot = deepSOM_tot(gridp))
+            ! OUTPUT ONLY VARIABLES (MANDATORY PRESENCE)
+                               , Tmean_col = temp_mean_SV(:,gridp)                                                            &
+                               )
 
           deepSOM_tot_yr=deepSOM_tot_yr+deepSOM_tot(gridp)
 
