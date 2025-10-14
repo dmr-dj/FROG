@@ -75,27 +75,29 @@
 
 
 
-      INTEGER, PARAMETER :: nb_out_vars = 4, nb_dim_vars = 3
+      INTEGER, PARAMETER :: nb_out_vars = 6, nb_dim_vars = 3
 
       CHARACTER(LEN=str_len), DIMENSION(nb_dim_vars), PARAMETER:: output_dim_names=[CHARACTER(len=str_len) :: "lat", "lon", "lev"]
-      CHARACTER(LEN=str_len), DIMENSION(nb_out_vars), PARAMETER::                                     &
-                              output_var_names=[CHARACTER(len=str_len) :: "temp_ig", "palt", "plt", "carb"],  &
-                              output_unt_names=[CHARACTER(len=str_len) :: "K", "m", "m","g"],             &
-                              output_std_names=[CHARACTER(len=str_len) :: "temperature_in_ground",    &
-                                 "permafrost_active_layer_thickness", "permafrost_layer_thickness",""],  &
-                              output_lng_names=[CHARACTER(len=str_len) ::                             &
-                                 "solid_earth_subsurface_temperature", "", "",""],                       &
-                              output_dms_names=[CHARACTER(len=str_len) :: "lev lon lat time",          &
-                                 "lon lat time", "lon lat time", "lev lon lat time"]
-
-
+      CHARACTER(LEN=str_len), DIMENSION(nb_out_vars), PARAMETER::                                                   &
+                              output_var_names=[CHARACTER(len=str_len) :: "tempmean_ig", "tempmin_ig", "tempmax_ig" &
+                                                                        , "palt", "plt", "carb"],                   &
+                              output_unt_names=[CHARACTER(len=str_len) :: "K", "K", "K", "m", "m","g"],             &
+                              output_std_names=[CHARACTER(len=str_len) :: "mean_temperature_in_ground",             &
+                                 "min_temperature_in_ground", "max_temperature_in_ground",                          &
+                                 "permafrost_active_layer_thickness", "permafrost_layer_thickness","???"],          &
+                              output_lng_names=[CHARACTER(len=str_len) ::                                           &
+                                 "mean solid_earth_subsurface_temperature", "min solid_earth_subsurface_temperature"&
+                                ,"max solid_earth_subsurface_temperature", "","", ""],                              &
+                              output_dms_names=[CHARACTER(len=str_len) :: "lev lon lat time", "lev lon lat time",   &
+                                 "lev lon lat time", "lon lat time", "lon lat time", "lev lon lat time"]
 
 
       INTEGER, DIMENSION(0:nb_dim_vars) :: output_dim_len, output_dim_dimid
       INTEGER :: current_time_record
 
       INTEGER, DIMENSION(nb_out_vars) :: output_var_dimid
-      INTEGER, PARAMETER              :: indx_var_temp_ig = 1, indx_var_palt=2, indx_var_plt=3, indx_var_carb = 4
+      INTEGER, PARAMETER              :: indx_var_tmean_ig = 1, indx_var_tmin_ig = 2, indx_var_tmax_ig = 3,         &
+                                         indx_var_palt=4, indx_var_plt=5, indx_var_carb = 6
 
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
@@ -106,7 +108,8 @@
         MODULE PROCEDURE WRITE_netCDF_output3D, WRITE_netCDF_output2D
       END INTERFACE WRITE_netCDF_output
 
-      PUBLIC :: INIT_maskGRID, INIT_netCDF_output, indx_var_temp_ig, indx_var_palt, indx_var_plt, WRITE_netCDF_output
+      PUBLIC :: INIT_maskGRID, INIT_netCDF_output, indx_var_tmean_ig, indx_var_tmin_ig, indx_var_tmax_ig,           &
+                indx_var_palt, indx_var_plt, WRITE_netCDF_output
 
       PUBLIC :: indx_var_carb, flatten_it_3D, flatten_it
 
@@ -629,7 +632,7 @@
        INTEGER, INTENT(in) :: indx_var
        REAL, DIMENSION(z_num,spat_dim1,spat_dim2) :: nc_vartowrite ! lev, lon, lat, time
 
-       if (indx_var.EQ.indx_var_temp_ig) then
+       if (indx_var.EQ.indx_var_tmean_ig) then
 
          current_time_record = current_time_record + 1
 
@@ -657,7 +660,7 @@
             nf90_close(ncid)                                                                           &
                       , __LINE__)
 
-       if (indx_var.EQ.indx_var_temp_ig) then
+       if (indx_var.EQ.indx_var_tmean_ig) then
           call handle_err(                                                                                &
                nf90_open(path = TRIM(netCDFout_file), mode = NF90_WRITE, ncid = ncid)                     & ! open existing netCDF dataset
                          , __LINE__)

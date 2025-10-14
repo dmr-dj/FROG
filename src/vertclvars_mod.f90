@@ -39,7 +39,7 @@
                                    ALT, altmax_lastyear, compteur_time_step, deepSOM_a, deepSOM_s, deepSOM_p, deepSOM_tot &
                                    , deepSOM, fc,  b4_lok, Fv_lok, fracgr_lok, darea_lok, snowlayer_thick_forcing, Temp_snow_col&
                                    , snowlayer_depth, snowlayer_nb                                                              &
-                                   , Tmean_col) !b3_lok,
+                                   , Tmean_col, Tmmin_col, Tmmax_col) !b3_lok,
 
 
 
@@ -73,6 +73,8 @@
         REAL                            , INTENT(in)        :: T_bottom
         REAL, DIMENSION(3)              , INTENT(out)       :: Per_depth
         REAL, DIMENSION(1:z_num)        , INTENT(INOUT)     :: Tmean_col
+        REAL, DIMENSION(1:z_num)        , INTENT(OUT)       :: Tmmin_col
+        REAL, DIMENSION(1:z_num)        , INTENT(OUT)       :: Tmmax_col
 
 
 !~         INTEGER,DIMENSION(1:z_num), INTENT(inout), OPTIONAL :: Temp_positive                    ! Where temp is once positive over one year
@@ -246,6 +248,16 @@
            !dmr [TODO] send the stored yearly temp result to the routine that prepares output
 
          endif
+
+        !dmr OUTPUT section
+         
+         Tmean_col(1:z_num) = Tmean_col(1:z_num) + Temp(1:z_num) / nb_steps_toDo 
+         where (Temp(1:z_num) .LT. Tmmin_col(1:z_num))
+            Tmmin_col = Temp
+         endwhere
+         where (Temp(1:z_num) .GT. Tmmax_col(1:z_num))
+            Tmmax_col = Temp
+         endwhere
 
         enddo ! boucle temporelle
 

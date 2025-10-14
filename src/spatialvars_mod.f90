@@ -81,6 +81,8 @@
 
 
      real, dimension(:,:),allocatable            :: temp_mean_SV       !dmr placeholder for mean temperature output 
+     real, dimension(:,:),allocatable            :: temp_mmin_SV       !dmr placeholder for mean temperature output 
+     real, dimension(:,:),allocatable            :: temp_mmax_SV       !dmr placeholder for mean temperature output 
 
 !   Main Timer variable
 
@@ -167,6 +169,8 @@
        ! OUTPUT variables
 
        allocate(temp_mean_SV(1:z_num,1:gridNoMax)) !dmr SPAT_VAR
+       allocate(temp_mmin_SV(1:z_num,1:gridNoMax)) !dmr SPAT_VAR
+       allocate(temp_mmax_SV(1:z_num,1:gridNoMax)) !dmr SPAT_VAR
 
 #if ( SNOW_EFFECT == 1)
        allocate(Temp_snow(1:max_nb_snow_layers,1:gridNoMax))    !dmr [VERTCL, SPAT_VAR] temperature in snow layers  [C]
@@ -584,7 +588,8 @@
 
         use parameter_mod,  only: gridNoMax
         use vertclvars_mod, only: DO_vertclvars_step
-        use grids_more,     only: WRITE_netCDF_output, indx_var_temp_ig, indx_var_palt, indx_var_plt 
+        use grids_more,     only: WRITE_netCDF_output, indx_var_tmean_ig, indx_var_tmin_ig, indx_var_tmax_ig,       &
+                                  indx_var_palt, indx_var_plt 
 
 #if (CARBON == 1 )
         use grids_more,     only: indx_var_carb
@@ -607,7 +612,12 @@
 !       MAIN BODY OF THE ROUTINE
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-     deepSOM_tot_yr=0.0
+#if ( CARBON > 0 )
+       deepSOM_tot_yr=0.0
+#endif
+       temp_mean_SV(:,:) = 0.0     
+       temp_mmin_SV(:,:) = 0.0     
+       temp_mmax_SV(:,:) = 0.0     
 
 
        ! This is where the parallelization could find place ...
@@ -636,9 +646,13 @@
 #endif
             ! OUTPUT ONLY VARIABLES (MANDATORY PRESENCE)
                                , Tmean_col = temp_mean_SV(:,gridp)                                                            &
+                               , Tmmin_col = temp_mmin_SV(:,gridp)                                                            &
+                               , Tmmax_col = temp_mmax_SV(:,gridp)                                                            &
                                )
 
+#if ( CARBON > 0 )
           deepSOM_tot_yr=deepSOM_tot_yr+deepSOM_tot(gridp)
+#endif
 
        enddo
 !$omp end do
@@ -648,7 +662,9 @@
 
        ! WRITE OUTPUT
 
-       CALL WRITE_netCDF_output(Temp, indx_var_temp_ig)
+       CALL WRITE_netCDF_output(temp_mean_SV, indx_var_tmean_ig)
+       CALL WRITE_netCDF_output(temp_mmin_SV, indx_var_tmin_ig)
+       CALL WRITE_netCDF_output(temp_mmax_SV, indx_var_tmax_ig)
        CALL WRITE_netCDF_output(ALT_SV, indx_var_palt)
        CALL WRITE_netCDF_output(freeze_depth_SV(1,:)-freeze_depth_SV(2,:), indx_var_plt)
 #if ( CARBON == 1 )
