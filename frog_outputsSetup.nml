@@ -1,6 +1,7 @@
 &outputDimSetup_1
+  output_aktiv = T
   nb_dim_vars = 3
-  nb_output_vars = 6
+  nb_out_vars = 6
 /
 &outputDimSetup_2
   output_dim_names = "lat", "lon", "lev"

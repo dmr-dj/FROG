@@ -76,10 +76,13 @@
 
 
 
-      INTEGER, PARAMETER :: nb_out_vars = 6, nb_dim_vars = 3
+      INTEGER                :: nb_out_vars, nb_dim_vars
+      LOGICAL                :: output_aktiv
+      !dmr [NOTA] Following will be deprecated
+      INTEGER, PARAMETER     :: nb_out_varss = 6, nb_dim_varss = 3
 
-      CHARACTER(LEN=str_len), DIMENSION(nb_dim_vars), PARAMETER:: output_dim_names=[CHARACTER(len=str_len) :: "lat", "lon", "lev"]
-      CHARACTER(LEN=str_len), DIMENSION(nb_out_vars), PARAMETER::                                                   &
+      CHARACTER(LEN=str_len), DIMENSION(nb_dim_varss), PARAMETER:: output_dim_names=[CHARACTER(len=str_len) :: "lat", "lon", "lev"]
+      CHARACTER(LEN=str_len), DIMENSION(nb_out_varss), PARAMETER::                                                   &
                               output_var_names=[CHARACTER(len=str_len) :: "tempmean_ig", "tempmin_ig", "tempmax_ig" &
                                                                         , "palt", "plt", "carb"],                   &
                               output_unt_names=[CHARACTER(len=str_len) :: "K", "K", "K", "m", "m","g"],             &
@@ -93,10 +96,10 @@
                                  "lev lon lat time", "lon lat time", "lon lat time", "lev lon lat time"]
 
 
-      INTEGER, DIMENSION(0:nb_dim_vars) :: output_dim_len, output_dim_dimid
+      INTEGER, DIMENSION(0:nb_dim_varss) :: output_dim_len, output_dim_dimid
       INTEGER :: current_time_record
 
-      INTEGER, DIMENSION(nb_out_vars) :: output_var_dimid
+      INTEGER, DIMENSION(nb_out_varss):: output_var_dimid
       INTEGER, PARAMETER              :: indx_var_tmean_ig = 1, indx_var_tmin_ig = 2, indx_var_tmax_ig = 3,         &
                                          indx_var_palt=4, indx_var_plt=5, indx_var_carb = 6
 
@@ -144,10 +147,6 @@
        enddo
 
      end function flatten_it_3D
-
-
-
-
 
 ! ---
 
@@ -211,6 +210,53 @@
       end function un_flatten_it
 
 
+
+! **********************************************************************************************************************************
+      SUBROUTINE read_base_namelist(file_path)
+! **********************************************************************************************************************************
+
+!!      AUTHOR : dmr-dj
+!!      DESCRIPTION: This subroutine reads the base namelist conf. file for the netCDF output of FROG
+!!      REFERENCES: N/A
+!!      CALL : This subroutine is internal to the module (private)
+
+       CHARACTER(LEN=*), INTENT(IN)  :: file_path       ! namelist to be read
+
+       ! Local variables
+       INTEGER                       :: rc,fu
+       NAMELIST /outputDimSetup_1/ output_aktiv, nb_dim_vars, nb_out_vars
+
+       ! Start of the subroutine
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+! dmr   Read the appropriate namelist
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+      INQUIRE (file=file_path, iostat=rc)
+      IF (rc /= 0) THEN
+         WRITE (stderr, '("Error: input file ", a, " does not exist")') file_path
+         STOP
+      ENDIF
+
+      ! Open and read Namelist file.
+      OPEN (action='read', file=file_path, iostat=rc, newunit=fu)
+      IF (rc /= 0) WRITE (stderr, '("Error: Cannot open namelist file")')
+
+      READ (nml=outputDimSetup_1, iostat=rc, unit=fu)
+      IF (rc /= 0) WRITE (stderr, '("Error: invalid Namelist format")')
+
+      CLOSE (fu)
+
+      WRITE(stdout,*) "VALUES for namelist output: ", output_aktiv, nb_dim_vars, nb_out_vars
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+! dmr
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+      END SUBROUTINE read_base_namelist
+! **********************************************************************************************************************************
+
+
       SUBROUTINE INIT_maskGRID()
 
         use netcdf
@@ -245,7 +291,8 @@
 
 ! dmr   For namelist reading ...
 
-        CHARACTER(len=str_len), PARAMETER                         :: file_path ="frog_inputsGrid.nml"
+        CHARACTER(len=str_len), PARAMETER                         :: file_path_inp ="frog_inputsGrid.nml"
+        CHARACTER(len=str_len), PARAMETER                         :: file_path_out ="frog_outputsSetup.nml"
         INTEGER                                                   :: rc,fu
         NAMELIST /inputsGrid/ mask_file, typology_file, netCDFout_file
 
@@ -262,20 +309,22 @@
 ! dmr   Read the appropriate namelist
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-      INQUIRE (file=file_path, iostat=rc)
+      INQUIRE (file=file_path_inp, iostat=rc)
       IF (rc /= 0) THEN
-         WRITE (stderr, '("Error: input file ", a, " does not exist")') file_path
+         WRITE (stderr, '("Error: input file ", a, " does not exist")') file_path_inp
          STOP
       ENDIF
 
       ! Open and read Namelist file.
-      OPEN (action='read', file=file_path, iostat=rc, newunit=fu)
+      OPEN (action='read', file=file_path_inp, iostat=rc, newunit=fu)
       IF (rc /= 0) WRITE (stderr, '("Error: Cannot open namelist file")')
 
       READ (nml=inputsGrid, iostat=rc, unit=fu)
       IF (rc /= 0) WRITE (stderr, '("Error: invalid Namelist format")')
 
       CLOSE (fu)
+
+      CALL read_base_namelist(file_path_out)
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 ! dmr
@@ -460,7 +509,7 @@
        CHARACTER(len=NF90_MAX_NAME), DIMENSION(:),   ALLOCATABLE :: dimNAMES
        INTEGER                     , DIMENSION(:),   ALLOCATABLE :: dimLEN
 
-       LOGICAL, DIMENSION(nb_dim_vars) :: dim_exists_file
+       LOGICAL, DIMENSION(nb_dim_varss) :: dim_exists_file
 
        INTEGER :: c, indx_var
 
@@ -497,7 +546,7 @@
        call handle_err(                                                                                &
             nf90_inquire_dimension(ncid, d, dimNAMES(d), dimLEN(d))                                    &
                       , __LINE__)
-       DO n=1, nb_dim_vars
+       DO n=1, nb_dim_varss
           if (TRIM(dimNAMES(d)) == TRIM(output_dim_names(n))) then
              dim_exists_file(n) = .TRUE.
              call handle_err(                                                                          &
@@ -511,7 +560,7 @@
 
        if (.NOT. ALL(dim_exists_file)) then                                                       ! at least one dimension does not exist
 
-       DO n=1, nb_dim_vars
+       DO n=1, nb_dim_varss
 
          if (.NOT.dim_exists_file(n)) then
 
@@ -558,7 +607,7 @@
        ! define the variables iteratively
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-        DO indx_var=1, nb_out_vars
+        DO indx_var=1, nb_out_varss
 
            c = count_words_string(output_dms_names(indx_var))
 
