@@ -257,6 +257,53 @@
 ! **********************************************************************************************************************************
 
 
+! **********************************************************************************************************************************
+      SUBROUTINE read_vars_namelist(file_path)
+! **********************************************************************************************************************************
+
+!!      AUTHOR : dmr-dj
+!!      DESCRIPTION: This subroutine reads the different variable namelist conf. file for the netCDF output of FROG
+!!      REFERENCES: N/A
+!!      CALL : This subroutine is internal to the module (private)
+
+       CHARACTER(LEN=*), INTENT(IN)  :: file_path       ! namelist to be read
+
+       ! Local variables
+       INTEGER                       :: rc,fu
+       CHARACTER(len=str_len)        :: out_var_name, out_unt_name, out_std_name, out_lng_name, out_dms_name
+
+       NAMELIST /VAROUTPUT/ out_var_name, out_unt_name, out_std_name, out_lng_name, out_dms_name
+
+       ! Start of the subroutine
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+! dmr   Read the appropriate namelist
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+      INQUIRE (file=file_path, iostat=rc)
+      IF (rc /= 0) THEN
+         WRITE (stderr, '("Error: input file ", a, " does not exist")') file_path
+         STOP
+      ENDIF
+
+      ! Open and read Namelist file.
+      OPEN (action='read', file=file_path, iostat=rc, newunit=fu)
+      IF (rc /= 0) WRITE (stderr, '("Error: Cannot open namelist file")')
+
+      READ (nml=VAROUTPUT, iostat=rc, unit=fu)
+      IF (rc /= 0) WRITE (stderr, '("Error: invalid Namelist format")')
+
+      CLOSE (fu)
+
+      WRITE(stdout,*) "VALUES for var namelist output: ", out_var_name, out_unt_name
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+! dmr
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+      END SUBROUTINE read_vars_namelist
+! **********************************************************************************************************************************
+
       SUBROUTINE INIT_maskGRID()
 
         use netcdf
@@ -293,6 +340,7 @@
 
         CHARACTER(len=str_len), PARAMETER                         :: file_path_inp ="frog_inputsGrid.nml"
         CHARACTER(len=str_len), PARAMETER                         :: file_path_out ="frog_outputsSetup.nml"
+
         INTEGER                                                   :: rc,fu
         NAMELIST /inputsGrid/ mask_file, typology_file, netCDFout_file
 
