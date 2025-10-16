@@ -1,0 +1,7 @@
+&VAROUTPUT
+  out_var_name = "tempmin_ig"
+  out_unt_name = "K"
+  out_std_name = "min_temperature_in_ground"
+  out_lng_name = "min solid_earth_subsurface_temperature"
+  out_dms_name = "lev lon lat time"
+/

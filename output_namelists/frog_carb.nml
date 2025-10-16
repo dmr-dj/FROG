@@ -1,0 +1,7 @@
+&VAROUTPUT
+  out_var_name = "carb"
+  out_unt_name = "g"
+  out_std_name = "N/A"
+  out_lng_name = "N/A"
+  out_dms_name = "lev lon lat time"
+/

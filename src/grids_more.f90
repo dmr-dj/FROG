@@ -295,7 +295,7 @@
 
       CLOSE (fu)
 
-      WRITE(stdout,*) "VALUES for var namelist output: ", out_var_name, out_unt_name
+      WRITE(stdout,*) "VALUES for var namelist output: ", TRIM(out_var_name)," ", TRIM(out_lng_name)
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 ! dmr
@@ -339,9 +339,9 @@
 ! dmr   For namelist reading ...
 
         CHARACTER(len=str_len), PARAMETER                         :: file_path_inp ="frog_inputsGrid.nml"
-        CHARACTER(len=str_len), PARAMETER                         :: file_path_out ="frog_outputsSetup.nml"
+        CHARACTER(len=str_len), PARAMETER                         :: file_path_out ="output_namelists/frog_outputsSetup.nml"
 
-        INTEGER                                                   :: rc,fu
+        INTEGER                                                   :: rc,fu,n
         NAMELIST /inputsGrid/ mask_file, typology_file, netCDFout_file
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
@@ -373,6 +373,10 @@
       CLOSE (fu)
 
       CALL read_base_namelist(file_path_out)
+      do n=1,nb_out_vars
+        WRITE(*,*) "Vars to be in the output:: ", TRIM(output_var_names(n))
+        CALL read_vars_namelist("output_namelists/frog_"//TRIM(output_var_names(n))//".nml")
+      enddo
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 ! dmr
