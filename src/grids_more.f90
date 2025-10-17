@@ -41,9 +41,10 @@
 ! dmr           Change from 0.5.0: streamlined the netCDF writing for the variables part
 ! dmr           Change from 0.6.0: Added netCDF writing for tmean, tmin, tmax
 ! dmr           Change from 0.6.1: Modified the variables generation through namelist reading
+! dmr           Change from 0.7.0: Cleaned up and bug correction
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-      CHARACTER(LEN=5), PARAMETER, PUBLIC :: version_mod ="0.7.0"
+      CHARACTER(LEN=5), PARAMETER, PUBLIC :: version_mod ="0.7.1"
 
       integer, parameter  :: str_len =256
 
