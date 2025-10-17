@@ -40,9 +40,10 @@
 ! dmr           Change from 0.4.0: added the netCDF writing, expanded variables
 ! dmr           Change from 0.5.0: streamlined the netCDF writing for the variables part
 ! dmr           Change from 0.6.0: Added netCDF writing for tmean, tmin, tmax
+! dmr           Change from 0.6.1: Modified the variables generation through namelist reading
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-      CHARACTER(LEN=5), PARAMETER, PUBLIC :: version_mod ="0.6.1"
+      CHARACTER(LEN=5), PARAMETER, PUBLIC :: version_mod ="0.7.0"
 
       integer, parameter  :: str_len =256
 
@@ -74,7 +75,7 @@
       CHARACTER(LEN=str_len) :: typology_file  ! ="file_typology-r128x64.nc"
       CHARACTER(LEN=str_len) :: netCDFout_file ! ="FROG-output.nc"
 
-
+!dmr --- / Bloc related to namelist reading for variable output generation ...
 
       INTEGER                :: nb_out_vars, nb_dim_vars
       LOGICAL                :: output_aktiv
@@ -86,12 +87,14 @@
       INTEGER :: current_time_record
 
       INTEGER, DIMENSION(:), ALLOCATABLE :: output_var_dimid
+
       !dmr [TODO] These fixed indexes are not compatible with the allocatable philosophy of the rest
       !dmr        Need to create a special type that would hold the different variables names above
       !dmr        as well as these indexes.
       INTEGER, PARAMETER                 :: indx_var_tmean_ig = 1, indx_var_tmin_ig = 2, indx_var_tmax_ig = 3,      &
                                          indx_var_palt=4, indx_var_plt=5, indx_var_carb = 6
 
+!dmr --- ... bloc related to namelist reading for variable output generation /
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 ! ---
@@ -253,7 +256,7 @@
 
       CLOSE (fu)
 
-      WRITE(stdout,*) "VALUES for namelist output: ", output_aktiv, nb_dim_vars, nb_out_vars
+      ! debug WRITE(stdout,*) "VALUES for namelist output: ", output_aktiv, nb_dim_vars, nb_out_vars
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 ! dmr
@@ -308,7 +311,7 @@
       output_lng_names(indx) = out_lng_name
       output_dms_names(indx) = out_dms_name
 
-      WRITE(stdout,*) "VALUES for var namelist output: ", TRIM(out_var_name)," ", TRIM(out_lng_name)
+      ! debug WRITE(stdout,*) "VALUES for var namelist output: ", TRIM(out_var_name)," ", TRIM(out_lng_name)
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 ! dmr
@@ -350,6 +353,7 @@
         REAL                                                      :: mask_undef = 0.0
 
 ! dmr   For namelist reading ...
+! dmr   On the long run, these fixed locations should disappear entirely with a defined path in a namelist
 
         CHARACTER(len=str_len), PARAMETER                         :: file_path_inp ="frog_inputsGrid.nml"
         CHARACTER(len=str_len), PARAMETER                         :: file_path_out ="output_namelists/frog_outputsSetup.nml"
@@ -388,7 +392,7 @@
       CALL read_base_namelist(file_path_out)
 
       do n=1,nb_out_vars
-        WRITE(*,*) "Vars to be in the output:: ", TRIM(output_var_names(n))
+        ! debug WRITE(*,*) "Vars to be in the output:: ", TRIM(output_var_names(n))
         CALL read_vars_namelist("output_namelists/frog_"//TRIM(output_var_names(n))//".nml", n)
       enddo
 
@@ -408,7 +412,7 @@
 
       time_id = unlimdimid
 
-      WRITE(*,*) "info file", nDims, nVars, unlimdimid
+      ! debug WRITE(*,*) "info file", nDims, nVars, unlimdimid
 
       if ( (nDims.EQ.3).AND.(nVars.EQ.4).AND.(unlimdimid.NE.-1) ) then ! valid file: lat,lon,time + 1 spatial dimension
 !~       if ( (nDims.EQ.2).AND.(nVars.EQ.3).AND.(unlimdimid.EQ.-1) ) then ! valid file: lat,lon,time + 1 spatial dimension
@@ -594,7 +598,7 @@
 
        ! Copy the typology file into the new output file
        command_to_copy="cp -f "//TRIM(typology_file)//" "//TRIM(netCDFout_file)
-       WRITE(*,*) "COMMAND // ", TRIM(command_to_copy)
+       ! debug WRITE(*,*) "COMMAND // ", TRIM(command_to_copy)
        call execute_command_line(TRIM(command_to_copy))
 
        ! Now need to check and define the dimension if needed (levels for sure)

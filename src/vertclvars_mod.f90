@@ -83,9 +83,10 @@
         TYPE(cell_time)           , INTENT(inout)           :: compteur_time_step
 !~         LOGICAL                   , INTENT(inout), OPTIONAL :: end_year
 
-        REAL   ,DIMENSION(1:z_num), INTENT(inout),OPTIONAL  :: deepSOM_a, deepSOM_s, deepSOM_p
+        REAL   ,DIMENSION(1:z_num), INTENT(inout), OPTIONAL :: deepSOM_a, deepSOM_s, deepSOM_p
         REAL   ,DIMENSION(1:z_num), INTENT(inout), OPTIONAL :: deepSOM
-        REAL, DIMENSION(ncarb,ncarb), intent(inout),OPTIONAL:: fc !! flux fractions within carbon pools
+        REAL   ,DIMENSION(:,:)    , INTENT(inout), OPTIONAL :: fc !! flux fractions within carbon pools
+                                                                  !! actual shape will be (ncarb,ncarb)
 
         REAL, OPTIONAL,                   INTENT(in)        ::  b4_lok !b3_lok,
         REAL, OPTIONAL,                   INTENT(in)        ::  Fv_lok 

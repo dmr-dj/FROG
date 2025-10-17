@@ -144,6 +144,9 @@
        allocate(orgalayer_indx(1:gridNoMax))
 
        allocate(ALT_SV(1:gridNoMax))
+       allocate(altmax_ly_SV(1:gridNoMax))
+
+       allocate(compteur_tstep_SV(1:gridNoMax))
 
 #if ( CARBON == 1 )
                         !nb and mbv Carbon cycle
@@ -154,8 +157,6 @@
 !~        allocate(temp_oncepositive(1:z_num,1:gridNoMax))
        allocate(fc_SV(1:ncarb,1:ncarb,1:gridNoMax))
 !~        allocate(clay_SV(1:gridNoMax))
-       allocate(altmax_ly_SV(1:gridNoMax))
-       allocate(compteur_tstep_SV(1:gridNoMax))
        allocate(end_year_SV(1:gridNoMax))
        !allocate(b3_SV(1:gridNoMax))
        allocate(b4_SV(1:gridNoMax))
@@ -658,7 +659,9 @@
 !$omp end do
 !$omp end parallel
 
+#if ( CARBON > 0 )
           write(*,*) 'deepSOM_tot_yr', deepSOM_tot_yr
+#endif
 
        ! WRITE OUTPUT
 
