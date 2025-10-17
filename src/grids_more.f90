@@ -81,20 +81,22 @@
       !dmr [NOTA] Following will be deprecated
       INTEGER, PARAMETER     :: nb_out_varss = 6, nb_dim_varss = 3
 
-      CHARACTER(LEN=str_len), DIMENSION(nb_dim_varss), PARAMETER:: output_dim_names=[CHARACTER(len=str_len) :: "lat", "lon", "lev"]
-      CHARACTER(LEN=str_len), DIMENSION(nb_out_varss), PARAMETER::                                                   &
-                              output_var_names=[CHARACTER(len=str_len) :: "tempmean_ig", "tempmin_ig", "tempmax_ig" &
-                                                                        , "palt", "plt", "carb"],                   &
-                              output_unt_names=[CHARACTER(len=str_len) :: "K", "K", "K", "m", "m","g"],             &
-                              output_std_names=[CHARACTER(len=str_len) :: "mean_temperature_in_ground",             &
-                                 "min_temperature_in_ground", "max_temperature_in_ground",                          &
-                                 "permafrost_active_layer_thickness", "permafrost_layer_thickness","???"],          &
-                              output_lng_names=[CHARACTER(len=str_len) ::                                           &
-                                 "mean solid_earth_subsurface_temperature", "min solid_earth_subsurface_temperature"&
-                                ,"max solid_earth_subsurface_temperature", "","", ""],                              &
-                              output_dms_names=[CHARACTER(len=str_len) :: "lev lon lat time", "lev lon lat time",   &
-                                 "lev lon lat time", "lon lat time", "lon lat time", "lev lon lat time"]
+!      CHARACTER(LEN=str_len), DIMENSION(nb_dim_varss), PARAMETER:: output_dim_names=[CHARACTER(len=str_len) :: "lat", "lon", "lev"]
+!      CHARACTER(LEN=str_len), DIMENSION(nb_out_varss), PARAMETER::                                                   &
+!                              output_var_names=[CHARACTER(len=str_len) :: "tempmean_ig", "tempmin_ig", "tempmax_ig" &
+!                                                                        , "palt", "plt", "carb"],                   &
+!                              output_unt_names=[CHARACTER(len=str_len) :: "K", "K", "K", "m", "m","g"],             &
+!                              output_std_names=[CHARACTER(len=str_len) :: "mean_temperature_in_ground",             &
+!                                 "min_temperature_in_ground", "max_temperature_in_ground",                          &
+!                                 "permafrost_active_layer_thickness", "permafrost_layer_thickness","???"],          &
+!                              output_lng_names=[CHARACTER(len=str_len) ::                                           &
+!                                 "mean solid_earth_subsurface_temperature", "min solid_earth_subsurface_temperature"&
+!                                ,"max solid_earth_subsurface_temperature", "","", ""],                              &
+!                              output_dms_names=[CHARACTER(len=str_len) :: "lev lon lat time", "lev lon lat time",   &
+!                                 "lev lon lat time", "lon lat time", "lon lat time", "lev lon lat time"]
 
+      CHARACTER(LEN=str_len), DIMENSION(:), ALLOCATABLE:: output_dim_names, output_var_names, output_unt_names      &
+                            , output_std_names, output_lng_names, output_dms_names
 
       INTEGER, DIMENSION(0:nb_dim_varss) :: output_dim_len, output_dim_dimid
       INTEGER :: current_time_record
@@ -225,6 +227,7 @@
        ! Local variables
        INTEGER                       :: rc,fu
        NAMELIST /outputDimSetup_1/ output_aktiv, nb_dim_vars, nb_out_vars
+       NAMELIST /outputDimSetup_2/ output_dim_names, output_var_names
 
        ! Start of the subroutine
 
@@ -245,6 +248,22 @@
       READ (nml=outputDimSetup_1, iostat=rc, unit=fu)
       IF (rc /= 0) WRITE (stderr, '("Error: invalid Namelist format")')
 
+      if ( output_aktiv ) then
+
+  !dmr Here allocate first arrays and fill them up
+  !dmr I assume that if output is active, there is at least one output variable, hence allocation possible
+        ALLOCATE(output_dim_names(nb_dim_vars))
+        ALLOCATE(output_var_names(nb_out_vars))
+        ALLOCATE(output_unt_names(nb_out_vars))
+        ALLOCATE(output_std_names(nb_out_vars))
+        ALLOCATE(output_lng_names(nb_out_vars))
+        ALLOCATE(output_dms_names(nb_out_vars))
+
+        READ (nml=outputDimSetup_2, iostat=rc, unit=fu)
+        IF (rc /= 0) WRITE (stderr, '("Error: invalid Namelist format")')
+      
+      endif
+
       CLOSE (fu)
 
       WRITE(stdout,*) "VALUES for namelist output: ", output_aktiv, nb_dim_vars, nb_out_vars
@@ -258,7 +277,7 @@
 
 
 ! **********************************************************************************************************************************
-      SUBROUTINE read_vars_namelist(file_path)
+      SUBROUTINE read_vars_namelist(file_path, indx)
 ! **********************************************************************************************************************************
 
 !!      AUTHOR : dmr-dj
@@ -267,6 +286,7 @@
 !!      CALL : This subroutine is internal to the module (private)
 
        CHARACTER(LEN=*), INTENT(IN)  :: file_path       ! namelist to be read
+       INTEGER,          INTENT(IN)  :: indx            ! index in the list of variables [WILL BE DEPRECATED]
 
        ! Local variables
        INTEGER                       :: rc,fu
@@ -294,6 +314,12 @@
       IF (rc /= 0) WRITE (stderr, '("Error: invalid Namelist format")')
 
       CLOSE (fu)
+
+      output_var_names(indx) = out_var_name
+      output_unt_names(indx) = out_unt_name
+      output_std_names(indx) = out_std_name
+      output_lng_names(indx) = out_lng_name
+      output_dms_names(indx) = out_dms_name
 
       WRITE(stdout,*) "VALUES for var namelist output: ", TRIM(out_var_name)," ", TRIM(out_lng_name)
 
@@ -373,10 +399,14 @@
       CLOSE (fu)
 
       CALL read_base_namelist(file_path_out)
+
       do n=1,nb_out_vars
         WRITE(*,*) "Vars to be in the output:: ", TRIM(output_var_names(n))
-        CALL read_vars_namelist("output_namelists/frog_"//TRIM(output_var_names(n))//".nml")
+        CALL read_vars_namelist("output_namelists/frog_"//TRIM(output_var_names(n))//".nml", n)
       enddo
+
+
+
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 ! dmr
