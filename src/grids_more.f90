@@ -79,16 +79,16 @@
       INTEGER                :: nb_out_vars, nb_dim_vars
       LOGICAL                :: output_aktiv
 
-      !dmr [NOTA] Following will be deprecated
-      INTEGER, PARAMETER     :: nb_out_varss = 6, nb_dim_varss = 3
-
       CHARACTER(LEN=str_len), DIMENSION(:), ALLOCATABLE:: output_dim_names, output_var_names, output_unt_names      &
                             , output_std_names, output_lng_names, output_dms_names
 
-      INTEGER, DIMENSION(0:nb_dim_varss) :: output_dim_len, output_dim_dimid
+      INTEGER, DIMENSION(:), ALLOCATABLE :: output_dim_len, output_dim_dimid
       INTEGER :: current_time_record
 
       INTEGER, DIMENSION(:), ALLOCATABLE :: output_var_dimid
+      !dmr [TODO] These fixed indexes are not compatible with the allocatable philosophy of the rest
+      !dmr        Need to create a special type that would hold the different variables names above
+      !dmr        as well as these indexes.
       INTEGER, PARAMETER                 :: indx_var_tmean_ig = 1, indx_var_tmin_ig = 2, indx_var_tmax_ig = 3,      &
                                          indx_var_palt=4, indx_var_plt=5, indx_var_carb = 6
 
@@ -578,9 +578,15 @@
        CHARACTER(len=NF90_MAX_NAME), DIMENSION(:),   ALLOCATABLE :: dimNAMES
        INTEGER                     , DIMENSION(:),   ALLOCATABLE :: dimLEN
 
-       LOGICAL, DIMENSION(nb_dim_varss) :: dim_exists_file
+       LOGICAL, DIMENSION(:), ALLOCATABLE :: dim_exists_file
 
        INTEGER :: c, indx_var
+
+
+       !dmr ALLOCATE the required arrays
+       ALLOCATE(output_dim_len(0:nb_dim_vars))
+       ALLOCATE(output_dim_dimid(0:nb_dim_vars))
+       ALLOCATE(dim_exists_file(nb_dim_vars))
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       MAIN BODY OF THE ROUTINE
@@ -615,7 +621,7 @@
        call handle_err(                                                                                &
             nf90_inquire_dimension(ncid, d, dimNAMES(d), dimLEN(d))                                    &
                       , __LINE__)
-       DO n=1, nb_dim_varss
+       DO n=1, nb_dim_vars
           if (TRIM(dimNAMES(d)) == TRIM(output_dim_names(n))) then
              dim_exists_file(n) = .TRUE.
              call handle_err(                                                                          &
@@ -629,7 +635,7 @@
 
        if (.NOT. ALL(dim_exists_file)) then                                                       ! at least one dimension does not exist
 
-       DO n=1, nb_dim_varss
+       DO n=1, nb_dim_vars
 
          if (.NOT.dim_exists_file(n)) then
 
