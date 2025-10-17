@@ -78,22 +78,9 @@
 
       INTEGER                :: nb_out_vars, nb_dim_vars
       LOGICAL                :: output_aktiv
+
       !dmr [NOTA] Following will be deprecated
       INTEGER, PARAMETER     :: nb_out_varss = 6, nb_dim_varss = 3
-
-!      CHARACTER(LEN=str_len), DIMENSION(nb_dim_varss), PARAMETER:: output_dim_names=[CHARACTER(len=str_len) :: "lat", "lon", "lev"]
-!      CHARACTER(LEN=str_len), DIMENSION(nb_out_varss), PARAMETER::                                                   &
-!                              output_var_names=[CHARACTER(len=str_len) :: "tempmean_ig", "tempmin_ig", "tempmax_ig" &
-!                                                                        , "palt", "plt", "carb"],                   &
-!                              output_unt_names=[CHARACTER(len=str_len) :: "K", "K", "K", "m", "m","g"],             &
-!                              output_std_names=[CHARACTER(len=str_len) :: "mean_temperature_in_ground",             &
-!                                 "min_temperature_in_ground", "max_temperature_in_ground",                          &
-!                                 "permafrost_active_layer_thickness", "permafrost_layer_thickness","???"],          &
-!                              output_lng_names=[CHARACTER(len=str_len) ::                                           &
-!                                 "mean solid_earth_subsurface_temperature", "min solid_earth_subsurface_temperature"&
-!                                ,"max solid_earth_subsurface_temperature", "","", ""],                              &
-!                              output_dms_names=[CHARACTER(len=str_len) :: "lev lon lat time", "lev lon lat time",   &
-!                                 "lev lon lat time", "lon lat time", "lon lat time", "lev lon lat time"]
 
       CHARACTER(LEN=str_len), DIMENSION(:), ALLOCATABLE:: output_dim_names, output_var_names, output_unt_names      &
                             , output_std_names, output_lng_names, output_dms_names
@@ -101,8 +88,8 @@
       INTEGER, DIMENSION(0:nb_dim_varss) :: output_dim_len, output_dim_dimid
       INTEGER :: current_time_record
 
-      INTEGER, DIMENSION(nb_out_varss):: output_var_dimid
-      INTEGER, PARAMETER              :: indx_var_tmean_ig = 1, indx_var_tmin_ig = 2, indx_var_tmax_ig = 3,         &
+      INTEGER, DIMENSION(:), ALLOCATABLE :: output_var_dimid
+      INTEGER, PARAMETER                 :: indx_var_tmean_ig = 1, indx_var_tmin_ig = 2, indx_var_tmax_ig = 3,      &
                                          indx_var_palt=4, indx_var_plt=5, indx_var_carb = 6
 
 
@@ -688,8 +675,9 @@
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
        ! define the variables iteratively
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+        ALLOCATE(output_var_dimid(nb_out_vars))
 
-        DO indx_var=1, nb_out_varss
+        DO indx_var=1, nb_out_vars
 
            c = count_words_string(output_dms_names(indx_var))
 
