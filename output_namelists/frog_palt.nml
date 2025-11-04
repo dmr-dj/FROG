@@ -3,5 +3,5 @@
   out_unt_name = "m"
   out_std_name = "permafrost_active_layer_thickness"
   out_lng_name = "N/A"
-  out_dms_name = "lev lon lat time"
+  out_dms_name = "lon lat time"
 /
