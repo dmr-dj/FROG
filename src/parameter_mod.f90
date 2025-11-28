@@ -142,7 +142,7 @@ MODULE parameter_mod
 
 #if ( CARBON == 1 )
         ! SOME CARBON CONSTANTS AND 1-D VARIABLES
-    real, parameter :: one_day=24*60*60
+    real, parameter :: one_day=24*60*60 !1 jour en secondes
     real, parameter :: max_cryoturb_alt= 3 !m
     real, parameter :: min_cryoturb_alt=0.01 !1cm
     real, parameter :: cryoturbation_diff_k_in = .001 ! input time constant of bioturbation (m^2/y)
@@ -150,7 +150,9 @@ MODULE parameter_mod
     real            :: diff_k_const, bio_diff_k_const
     real, parameter :: bioturbation_depth=2 !m
 
-    real, dimension(:), allocatable :: zf_soil  !! will be (0:z_num)
+    real, dimension(:), allocatable :: zf_soil  !! will be (0:z_num) lower depth
+    real, dimension(:), allocatable :: zi_soil  !! will be (1:z_num) mid layer depth
+    REAL, parameter :: min_stomate = 1.E-8    !! Epsilon to detect a near zero floating point (unitless)
 !~     real            :: ALT
 !~     real            :: altmax_lastyear
 #endif
@@ -265,6 +267,9 @@ CONTAINS
     do kk = 2, z_num
         D(kk)=D(kk-1) + dz(kk)
     end do
+
+    !write(*,*) 'D', D(:)
+    !write(*,*) 'dz', dz(:)
 
   end subroutine z_disc
 

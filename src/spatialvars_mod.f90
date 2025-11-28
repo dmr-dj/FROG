@@ -61,8 +61,10 @@
                                                   , deepSOM_s & !dmr [TBD]
                                                   , deepSOM_p & !dmr [TBD]
                                                   , deepSOM
-     real,dimension(:,:,:),  allocatable         :: fc_SV       !dmr [TBD]
-
+     real,dimension(:,:)  ,  allocatable         :: deepSOM_out
+     real,dimension(:,:,:),  allocatable         :: fc_SV      
+     real,dimension(:,:),  allocatable         :: alpha_a_SV, alpha_s_SV, alpha_p_SV, beta_a_SV, beta_s_SV, beta_p_SV 
+     real,dimension(:),  allocatable         :: mu_soil_rev_SV
      ! Timer variable carbon only
      logical, dimension(:), allocatable          :: end_year_SV          !=0 if not end of year, =1 if end of year
      real, dimension(:)   , allocatable          :: b4_SV !b3_SV, 
@@ -92,7 +94,9 @@
 
 
      PUBLIC:: spatialvars_allocate, spatialvars_init, UPDATE_climate_forcing, DO_spatialvars_step, SET_coupled_climate_forcing
-
+#if ( CARBON > 0 ) 
+     PUBLIC :: spatialvars_init_carbon
+#endif
      CONTAINS
 
 
@@ -154,9 +158,12 @@
        allocate(deepSOM_s(1:z_num,1:gridNoMax))
        allocate(deepSOM_p(1:z_num,1:gridNoMax))
        allocate(deepSOM(1:z_num,1:gridNoMax))
+       allocate(deepSOM_out(1:z_num,1:gridNoMax))
 !~        allocate(temp_oncepositive(1:z_num,1:gridNoMax))
        allocate(fc_SV(1:ncarb,1:ncarb,1:gridNoMax))
 !~        allocate(clay_SV(1:gridNoMax))
+!       allocate(altmax_ly_SV(1:gridNoMax))
+!       allocate(compteur_tstep_SV(1:gridNoMax))
        allocate(end_year_SV(1:gridNoMax))
        !allocate(b3_SV(1:gridNoMax))
        allocate(b4_SV(1:gridNoMax))
@@ -164,6 +171,13 @@
        allocate(fracgr_SV(1:gridNoMax))
        allocate(darea_SV(1:gridNoMax))
        allocate(deepSOM_tot(1:gridNoMax))
+       allocate(alpha_a_SV(1:z_num,1:gridNoMax))
+       allocate(alpha_s_SV(1:z_num,1:gridNoMax))
+       allocate(alpha_p_SV(1:z_num,1:gridNoMax))
+       allocate(mu_soil_rev_SV(1:gridNoMax))
+       allocate(beta_a_SV(1:z_num,1:gridNoMax))
+       allocate(beta_s_SV(1:z_num,1:gridNoMax))
+       allocate(beta_p_SV(1:z_num,1:gridNoMax))
 
 #endif
 
@@ -209,9 +223,9 @@
 
        use timer_mod,      only: init_time_cell
 
-#if ( CARBON == 1 )
-       use carbon        , only: carbon_init
-#endif
+!#if ( CARBON == 1 )
+!       use carbon        , only: carbon_init
+!#endif
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       BY REFERENCE VARIABLES
@@ -223,6 +237,7 @@
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
        integer :: gridp
        logical :: logic_month_day
+!       real    :: deepSOM_tot_init
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       MAIN BODY OF THE ROUTINE
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
@@ -259,22 +274,28 @@
         Tinit_SV(:) = SUM(forcing_surface_temp(:,:),DIM=2)/UBOUND(forcing_surface_temp,DIM=2)
 #endif
 
+!        deepSOM_tot_init=0.0
+
             !dmr Initialization of all columns, one by one
         do gridp = 1, gridNoMax
           call vertclvars_init(GeoHFlux(gridp), Tinit_SV(gridp), Kp(:,gridp),Cp(:,gridp), orgalayer_indx(gridp), n(:,gridp) &
                              , Temp(:,gridp), T_bottom_SV(gridp))
 
-#if ( CARBON == 1 )
-            !dmr Initialization of all columns, one by one
-          ! Here we call initialisation with b4 to ahve correct first amount of carbon from vecode
-          call carbon_init(deepSOM_a(:,gridp), deepSOM_s(:,gridp), deepSOM_p(:,gridp), fc_SV(:,:,gridp),ALT_SV(gridp)       &
-                          , b4_SV(gridp), Temp(:,gridp)) !b3_SV(gridp), 
-#endif
+!#if ( CARBON == 1 )
+ !         ! Here we call initialisation with b4 to have correct first amount of carbon from vecode
+ !         write(*,*) 'b4 in spatialvar', b4_SV(gridp)
+ !         call carbon_init(deepSOM_a(:,gridp), deepSOM_s(:,gridp), deepSOM_p(:,gridp), fc_SV(:,:,gridp), ALT_SV(gridp)      &
+ !                         , b4_SV(gridp), Temp(:,gridp), deepSOM(:,gridp), deepSOM_tot(gridp)                               &
+ !                         , fracgr_SV(gridp), darea_SV(gridp)) !b3_SV(gridp), 
+ !         deepSOM_tot_init=deepSOM_tot_init+deepSOM_tot(gridp)
+!#endif
 
           compteur_tstep_SV(gridp) = init_time_cell(0,.FALSE.,.FALSE.,logic_month_day)
 
 
         enddo
+
+!        write(*,*) 'deepSOM_tot_init', deepSOM_tot_init
 
 #if ( SNOW_EFFECT == 1 )
         Temp_snow(:,:) = 0.0 !dmr simplest possible init without data ... To be fixed!
@@ -285,6 +306,37 @@
 
 
      END SUBROUTINE spatialvars_init
+
+!-------------------------------------
+#if ( CARBON == 1 )
+     SUBROUTINE spatialvars_init_carbon ! VERTCL, SPAT_VAR
+
+       use parameter_mod,  only: gridNoMax, z_num ! , timFNoMax
+       use carbon        , only: carbon_init
+       integer :: gridp
+       real    :: deepSOM_tot_init
+
+        deepSOM_tot_init=0.0
+
+        do gridp = 1, gridNoMax
+          ! Here we call initialisation with b4 to have correct first amount of carbon from vecode
+          !write(*,*) 'b4 in spatialvar', b4_SV(gridp)
+          call carbon_init(deepSOM_a(:,gridp), deepSOM_s(:,gridp), deepSOM_p(:,gridp), fc_SV(:,:,gridp), ALT_SV(gridp)      &
+                          , b4_SV(gridp), Temp(:,gridp), deepSOM(:,gridp), deepSOM_tot(gridp)                               &
+                          , fracgr_SV(gridp), darea_SV(gridp)                                                               &
+                          , alpha_a_SV(:,gridp), alpha_s_SV(:,gridp), alpha_p_SV(:,gridp)                                   &
+                          , mu_soil_rev_SV(gridp), beta_a_SV(:,gridp), beta_s_SV(:,gridp), beta_p_SV(:,gridp))
+
+           deepSOM_tot_init=deepSOM_tot_init+deepSOM_tot(gridp)
+        enddo
+
+        write(*,*) 'deepSOM_tot_init', deepSOM_tot_init
+
+     END SUBROUTINE spatialvars_init_carbon
+#endif
+!-------------------------------------
+
+
 
      SUBROUTINE fix_Kelvin_or_Celsius(Temp_field)
 
@@ -613,8 +665,8 @@
 !       MAIN BODY OF THE ROUTINE
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-#if ( CARBON > 0 )
-       deepSOM_tot_yr=0.0
+#if ( CARBON > 0 ) 
+     deepSOM_tot_yr=0.0
 #endif
        temp_mean_SV(:,:) = 0.0     
        temp_mmin_SV(:,:) = 0.0     
@@ -637,8 +689,11 @@
             ! CARBON ONLY VARIABLES
                                , deepSOM_a = deepSOM_a(:,gridp),deepSOM_s = deepSOM_s(:,gridp), deepSOM_p = deepSOM_p(:,gridp)&
                                , deepSOM = deepSOM(:,gridp), fc = fc_SV(:,:,gridp),  b4_lok=b4_SV(gridp)                      & 
-                               , Fv_lok=Fv_SV(gridp), fracgr_lok=fracgr_SV(gridp), darea_lok=darea_SV(gridp)                  &
-                               , deepSOM_tot = deepSOM_tot(gridp)                                                             &                       !,b3_lok=b3_SV(gridp),
+                               , Fv_lok=Fv_SV(gridp), fracgr_lok=fracgr_SV(gridp), darea_lok=darea_SV(gridp)                  &     
+                               , alpha_a_lok=alpha_a_SV(:,gridp), alpha_s_lok=alpha_s_SV(:,gridp)                             & 
+                               , alpha_p_lok=alpha_p_SV(:,gridp), mu_soil_rev_lok=mu_soil_rev_SV(gridp)                     &
+                               , beta_a_lok=beta_a_SV(:,gridp), beta_s_lok=beta_s_SV(:,gridp), beta_p_lok=beta_p_SV(:,gridp)   &
+                               , deepSOM_tot = deepSOM_tot(gridp)                                                             &
 #endif
 #if ( SNOW_EFFECT == 1 )
             ! SNOW ONLY VARIABLES
@@ -660,6 +715,7 @@
 !$omp end parallel
 
 #if ( CARBON > 0 )
+          deepSOM_tot_yr=deepSOM_tot_yr+deepSOM_tot(gridp)
           write(*,*) 'deepSOM_tot_yr', deepSOM_tot_yr
 #endif
 
@@ -671,7 +727,8 @@
        CALL WRITE_netCDF_output(ALT_SV, indx_var_palt)
        CALL WRITE_netCDF_output(freeze_depth_SV(1,:)-freeze_depth_SV(2,:), indx_var_plt)
 #if ( CARBON == 1 )
-       CALL WRITE_netCDF_output(deepSOM, indx_var_carb)
+       deepSOM_out(:,:)=deepSOM(:,:)
+       !CALL WRITE_netCDF_output(deepSOM, indx_var_carb)
 #endif
      END SUBROUTINE DO_spatialvars_step
 

@@ -30,16 +30,19 @@
 
 
 
-     SUBROUTINE DO_vertclvars_step(nb_steps_toDO, Kp, T_bottom, Temp, T_air, n, Per_depth,                         &
+     SUBROUTINE DO_vertclvars_step(nb_steps_toDO, Kp, T_bottom, Temp, T_air, n, Per_depth,                                       &
                                                                       ! Temp is the one column temperature of soil
                                                                       ! T_air is the surface soil temperature forcing for the timesteps
                                                                       ! T_air should be T_air(nb_steps_toDO) exactly
                                                                       ! n is porosity in the vertical
                                                                       ! Per_depth is the diagnosed "permafrost" or freezing depth (in meters)
-                                   ALT, altmax_lastyear, compteur_time_step, deepSOM_a, deepSOM_s, deepSOM_p, deepSOM_tot &
-                                   , deepSOM, fc,  b4_lok, Fv_lok, fracgr_lok, darea_lok, snowlayer_thick_forcing, Temp_snow_col&
-                                   , snowlayer_depth, snowlayer_nb                                                              &
-                                   , Tmean_col, Tmmin_col, Tmmax_col) !b3_lok,
+                                   ALT, altmax_lastyear, compteur_time_step, deepSOM_a, deepSOM_s, deepSOM_p                     &
+                                   , deepSOM, fc,  b4_lok, Fv_lok, fracgr_lok, darea_lok                                         &
+                                   , alpha_a_lok, alpha_s_lok, alpha_p_lok, mu_soil_rev_lok, beta_a_lok, beta_s_lok, beta_p_lok  &
+                                   , deepSOM_tot                                                                                 &
+                                   , snowlayer_thick_forcing, Temp_snow_col                                                      &
+                                   , snowlayer_depth, snowlayer_nb                                                               &
+                                   , Tmean_col, Tmmin_col, Tmmax_col)
 
 
 
@@ -83,17 +86,24 @@
         TYPE(cell_time)           , INTENT(inout)           :: compteur_time_step
 !~         LOGICAL                   , INTENT(inout), OPTIONAL :: end_year
 
-        REAL   ,DIMENSION(1:z_num), INTENT(inout), OPTIONAL :: deepSOM_a, deepSOM_s, deepSOM_p
+#if ( CARBON == 1 )
+        REAL   ,DIMENSION(1:z_num), INTENT(inout),OPTIONAL  :: deepSOM_a, deepSOM_s, deepSOM_p
         REAL   ,DIMENSION(1:z_num), INTENT(inout), OPTIONAL :: deepSOM
-        REAL   ,DIMENSION(:,:)    , INTENT(inout), OPTIONAL :: fc !! flux fractions within carbon pools
-                                                                  !! actual shape will be (ncarb,ncarb)
+        REAL, DIMENSION(ncarb,ncarb), intent(inout),OPTIONAL:: fc !! flux fractions within carbon pools
 
         REAL, OPTIONAL,                   INTENT(in)        ::  b4_lok !b3_lok,
         REAL, OPTIONAL,                   INTENT(in)        ::  Fv_lok 
         REAL, OPTIONAL,                   INTENT(in)        ::  fracgr_lok 
         REAL, OPTIONAL,                   INTENT(in)        ::  darea_lok 
-        REAL, OPTIONAL,                   INTENT(inout)     ::  deepSOM_tot 
-
+        REAL, DIMENSION(1:z_num), OPTIONAL,            INTENT(inout)        ::  alpha_a_lok 
+        REAL, DIMENSION(1:z_num), OPTIONAL,            INTENT(inout)        ::  alpha_s_lok 
+        REAL, DIMENSION(1:z_num), OPTIONAL,            INTENT(inout)        ::  alpha_p_lok 
+        REAL, DIMENSION(1:z_num), OPTIONAL,            INTENT(inout)        ::  beta_a_lok 
+        REAL, DIMENSION(1:z_num), OPTIONAL,            INTENT(inout)        ::  beta_s_lok 
+        REAL, DIMENSION(1:z_num), OPTIONAL,            INTENT(inout)        ::  beta_p_lok 
+        REAL,                     OPTIONAL,            INTENT(inout)        ::  mu_soil_rev_lok 
+        REAL, OPTIONAL,            INTENT(inout)     ::  deepSOM_tot 
+#endif
 
           ! SNOW VARIABLES
         REAL, DIMENSION(1:nb_steps_toDO), OPTIONAL, INTENT(in)        :: snowlayer_thick_forcing !! a time series of the snowlayer thickness [m]
@@ -236,9 +246,11 @@
        ! at the end of each year computes the actve layer thickness, needed for redistribution
 !~          call compute_alt(Temp, Temp_positive, ALT, compteur_time_step, end_year, altmax_lastyear, D)
        !write(*,*) 'ALT', ALT
-       call carbon_main (Temp, ALT, deepSOM_a, deepSOM_s, deepSOM_p, dt, max_cryoturb_alt,            &
+       call carbon_main (Temp, ALT, deepSOM_a, deepSOM_s, deepSOM_p, max_cryoturb_alt,            &
                           min_cryoturb_alt, diff_k_const, bio_diff_k_const, bioturbation_depth,       &
-                          deepSOM, fc, Fv_lok, fracgr_lok, darea_lok, deepSOM_tot) !b3_lok, b4_lok
+                          deepSOM, fc, Fv_lok, fracgr_lok, darea_lok, deepSOM_tot,                    &
+                          alpha_a_lok, alpha_s_lok, alpha_p_lok,                                      &
+                          mu_soil_rev_lok, beta_a_lok, beta_s_lok, beta_p_lok)
 #endif
 
          if (end_year) then

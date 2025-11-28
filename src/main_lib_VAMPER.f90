@@ -26,6 +26,9 @@
       PRIVATE
 
       PUBLIC :: INITIALIZE_VAMP, STEPFWD_VAMP, GET_COUPLING_STEP
+#if ( CARBON > 0 )
+      PUBLIC :: INITIALIZE_CARBON_STOCK
+#endif
 
       INTEGER :: nb_coupling_steps
 
@@ -138,6 +141,68 @@
         is_a_success = .TRUE.
 
      end function INITIALIZE_VAMP
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!--------------------------
+  function INITIALIZE_CARBON_STOCK(coupled_fields) result(is_a_success)
+
+#if (OFFLINE_RUN == 1)
+       USE spatialvars_mod, ONLY: UPDATE_climate_forcing
+#else
+       USE spatialvars_mod, ONLY: SET_coupled_climate_forcing
+       USE grids_more, ONLY: flatten_it_3D, flatten_it
+#endif
+       use spatialvars_mod, only: spatialvars_init_carbon
+
+
+    logical :: is_a_success
+    REAL, DIMENSION(:,:), ALLOCATABLE :: temperature_forcing_nextsteps, snowthickness_forcing_nextsteps
+
+#if ( OFFLINE_RUN == 0 )
+       type(cpl_fields), intent(in), optional :: coupled_fields
+#else
+       logical         , intent(in), optional :: coupled_fields ! dummy unused
+#endif
+
+#if (OFFLINE_RUN == 1)
+        ! UPDATE_CLIMATE_FORCING
+    CALL UPDATE_climate_forcing(nb_coupling_steps,temperature_forcing_nextsteps                                                 &
+#if ( SNOW_EFFECT == 1 )
+                                  , snowthickness_forcing_nextsteps                                                             &
+#endif
+                                   )
+#else
+        ! FORCING is coming from the coupled component
+        if (PRESENT(coupled_fields)) then
+
+    CALL SET_coupled_climate_forcing(nb_coupling_steps, temperature_forcing_nextsteps,                                          &
+                   coupled_temp_set = flatten_it_3D(coupled_fields%TempForc,UBOUND(coupled_fields%TempForc,dim=3))              &
+#if ( CARBON == 1 )
+                 , b4_content = flatten_it(TRANSPOSE(coupled_fields%B4_vegForc(:,:)))                                           &
+                 , Fv_content = flatten_it(TRANSPOSE(coupled_fields%Fv_vegForc(:,:)))                                           &
+                 , fracgr_content = flatten_it(TRANSPOSE(coupled_fields%fracgr_vegForc(:,:)))                                   &
+                 , darea_content = flatten_it(TRANSPOSE(coupled_fields%darea_vegForc(:,:)))                                     &
+#endif
+#if ( SNOW_EFFECT == 1 )
+                 , snowthick_forc_nxt = snowthickness_forcing_nextsteps                                                         &
+                 , coupled_dsnow_set  = flatten_it_3D(coupled_fields%dsnow_thick,UBOUND(coupled_fields%dsnow_thick,dim=3))      &
+#endif
+                                          )
+
+!dmr [TODO] UPDATED NEED FOR THE COUPLED CASE RE. SNOW THICKNESS !!!
+
+        else
+          WRITE(*,*) "[ABORT] :: we are in coupled setup, need a forcing input fields"
+        endif
+
+#endif
+        call spatialvars_init_carbon
+
+        is_a_success = .TRUE.
+
+
+  end function INITIALIZE_CARBON_STOCK
+!--------------------------
 
      function STEPFWD_VAMP(coupled_fields) result(is_a_success)
 
