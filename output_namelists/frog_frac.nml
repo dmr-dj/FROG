@@ -1,0 +1,7 @@
+&VAROUTPUT
+  out_var_name = "frac"
+  out_unt_name = "fraction"
+  out_std_name = "N/A"
+  out_lng_name = "N/A"
+  out_dms_name = "lon lat time"
+/

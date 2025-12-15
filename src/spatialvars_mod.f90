@@ -61,7 +61,7 @@
                                                   , deepSOM_s & !dmr [TBD]
                                                   , deepSOM_p & !dmr [TBD]
                                                   , deepSOM
-     real,dimension(:,:)  ,  allocatable         :: deepSOM_out
+!     real,dimension(:,:)  ,  allocatable         :: deepSOM_out
      real,dimension(:,:,:),  allocatable         :: fc_SV      
      real,dimension(:,:),  allocatable         :: alpha_a_SV, alpha_s_SV, alpha_p_SV, beta_a_SV, beta_s_SV, beta_p_SV 
      real,dimension(:),  allocatable         :: mu_soil_rev_SV
@@ -158,7 +158,7 @@
        allocate(deepSOM_s(1:z_num,1:gridNoMax))
        allocate(deepSOM_p(1:z_num,1:gridNoMax))
        allocate(deepSOM(1:z_num,1:gridNoMax))
-       allocate(deepSOM_out(1:z_num,1:gridNoMax))
+!       allocate(deepSOM_out(1:z_num,1:gridNoMax))
 !~        allocate(temp_oncepositive(1:z_num,1:gridNoMax))
        allocate(fc_SV(1:ncarb,1:ncarb,1:gridNoMax))
 !~        allocate(clay_SV(1:gridNoMax))
@@ -645,7 +645,7 @@
                                   indx_var_palt, indx_var_plt 
 
 #if (CARBON == 1 )
-        use grids_more,     only: indx_var_carb
+        use grids_more,     only: indx_var_carb, indx_var_frac
 #endif
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
@@ -669,8 +669,8 @@
      deepSOM_tot_yr=0.0
 #endif
        temp_mean_SV(:,:) = 0.0     
-       temp_mmin_SV(:,:) = 0.0     
-       temp_mmax_SV(:,:) = 0.0     
+       temp_mmin_SV(:,:) = 100.0     
+       temp_mmax_SV(:,:) = -100.0     
 
 
        ! This is where the parallelization could find place ...
@@ -727,8 +727,10 @@
        CALL WRITE_netCDF_output(ALT_SV, indx_var_palt)
        CALL WRITE_netCDF_output(freeze_depth_SV(1,:)-freeze_depth_SV(2,:), indx_var_plt)
 #if ( CARBON == 1 )
-       deepSOM_out(:,:)=deepSOM(:,:)
-       !CALL WRITE_netCDF_output(deepSOM, indx_var_carb)
+       !deepSOM_out(:,:)=deepSOM(:,:)
+       CALL WRITE_netCDF_output(deepSOM, indx_var_carb)
+       !write(*,*) 'fracgr ', fracgr_SV
+       CALL WRITE_netCDF_output(fracgr_SV, indx_var_frac)
 #endif
      END SUBROUTINE DO_spatialvars_step
 
@@ -852,6 +854,7 @@
          b4_SV = b4_content
          Fv_SV = Fv_content
          fracgr_SV = fracgr_content
+         !write(*,*) 'fracgr_content ', fracgr_content
          darea_SV = darea_content
        else
          WRITE(*,*) "[ABORT] Missing forcing for b3, b4 in coupled mode"

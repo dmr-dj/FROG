@@ -93,7 +93,7 @@
       !dmr        Need to create a special type that would hold the different variables names above
       !dmr        as well as these indexes.
       INTEGER, PARAMETER                 :: indx_var_tmean_ig = 1, indx_var_tmin_ig = 2, indx_var_tmax_ig = 3,      &
-                                         indx_var_palt=4, indx_var_plt=5, indx_var_carb = 6
+                                         indx_var_palt=4, indx_var_plt=5, indx_var_carb = 6, indx_var_frac=7
 
 !dmr --- ... bloc related to namelist reading for variable output generation /
 
@@ -109,6 +109,7 @@
                 indx_var_palt, indx_var_plt, WRITE_netCDF_output
 
       PUBLIC :: indx_var_carb, flatten_it_3D, flatten_it
+      PUBLIC :: indx_var_frac
 
 
       CONTAINS
@@ -235,6 +236,7 @@
       ! Open and read Namelist file.
       OPEN (action='read', file=file_path, iostat=rc, newunit=fu)
       IF (rc /= 0) WRITE (stderr, '("Error: Cannot open namelist file")')
+      write(*,*) file_path
 
       READ (nml=outputDimSetup_1, iostat=rc, unit=fu)
       IF (rc /= 0) WRITE (stderr, '("Error: invalid Namelist format")')
@@ -257,7 +259,7 @@
 
       CLOSE (fu)
 
-      ! debug WRITE(stdout,*) "VALUES for namelist output: ", output_aktiv, nb_dim_vars, nb_out_vars
+      WRITE(stdout,*) "VALUES for namelist output: ", output_aktiv, nb_dim_vars, nb_out_vars
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 ! dmr
@@ -384,6 +386,7 @@
       ! Open and read Namelist file.
       OPEN (action='read', file=file_path_inp, iostat=rc, newunit=fu)
       IF (rc /= 0) WRITE (stderr, '("Error: Cannot open namelist file")')
+      write (*,*) file_path_inp
 
       READ (nml=inputsGrid, iostat=rc, unit=fu)
       IF (rc /= 0) WRITE (stderr, '("Error: invalid Namelist format")')

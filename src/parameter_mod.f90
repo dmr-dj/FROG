@@ -152,7 +152,8 @@ MODULE parameter_mod
 
     real, dimension(:), allocatable :: zf_soil  !! will be (0:z_num) lower depth
     real, dimension(:), allocatable :: zi_soil  !! will be (1:z_num) mid layer depth
-    REAL, parameter :: min_stomate = 1.E-8    !! Epsilon to detect a near zero floating point (unitless)
+    !REAL, parameter :: min_stomate = 1.E-8    !! Epsilon to detect a near zero floating point (unitless)
+    REAL, parameter :: min_stomate = 1.E-6    !! Epsilon to detect a near zero floating point (unitless)
 !~     real            :: ALT
 !~     real            :: altmax_lastyear
 #endif
