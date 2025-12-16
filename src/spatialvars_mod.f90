@@ -646,6 +646,7 @@
 
 #if (CARBON == 1 )
         use grids_more,     only: indx_var_carb, indx_var_frac
+        use grids_more,     only: indx_var_carba, indx_var_carbs, indx_var_carbp
 #endif
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
@@ -729,6 +730,9 @@
 #if ( CARBON == 1 )
        !deepSOM_out(:,:)=deepSOM(:,:)
        CALL WRITE_netCDF_output(deepSOM, indx_var_carb)
+       CALL WRITE_netCDF_output(deepSOM_a, indx_var_carba)
+       CALL WRITE_netCDF_output(deepSOM_s, indx_var_carbs)
+       CALL WRITE_netCDF_output(deepSOM_p, indx_var_carbp)
        !write(*,*) 'fracgr ', fracgr_SV
        CALL WRITE_netCDF_output(fracgr_SV, indx_var_frac)
 #endif

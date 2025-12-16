@@ -237,9 +237,12 @@ contains
     !write(*,*) 'profondeur deux premieres couches', (dz(1)+dz(2))
     if (altmax_lastyear.le.(dz(1)+dz(2))) then
    ! if (altmax_lastyear.le.(dz(1))) then
-        deepSOM_a(1)=deepSOM_a(1)+ (som_input_TS/2)/ dz(1)
-        deepSOM_a(2)=deepSOM_a(2)+ (som_input_TS/2) / dz(2)
-        !mettre les autres aussi
+        deepSOM_a(1)=deepSOM_a(1)+ 0.01 * (som_input_TS/2)/ dz(1)
+        deepSOM_a(2)=deepSOM_a(2)+ 0.01 * (som_input_TS/2) / dz(2)
+        deepSOM_s(1)=deepSOM_s(1)+ 0.09 * (som_input_TS/2)/ dz(1)
+        deepSOM_s(2)=deepSOM_s(2)+ 0.09 * (som_input_TS/2) / dz(2)
+        deepSOM_p(1)=deepSOM_p(1)+ 0.9 * (som_input_TS/2)/ dz(1)
+        deepSOM_p(2)=deepSOM_p(2)+ 0.9 * (som_input_TS/2) / dz(2)
         !write(*,*) 'case 1'
     else
 
@@ -283,9 +286,12 @@ contains
      verif_som=sum(dsom_litter_z(:)* dz(:))
      !write(*,*) 'dsom_litter, som_input_TS after, diff, dsom_litter_z', verif_som, som_input_TS, diff, dsom_litter_z
 
-     deepSOM_a(:)=deepSOM_a(:)+1/3.*dsom_litter_z(:) !* dz (:)
-     deepSOM_s(:)=deepSOM_s(:)+1/3.*dsom_litter_z(:) !* dz (:)
-     deepSOM_p(:)=deepSOM_p(:)+1/3.*dsom_litter_z(:) !* dz (:)
+     !deepSOM_a(:)=deepSOM_a(:)+1/3.*dsom_litter_z(:) !* dz (:)
+     !deepSOM_s(:)=deepSOM_s(:)+1/3.*dsom_litter_z(:) !* dz (:)
+     !deepSOM_p(:)=deepSOM_p(:)+1/3.*dsom_litter_z(:) !* dz (:)
+     deepSOM_a(:)=deepSOM_a(:)+0.01*dsom_litter_z(:) !* dz (:)
+     deepSOM_s(:)=deepSOM_s(:)+0.09*dsom_litter_z(:) !* dz (:)
+     deepSOM_p(:)=deepSOM_p(:)+0.9*dsom_litter_z(:) !* dz (:)
 
 
      endif

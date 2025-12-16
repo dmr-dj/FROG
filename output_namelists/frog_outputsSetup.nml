@@ -1,9 +1,9 @@
 &outputDimSetup_1
   output_aktiv = T
   nb_dim_vars = 3
-  nb_out_vars = 7
+  nb_out_vars = 10
 /
 &outputDimSetup_2
   output_dim_names = "lat", "lon", "lev"
-  output_var_names = "tempmean_ig", "tempmin_ig", "tempmax_ig", "palt", "plt", "carb", "frac"
+  output_var_names = "tempmean_ig", "tempmin_ig", "tempmax_ig", "palt", "plt", "carb", "frac", "carba", "carbs", "carbp"
 /
