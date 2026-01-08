@@ -149,7 +149,8 @@ contains
     deepSOM_s(:) = 0.0
     deepSOM_p(:) = 0.0
 
-    altmax_lastyear = 0.0
+    !altmax_lastyear = 0.0
+    altmax_lastyear = 30 ! initialised to 30 m
 
     ! Only in mode uncoupled, fixed to a specific value
     !b3_spat = 1.
@@ -188,8 +189,8 @@ contains
 
     deepSOM(:) = deepSOM_a(:) + deepSOM_p(:) + deepSOM_s(:)
     deepSOM_tot = sum(deepSOM(:)*dz(:))*darea*fracgr
-    !write(*,*) 'deepSOM_tot in carbon_init', deepSOM_tot
-
+    !write(*,*) 'deepSOM_tot in carbon_init in GtC', deepSOM_tot*1e-15
+    !write(*,*) 'deepSOM_a, s, p in carbon_init', sum(deepSOM_a(:)*dz(:))*darea*fracgr, sum(deepSOM_s(:)*dz(:))*darea*fracgr,  sum(deepSOM_p(:)*dz(:))*darea*fracgr
   end subroutine carbon_init
 !--------------------------
 
@@ -217,7 +218,7 @@ contains
 
 !add input zfsoil
 !define som_profile vecteur
-    totcarbon = SUM ((deepSOM_a (:) + deepSOM_s(:) + deepSOM_p(:) )*dz(:))
+    !totcarbon = SUM ((deepSOM_a (:) + deepSOM_s(:) + deepSOM_p(:) )*dz(:))
     !write (*,*) "debut routine redistribution" , totcarbon
 
 !~     b3=1.! en g/m²  !!!! (du coup on divise som input par dz )
@@ -296,11 +297,13 @@ contains
 
      endif
 
-         totcarbon = SUM ((deepSOM_a (:) + deepSOM_s(:) + deepSOM_p(:) ) *dz(:))
-         !write (*,*) "fin routine redistribution" , totcarbon
+         !totcarbon = SUM ((deepSOM_a (:) + deepSOM_s(:) + deepSOM_p(:) ) *dz(:))
+         !write (*,*) "deepSOM fin routine redistribution" , totcarbon
 
 
-  ! write(*,*) 'deepSOM_a dans redistribute', deepSOM_a(:)
+   !write(*,*) 'deepSOM_a dans redistribute', sum(deepSOM_a(:)*dz(:))
+   !write(*,*) 'deepSOM_s dans redistribute', sum(deepSOM_s(:)*dz(:))
+   !write(*,*) 'deepSOM_p dans redistribute', sum(deepSOM_p(:)*dz(:))
 
 
   end subroutine carbon_redistribute

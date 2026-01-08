@@ -645,7 +645,7 @@
                                   indx_var_palt, indx_var_plt 
 
 #if (CARBON == 1 )
-        use grids_more,     only: indx_var_carb, indx_var_frac
+        use grids_more,     only: indx_var_carb, indx_var_frac, indx_var_Fv
         use grids_more,     only: indx_var_carba, indx_var_carbs, indx_var_carbp
 #endif
 
@@ -735,6 +735,7 @@
        CALL WRITE_netCDF_output(deepSOM_p, indx_var_carbp)
        !write(*,*) 'fracgr ', fracgr_SV
        CALL WRITE_netCDF_output(fracgr_SV, indx_var_frac)
+       CALL WRITE_netCDF_output(Fv_SV, indx_var_Fv)
 #endif
      END SUBROUTINE DO_spatialvars_step
 
