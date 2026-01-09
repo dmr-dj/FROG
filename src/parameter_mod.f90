@@ -138,7 +138,7 @@ MODULE parameter_mod
 
         ! VERTICAL DIMENSION VARIABLES
    real, dimension(:), allocatable ::  dz , D     !dmr [VERTCL] thickness of the layers, depth of the layers
-   integer                         :: organic_ind ! depth of the organic layer in layer index
+   !!dmr&nb 2026-01-09 integer                         :: organic_ind ! depth of the organic layer in layer index
 
 #if ( CARBON == 1 )
         ! SOME CARBON CONSTANTS AND 1-D VARIABLES

@@ -36,7 +36,7 @@
                                                                       ! T_air should be T_air(nb_steps_toDO) exactly
                                                                       ! n is porosity in the vertical
                                                                       ! Per_depth is the diagnosed "permafrost" or freezing depth (in meters)
-                                   ALT, altmax_lastyear, compteur_time_step, deepSOM_a, deepSOM_s, deepSOM_p                     &
+                                   ALT, altmax_lastyear, compteur_time_step, organic_indd, deepSOM_a, deepSOM_s, deepSOM_p       &
                                    , deepSOM, fc,  b4_lok, Fv_lok, fracgr_lok, darea_lok                                         &
                                    , alpha_a_lok, alpha_s_lok, alpha_p_lok, mu_soil_rev_lok, beta_a_lok, beta_s_lok, beta_p_lok  &
                                    , deepSOM_tot                                                                                 &
@@ -48,7 +48,7 @@
 
 
 
-        USE parameter_mod,     ONLY: organic_ind, z_num
+        USE parameter_mod,     ONLY: z_num ! organic_ind
         USE parameter_mod,     ONLY: D, dt, dz
         use Fonction_temp,     ONLY: diagnose_frost_Depth
         use Fonction_implicit, ONLY: Implicit_T
@@ -84,6 +84,7 @@
         REAL                      , INTENT(inout)           :: ALT, altmax_lastyear             ! Active Layer Thickness
 !~         REAL                      , INTENT(in),    OPTIONAL :: clay
         TYPE(cell_time)           , INTENT(inout)           :: compteur_time_step
+        INTEGER                   , INTENT(in)              :: organic_indd                     ! index of the end of the organic layer
 !~         LOGICAL                   , INTENT(inout), OPTIONAL :: end_year
 
 #if ( CARBON == 1 )
@@ -195,7 +196,8 @@
 !~          real, dimension(1:z_max)           , intent(out):: Kp       !dmr placeholder for new Kp per layer     [?]
 
 
-            call Implicit_T(nb_layers_WC,nb_snowlayers,T_old_WC,T_soil,T_bottom,dt,dz_WC,n,organic_ind,Temp_WC,Kp_WC,   &
+            !! WRITE(*,*) "organic_ind === ", organic_indd
+            call Implicit_T(nb_layers_WC,nb_snowlayers,T_old_WC,T_soil,T_bottom,dt,dz_WC,n,organic_indd,Temp_WC,Kp_WC,&
                              rho_snow=rho_snow(1:nb_snowlayers))
 
             !dmr Then update Temp with the lower part
@@ -218,7 +220,7 @@
          else ! No Snow, proceeding normally
 
             !-------------- Numerical difference routine when there is no snow --------!
-            call Implicit_T(z_num, 0, T_old,T_soil,T_bottom,dt,dz,n,organic_ind,Temp,Kp)
+            call Implicit_T(z_num, 0, T_old,T_soil,T_bottom,dt,dz,n,organic_indd,Temp,Kp)
 
 
          endif
@@ -228,7 +230,7 @@
 
        !-------------- Numerical difference routine when there is no snow --------!
 
-         call Implicit_T(z_num, 0, T_old,T_soil,T_bottom,dt,dz,n,organic_ind,Temp,Kp)
+         call Implicit_T(z_num, 0, T_old,T_soil,T_bottom,dt,dz,n,organic_indd,Temp,Kp)
 
 
 

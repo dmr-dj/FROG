@@ -329,6 +329,9 @@
 
            deepSOM_tot_init=deepSOM_tot_init+deepSOM_tot(gridp)
         enddo
+        
+        ![NOTA] dmr&nb -> ICI manque un appel à une routine de mise à jour de l'index orgalayer_indx, via deepSOM
+        ! TYPOLOGIE du call: call update_orgalayer_indx(deepSOM(:,gridp),orgalayer_indx(gridp))
 
         write(*,*) 'deepSOM_tot_init', deepSOM_tot_init
 
@@ -685,7 +688,7 @@
 
          CALL DO_vertclvars_step(stepstoDO,Kp(:,gridp),T_bottom_SV(gridp),Temp(:,gridp), forcage_temperature_surface(gridp,:) &
                                , n(:,gridp),freeze_depth_SV(:,gridp), ALT_SV(gridp), altmax_ly_SV(gridp)                      &
-                               , compteur_tstep_SV(gridp)                                                                     &
+                               , compteur_tstep_SV(gridp), orgalayer_indx(gridp)                                              &
 #if ( CARBON > 0 )
             ! CARBON ONLY VARIABLES
                                , deepSOM_a = deepSOM_a(:,gridp),deepSOM_s = deepSOM_s(:,gridp), deepSOM_p = deepSOM_p(:,gridp)&
@@ -711,6 +714,9 @@
           deepSOM_tot_yr=deepSOM_tot_yr+deepSOM_tot(gridp)
 #endif
 
+          ![NOTA] dmr&nb -> ICI manque un appel à une routine de mise à jour de l'index orgalayer_indx, via deepSOM
+          ! TYPOLOGIE du call: call update_orgalayer_indx(deepSOM(:,gridp),orgalayer_indx(gridp))
+         
        enddo
 !$omp end do
 !$omp end parallel
