@@ -42,9 +42,9 @@
         REAL, DIMENSION(:,:),   ALLOCATABLE :: darea_vegForc
 #endif
 
-#if ( SNOW_EFFECT == 1 )
+!#if ( SNOW_EFFECT == 1 )
         REAL, DIMENSION(:,:,:), ALLOCATABLE :: dsnow_thick
-#endif
+!#endif
 
       END TYPE cpl_fields
 
