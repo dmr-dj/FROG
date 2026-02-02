@@ -241,7 +241,8 @@ module Fonction_temp
 
     ELSE ! Always above zero, nothing to do, no active layer per se
         freeze_temp_max_min(1:2) = Depth_vals(1)
-        freeze_temp_max_min(3)   = 0.0
+        !freeze_temp_max_min(3)   = 0.0
+        freeze_temp_max_min(3)   = 30 !30 m if nothing frozen
     ENDIF
 
 !~     WRITE(*,*) "ALT et al.", freeze_temp_max_min, Temp(1), mask_depth(1)

@@ -9,6 +9,8 @@ module Carbon
     INTEGER, PARAMETER :: islow = 2        !! Index for slow carbon pool (unitless)
     INTEGER, PARAMETER :: ipassive = 3     !! Index for passive carbon pool (unitless)
     INTEGER, PARAMETER :: ncarb = 3        !! Number of soil carbon pools (unitless)
+    REAL :: f_a, f_s, f_p
+    INTEGER :: c_perm_fich
 
 #if (CARBON > 0)
 
@@ -108,6 +110,7 @@ contains
 !~     ALT=0.0
 !~     altmax_lastyear=0.0
 
+    call open_carbon_output
 
   end subroutine carbon_first_init
 !--------------------------
@@ -184,6 +187,12 @@ contains
 
 
     !Redistribution of carbon from veget with Fv at beginning of year
+
+    !parameters for initialisation of carbon pools
+    f_a=0.01
+    f_s=0.14
+    f_p=0.85
+
     !write(*,*) 'b4_spat dans carbon_init', b4_spat
     call carbon_redistribute(Temp, deepSOM_a, deepSOM_s, deepSOM_p, altmax_lastyear, b4_spat) !b4 in kgC/m2/day
 
@@ -191,6 +200,13 @@ contains
     deepSOM_tot = sum(deepSOM(:)*dz(:))*darea*fracgr
     !write(*,*) 'deepSOM_tot in carbon_init in GtC', deepSOM_tot*1e-15
     !write(*,*) 'deepSOM_a, s, p in carbon_init', sum(deepSOM_a(:)*dz(:))*darea*fracgr, sum(deepSOM_s(:)*dz(:))*darea*fracgr,  sum(deepSOM_p(:)*dz(:))*darea*fracgr
+
+    !modify values for redistribution of carbon
+    f_a=1/3.
+    f_s=1/3.
+    f_p=1/3.
+
+
   end subroutine carbon_init
 !--------------------------
 
@@ -206,7 +222,7 @@ contains
     real, dimension(z_num),intent(in)              :: Temp
     real,                      intent(in)          :: altmax_lastyear
     real,dimension(z_num),intent(inout)            :: deepSOM_a, deepSOM_s, deepSOM_p !soil organic matter (g /m^3 )
-    real                , intent(in)               :: b4 ! Carbon in litter and soil, should be in g/m2 b3,
+    real                , intent(in)               :: b4 ! Carbon in litter and soil, should be in g/m2 b3
     integer                                        :: k, il
     real                                           :: intdep !depth of integration
     real                                           :: z_lit !e folding depth
@@ -215,6 +231,8 @@ contains
     real, dimension(z_num)                         :: som_profile, dsom_litter_z !  double precision?
     real                                           :: diff, verif_som ! double precision ?
     real                                           ::totcarbon
+
+    !write(*,*) 'f_a in carbon_redistribute', f_a
 
 !add input zfsoil
 !define som_profile vecteur
@@ -238,12 +256,12 @@ contains
     !write(*,*) 'profondeur deux premieres couches', (dz(1)+dz(2))
     if (altmax_lastyear.le.(dz(1)+dz(2))) then
    ! if (altmax_lastyear.le.(dz(1))) then
-        deepSOM_a(1)=deepSOM_a(1)+ 0.01 * (som_input_TS/2)/ dz(1)
-        deepSOM_a(2)=deepSOM_a(2)+ 0.01 * (som_input_TS/2) / dz(2)
-        deepSOM_s(1)=deepSOM_s(1)+ 0.09 * (som_input_TS/2)/ dz(1)
-        deepSOM_s(2)=deepSOM_s(2)+ 0.09 * (som_input_TS/2) / dz(2)
-        deepSOM_p(1)=deepSOM_p(1)+ 0.9 * (som_input_TS/2)/ dz(1)
-        deepSOM_p(2)=deepSOM_p(2)+ 0.9 * (som_input_TS/2) / dz(2)
+        deepSOM_a(1)=deepSOM_a(1)+ f_a * (som_input_TS/2)/ dz(1)
+        deepSOM_a(2)=deepSOM_a(2)+ f_a * (som_input_TS/2) / dz(2)
+        deepSOM_s(1)=deepSOM_s(1)+ f_s * (som_input_TS/2)/ dz(1)
+        deepSOM_s(2)=deepSOM_s(2)+ f_s * (som_input_TS/2) / dz(2)
+        deepSOM_p(1)=deepSOM_p(1)+ f_p * (som_input_TS/2)/ dz(1)
+        deepSOM_p(2)=deepSOM_p(2)+ f_p * (som_input_TS/2) / dz(2)
         !write(*,*) 'case 1'
     else
 
@@ -290,9 +308,12 @@ contains
      !deepSOM_a(:)=deepSOM_a(:)+1/3.*dsom_litter_z(:) !* dz (:)
      !deepSOM_s(:)=deepSOM_s(:)+1/3.*dsom_litter_z(:) !* dz (:)
      !deepSOM_p(:)=deepSOM_p(:)+1/3.*dsom_litter_z(:) !* dz (:)
-     deepSOM_a(:)=deepSOM_a(:)+0.01*dsom_litter_z(:) !* dz (:)
-     deepSOM_s(:)=deepSOM_s(:)+0.09*dsom_litter_z(:) !* dz (:)
-     deepSOM_p(:)=deepSOM_p(:)+0.9*dsom_litter_z(:) !* dz (:)
+     !deepSOM_a(:)=deepSOM_a(:)+0.01*dsom_litter_z(:) !* dz (:)
+     !deepSOM_s(:)=deepSOM_s(:)+0.09*dsom_litter_z(:) !* dz (:)
+     !deepSOM_p(:)=deepSOM_p(:)+0.9*dsom_litter_z(:) !* dz (:)
+     deepSOM_a(:)=deepSOM_a(:)+f_a*dsom_litter_z(:) !* dz (:)
+     deepSOM_s(:)=deepSOM_s(:)+f_s*dsom_litter_z(:) !* dz (:)
+     deepSOM_p(:)=deepSOM_p(:)+f_p*dsom_litter_z(:) !* dz (:)
 
 
      endif
@@ -743,6 +764,59 @@ contains
 
   end subroutine bio_cryoturbation
 !--------------------------
+
+  subroutine update_orgalayer_indx(deepSOM, orgalayer_indx)
+  ! Update of organic layer depth index depending on the max depth of carbon
+  ! (deepSOM)
+
+    use parameter_mod, only: z_num
+
+    REAL, dimension(z_num) , INTENT(in)                :: deepSOM
+    INTEGER, INTENT(out)                               :: orgalayer_indx
+    integer igrnd
+
+      orgalayer_indx=0
+      do igrnd = 1, z_num !ngrnd for each vertical level
+         if (deepSOM(igrnd).gt. 1e-12) then !if some carbon in this level
+             !write(*,*) 'deepSOM, index', deepSOM(igrnd), igrnd
+             orgalayer_indx=igrnd ! keep index
+         endif
+      enddo
+
+  end subroutine update_orgalayer_indx
+!--------------------------
+
+  subroutine open_carbon_output()
+  ! Open file for carbon output
+
+        OPEN(newunit=c_perm_fich, file='outputdata/carbon/C_permafrost.txt',status='unknown')
+
+        WRITE(c_perm_fich,'(1A20)') "DeepSOM_tot (GtC)"
+
+  end subroutine open_carbon_output
+!--------------------------
+
+  subroutine write_carbon_output(deepSOM_tot)
+  ! Write total carbon content in output file
+
+    REAL           :: deepSOM_tot
+
+    !write (c_perm_fich,'(1f16.2)') deepSOM_tot
+    write (c_perm_fich,*) deepSOM_tot*1e-15
+    write(*,*) 'depSOMtot write', deepSOM_tot*1e-15
+
+  end subroutine write_carbon_output
+!--------------------------
+
+  subroutine close_carbon_output()
+  ! Close file for carbon output
+
+     CLOSE(c_perm_fich)
+
+  end subroutine close_carbon_output
+!--------------------------
+
+
 
 #endif
 
