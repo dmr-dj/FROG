@@ -69,6 +69,7 @@
      logical, dimension(:), allocatable          :: end_year_SV          !=0 if not end of year, =1 if end of year
      real, dimension(:)   , allocatable          :: b4_SV !b3_SV, 
      real, dimension(:)   , allocatable          :: Fv_SV
+     real, dimension(:)   , allocatable          :: r_leaf_SV
      real, dimension(:)   , allocatable          :: fracgr_SV
      real, dimension(:)   , allocatable          :: darea_SV
      real, dimension(:)   , allocatable          :: deepSOM_tot
@@ -168,6 +169,7 @@
        !allocate(b3_SV(1:gridNoMax))
        allocate(b4_SV(1:gridNoMax))
        allocate(Fv_SV(1:gridNoMax))
+       allocate(r_leaf_SV(1:gridNoMax))
        allocate(fracgr_SV(1:gridNoMax))
        allocate(darea_SV(1:gridNoMax))
        allocate(deepSOM_tot(1:gridNoMax))
@@ -649,7 +651,7 @@
                                   indx_var_palt, indx_var_plt 
 
 #if (CARBON == 1 )
-        use grids_more,     only: indx_var_carb, indx_var_frac, indx_var_Fv
+        use grids_more,     only: indx_var_carb, indx_var_frac, indx_var_Fv, indx_var_r_leaf
         use grids_more,     only: indx_var_carba, indx_var_carbs, indx_var_carbp
         use carbon,         only : update_orgalayer_indx, write_carbon_output
 #endif
@@ -695,10 +697,11 @@
             ! CARBON ONLY VARIABLES
                                , deepSOM_a = deepSOM_a(:,gridp),deepSOM_s = deepSOM_s(:,gridp), deepSOM_p = deepSOM_p(:,gridp)&
                                , deepSOM = deepSOM(:,gridp), fc = fc_SV(:,:,gridp),  b4_lok=b4_SV(gridp)                      & 
-                               , Fv_lok=Fv_SV(gridp), fracgr_lok=fracgr_SV(gridp), darea_lok=darea_SV(gridp)                  &     
+                               , Fv_lok=Fv_SV(gridp),  r_leaf_lok=r_leaf_SV(gridp)                                            &
+                               , fracgr_lok=fracgr_SV(gridp), darea_lok=darea_SV(gridp)                                       &     
                                , alpha_a_lok=alpha_a_SV(:,gridp), alpha_s_lok=alpha_s_SV(:,gridp)                             & 
-                               , alpha_p_lok=alpha_p_SV(:,gridp), mu_soil_rev_lok=mu_soil_rev_SV(gridp)                     &
-                               , beta_a_lok=beta_a_SV(:,gridp), beta_s_lok=beta_s_SV(:,gridp), beta_p_lok=beta_p_SV(:,gridp)   &
+                               , alpha_p_lok=alpha_p_SV(:,gridp), mu_soil_rev_lok=mu_soil_rev_SV(gridp)                       &
+                               , beta_a_lok=beta_a_SV(:,gridp), beta_s_lok=beta_s_SV(:,gridp), beta_p_lok=beta_p_SV(:,gridp)  &
                                , deepSOM_tot = deepSOM_tot(gridp)                                                             &
 #endif
 #if ( SNOW_EFFECT == 1 )
@@ -746,6 +749,7 @@
        !write(*,*) 'fracgr ', fracgr_SV
        CALL WRITE_netCDF_output(fracgr_SV, indx_var_frac)
        CALL WRITE_netCDF_output(Fv_SV, indx_var_Fv)
+       CALL WRITE_netCDF_output(r_leaf_SV, indx_var_r_leaf)
 #endif
      END SUBROUTINE DO_spatialvars_step
 
@@ -827,7 +831,7 @@
 
      SUBROUTINE SET_coupled_climate_forcing(stepstoDO,temperature_forcing_next, coupled_temp_set, b4_content                  &
      !b3_content,
-                                  , Fv_content, fracgr_content, darea_content, snowthick_forc_nxt, coupled_dsnow_set )
+                                  ,Fv_content, r_leaf_content, fracgr_content, darea_content, snowthick_forc_nxt, coupled_dsnow_set )
 
        use parameter_mod,  only: gridNoMax
 
@@ -836,8 +840,9 @@
        REAL, DIMENSION(:,:),              INTENT(in)            :: coupled_temp_set           ! must be (1:gridNoMax,1:stepstoDO)
        REAL, DIMENSION(:)               , INTENT(in),  OPTIONAL :: b4_content                 ! will be (1:gridNoMax) b3_content, 
        REAL, DIMENSION(:)               , INTENT(in),  OPTIONAL :: Fv_content                 ! will be (1:gridNoMax) b3_content, 
-       REAL, DIMENSION(:)               , INTENT(in),  OPTIONAL :: fracgr_content                 ! will be (1:gridNoMax) b3_content, 
-       REAL, DIMENSION(:)               , INTENT(in),  OPTIONAL :: darea_content                 ! will be (1:gridNoMax) b3_content, 
+       REAL, DIMENSION(:)               , INTENT(in),  OPTIONAL :: r_leaf_content                 ! will be (1:gridNoMax), 
+       REAL, DIMENSION(:)               , INTENT(in),  OPTIONAL :: fracgr_content                 ! will be (1:gridNoMax), 
+       REAL, DIMENSION(:)               , INTENT(in),  OPTIONAL :: darea_content                 ! will be (1:gridNoMax), 
        REAL, DIMENSION(:,:),              INTENT(in),  OPTIONAL :: coupled_dsnow_set          ! must be (1:gridNoMax,1:stepstoDO)
        REAL, DIMENSION(:,:),ALLOCATABLE , INTENT(out), OPTIONAL :: snowthick_forc_nxt ! must be (1:gridNoMax,1:stepstoDO)
 
@@ -868,6 +873,7 @@
          !b3_SV = b3_content
          b4_SV = b4_content
          Fv_SV = Fv_content
+         r_leaf_SV = r_leaf_content
          fracgr_SV = fracgr_content
          !write(*,*) 'fracgr_content ', fracgr_content
          darea_SV = darea_content

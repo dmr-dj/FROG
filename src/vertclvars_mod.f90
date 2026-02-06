@@ -37,7 +37,7 @@
                                                                       ! n is porosity in the vertical
                                                                       ! Per_depth is the diagnosed "permafrost" or freezing depth (in meters)
                                    ALT, altmax_lastyear, compteur_time_step, organic_indd, deepSOM_a, deepSOM_s, deepSOM_p       &
-                                   , deepSOM, fc,  b4_lok, Fv_lok, fracgr_lok, darea_lok                                         &
+                                   , deepSOM, fc,  b4_lok, Fv_lok, r_leaf_lok, fracgr_lok, darea_lok                             &
                                    , alpha_a_lok, alpha_s_lok, alpha_p_lok, mu_soil_rev_lok, beta_a_lok, beta_s_lok, beta_p_lok  &
                                    , deepSOM_tot                                                                                 &
                                    , snowlayer_thick_forcing, Temp_snow_col                                                      &
@@ -94,6 +94,7 @@
 
         REAL, OPTIONAL,                   INTENT(in)        ::  b4_lok !b3_lok,
         REAL, OPTIONAL,                   INTENT(in)        ::  Fv_lok 
+        REAL, OPTIONAL,                   INTENT(in)        ::  r_leaf_lok 
         REAL, OPTIONAL,                   INTENT(in)        ::  fracgr_lok 
         REAL, OPTIONAL,                   INTENT(in)        ::  darea_lok 
         REAL, DIMENSION(1:z_num), OPTIONAL,            INTENT(inout)        ::  alpha_a_lok 
@@ -248,9 +249,9 @@
        ! at the end of each year computes the actve layer thickness, needed for redistribution
 !~          call compute_alt(Temp, Temp_positive, ALT, compteur_time_step, end_year, altmax_lastyear, D)
        !write(*,*) 'ALT', ALT
-       call carbon_main (Temp, ALT, deepSOM_a, deepSOM_s, deepSOM_p, max_cryoturb_alt,            &
+       call carbon_main (Temp, ALT, deepSOM_a, deepSOM_s, deepSOM_p, max_cryoturb_alt,                &
                           min_cryoturb_alt, diff_k_const, bio_diff_k_const, bioturbation_depth,       &
-                          deepSOM, fc, Fv_lok, fracgr_lok, darea_lok, deepSOM_tot,                    &
+                          deepSOM, fc, Fv_lok, r_leaf_lok, fracgr_lok, darea_lok, deepSOM_tot,        &
                           alpha_a_lok, alpha_s_lok, alpha_p_lok,                                      &
                           mu_soil_rev_lok, beta_a_lok, beta_s_lok, beta_p_lok)
 #endif
