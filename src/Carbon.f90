@@ -20,7 +20,7 @@ contains
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
   subroutine carbon_main (Temp, altmax_lastyear, deepSOM_a, deepSOM_s, deepSOM_p, max_cryoturb_alt,          &
                           min_cryoturb_alt, diff_k_const, bio_diff_k_const, bioturbation_depth,      &
-                          deepSOM, fc, Fv_l, fracgr, darea, deepSOM_tot,                             &
+                          deepSOM, fc, Fv_l, r_leaf_l, fracgr, darea, deepSOM_tot,                             &
                           alpha_a, alpha_s, alpha_p, mu_soil_rev, beta_a, beta_s, beta_p) !b3_l, 
 
       use parameter_mod,  only : z_num, dt ! time step in seconds
@@ -46,6 +46,7 @@ contains
       REAL, dimension(z_num) , INTENT(out)                :: deepSOM
       REAL, INTENT(out)                                   :: deepSOM_tot
       REAL, intent(in)                                    :: Fv_l !b3_l,
+      REAL, intent(in)                                    :: r_leaf_l
       REAL, intent(in)                                    :: fracgr ! fraction of land in cell
       REAL, intent(in)                                    :: darea ! fraction of land in cell
       REAL                                  :: mu_soil_rev
@@ -56,7 +57,7 @@ contains
       ! write(*,*) 'altmax_lastyear', altmax_lastyear
 
        ! redistribute carbon from biosphere model
-      call carbon_redistribute(Temp, deepSOM_a, deepSOM_s, deepSOM_p, altmax_lastyear, Fv_l/360.) !Attention Fv in kg/m2/YEAR -> per day
+      call carbon_redistribute(Temp, deepSOM_a, deepSOM_s, deepSOM_p, altmax_lastyear, Fv_l/360., r_leaf_l) !Attention Fv in kg/m2/YEAR -> per day
 
        ! computes the decomposition in permafrost as a function of temperature (later : humidity and soil type?)
       call decomposition(Temp,  deepSOM_a, deepSOM_s, deepSOM_p, fc)
@@ -211,7 +212,7 @@ contains
 !--------------------------
 
 !--------------------------
-  subroutine carbon_redistribute(Temp, deepSOM_a, deepSOM_s, deepSOM_p, altmax_lastyear, b4) ! Temp,
+  subroutine carbon_redistribute(Temp, deepSOM_a, deepSOM_s, deepSOM_p, altmax_lastyear, b4, r_leaf) ! Temp,
   ! initialize the carbon in the active layer by redistributing carbon
   ! from litter and soil from vecode
 
@@ -223,6 +224,7 @@ contains
     real,                      intent(in)          :: altmax_lastyear
     real,dimension(z_num),intent(inout)            :: deepSOM_a, deepSOM_s, deepSOM_p !soil organic matter (g /m^3 )
     real                , intent(in)               :: b4 ! Carbon in litter and soil, should be in g/m2 b3
+    real                , intent(in), optional     :: r_leaf ! ratio of carbon in leaf/(wood+leaf)
     integer                                        :: k, il
     real                                           :: intdep !depth of integration
     real                                           :: z_lit !e folding depth
@@ -245,6 +247,17 @@ contains
     som_input_TS=b4*1000*dt/one_day ! b4 de ilovecim en kg/m2/jour-> en g/m2/jour , matiere organique qui arrive dans le sol (sol) !
 !add up the soil carbon from all veg pools, and change units from (gC/(m**2 of ground)/day) to gC/m^2 per timestep
 
+    !Modify f_a values depending on leaf/wood carbon ratio in the cell
+    if (PRESENT(r_leaf)) then
+        !write(*,*) 'r_leaf', r_leaf
+        f_a=min(r_leaf,1.0)
+        f_a=max(r_leaf,0.0)
+        f_s=1-f_a
+        f_p=0
+    !else
+        write(*,*) 'f_a, f_s,  f_p', f_a, f_s,  f_p
+    endif
+    !write(*,*) 'f_a, f_s,  f_p', f_a, f_s,  f_p
 
     z_lit=0.2 ! arbitrary, peut aussi dependre de la prof des racines
     intdep = max(altmax_lastyear, z_lit) !depth of integration pour l instant = ALT, peut dependre de
