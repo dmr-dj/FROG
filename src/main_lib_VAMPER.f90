@@ -181,7 +181,7 @@
 #if ( CARBON == 1 )
                  , b4_content = flatten_it(TRANSPOSE(coupled_fields%B4_vegForc(:,:)))                                           &
                  , Fv_content = flatten_it(TRANSPOSE(coupled_fields%Fv_vegForc(:,:)))                                           &
-                 , r_leaf_content = flatten_it(TRANSPOSE(coupled_fields%r_leaf_vegForc(:,:)))                                           &
+                 , r_leaf_content = flatten_it(TRANSPOSE(coupled_fields%r_leaf_vegForc(:,:)))                                   &
                  , fracgr_content = flatten_it(TRANSPOSE(coupled_fields%fracgr_vegForc(:,:)))                                   &
                  , darea_content = flatten_it(TRANSPOSE(coupled_fields%darea_vegForc(:,:)))                                     &
 #endif
@@ -261,7 +261,7 @@
                  !, b3_content = flatten_it(TRANSPOSE(coupled_fields%B3_vegForc(:,:)))                                           &
                  , b4_content = flatten_it(TRANSPOSE(coupled_fields%B4_vegForc(:,:)))                                           &
                  , Fv_content = flatten_it(TRANSPOSE(coupled_fields%Fv_vegForc(:,:)))                                           &
-                 , r_leaf_content = flatten_it(TRANSPOSE(coupled_fields%r_leaf_vegForc(:,:)))                                           &
+                 , r_leaf_content = flatten_it(TRANSPOSE(coupled_fields%r_leaf_vegForc(:,:)))                                   &
                  , fracgr_content = flatten_it(TRANSPOSE(coupled_fields%fracgr_vegForc(:,:)))                                   &
                  , darea_content = flatten_it(TRANSPOSE(coupled_fields%darea_vegForc(:,:)))                                     &
 #endif
