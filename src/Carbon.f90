@@ -53,16 +53,17 @@ contains
       real, dimension(z_num)                :: alpha_a, alpha_s, alpha_p, beta_a, beta_s, beta_p
 
 
-      !call compute_alt(Temp, Temp_positive, altmax_lastyear, compteur_time_step, end_year, altmax_lastyear, D)
-      ! write(*,*) 'altmax_lastyear', altmax_lastyear
+      !!!tbd call compute_alt(Temp, Temp_positive, altmax_lastyear, compteur_time_step, end_year, altmax_lastyear, D)
+      !!!tbd  write(*,*) 'altmax_lastyear', altmax_lastyear
 
-       ! redistribute carbon from biosphere model
+      ! redistribute carbon from biosphere model
       call carbon_redistribute(Temp, deepSOM_a, deepSOM_s, deepSOM_p, altmax_lastyear, Fv_l/360., r_leaf_l) !Attention Fv in kg/m2/YEAR -> per day
+      !call carbon_redistribute(Temp, deepSOM_a, deepSOM_s, deepSOM_p, altmax_lastyear, Fv_l/360.) !Attention Fv in kg/m2/YEAR -> per day
 
-       ! computes the decomposition in permafrost as a function of temperature (later : humidity and soil type?)
+      ! computes the decomposition in permafrost as a function of temperature (later : humidity and soil type?)
       call decomposition(Temp,  deepSOM_a, deepSOM_s, deepSOM_p, fc)
 
-       ! cryoturbation et bioturbation
+      ! cryoturbation et bioturbation
       call bio_cryoturbation(Temp, deepSOM_a, deepSOM_s, deepSOM_p, altmax_lastyear, max_cryoturb_alt, &
              min_cryoturb_alt, diff_k_const, bio_diff_k_const, bioturbation_depth,     &
              alpha_a, alpha_s, alpha_p, mu_soil_rev, beta_a, beta_s, beta_p)
@@ -173,7 +174,7 @@ contains
     fc(ipassive,iactive) = .45
     fc(ipassive,islow) = .0
     !
-    fr(:) = 1.0-fc(:,iactive)-fc(:,islow)-fc(:,ipassive) ! pour verifier, faire un print, doit etre 0
+    fr(:) = 1.0-fc(:,iactive)-fc(:,islow)-fc(:,ipassive) ! fraction of carbon that goes into atmosphere
     !firstcall = .FALSE.
 
 ! init to zero
@@ -202,10 +203,11 @@ contains
     !write(*,*) 'deepSOM_tot in carbon_init in GtC', deepSOM_tot*1e-15
     !write(*,*) 'deepSOM_a, s, p in carbon_init', sum(deepSOM_a(:)*dz(:))*darea*fracgr, sum(deepSOM_s(:)*dz(:))*darea*fracgr,  sum(deepSOM_p(:)*dz(:))*darea*fracgr
 
-    !modify values for redistribution of carbon
-    f_a=1/3.
-    f_s=1/3.
-    f_p=1/3.
+    !modify values for redistribution of carbon (this will be written on by the
+    !leaf ratio if it exists)
+    f_a=0.0 !1/3.
+    f_s=0.5 !1/3.
+    f_p=0.5 !1/3.
 
 
   end subroutine carbon_init
@@ -232,7 +234,8 @@ contains
     real                                           :: dsom_litter
     real, dimension(z_num)                         :: som_profile, dsom_litter_z !  double precision?
     real                                           :: diff, verif_som ! double precision ?
-    real                                           ::totcarbon
+    real                                           :: totcarbon
+    real                                           :: fraction_leaf
 
     !write(*,*) 'f_a in carbon_redistribute', f_a
 
@@ -249,13 +252,15 @@ contains
 
     !Modify f_a values depending on leaf/wood carbon ratio in the cell
     if (PRESENT(r_leaf)) then
-        !write(*,*) 'r_leaf', r_leaf
-        f_a=min(r_leaf,1.0)
-        f_a=max(r_leaf,0.0)
-        f_s=1-f_a
-        f_p=0
+        write(*,*) 'r_leaf', r_leaf
+        fraction_leaf=min(r_leaf,1.0)
+        fraction_leaf=max(r_leaf,0.0)
+        f_a=fraction_leaf
+        f_s=(1-fraction_leaf)*0.75
+        f_p=1-(f_a+f_s)
+        !f_p=0
     !else
-        write(*,*) 'f_a, f_s,  f_p', f_a, f_s,  f_p
+        !write(*,*) 'f_a, f_s,  f_p', f_a, f_s,  f_p
     endif
     !write(*,*) 'f_a, f_s,  f_p', f_a, f_s,  f_p
 
@@ -367,7 +372,7 @@ contains
 
     logical, parameter                          :: limit_decomp_moisture = .false. ! to be changed to true if humidity in model
     real, dimension(z_num)           :: moistfunc_result
-    REAL                                        :: stomate_tau = 4.699E6
+    REAL                                        :: stomate_tau = 4.699E6 !turnover of the active pool in seconds 
     REAL                                        :: depth_modifier = 1.E6             !! e-folding depth of turnover rates,following Koven et al.,2013,Biogeosciences. A very large value means no depth modification
 !    REAL, DIMENSION(:), INTENT(in)           :: clay            !! clay content
     REAL                                        :: fbact_a, fbact_s, fbact_p
