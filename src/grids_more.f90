@@ -95,7 +95,7 @@
       INTEGER, PARAMETER                 :: indx_var_tmean_ig = 1, indx_var_tmin_ig = 2, indx_var_tmax_ig = 3,      &
                                          indx_var_palt=4, indx_var_plt=5, indx_var_carb = 6, indx_var_frac=7,       &
                                          indx_var_carba = 8, indx_var_carbs = 9, indx_var_carbp = 10,               &
-                                         indx_var_Fv = 11, indx_var_r_leaf = 12
+                                         indx_var_Fv = 11, indx_var_r_leaf = 12, indx_var_snow = 13
 
 !dmr --- ... bloc related to namelist reading for variable output generation /
 
@@ -113,6 +113,7 @@
       PUBLIC :: indx_var_carb, flatten_it_3D, flatten_it
       PUBLIC :: indx_var_frac, indx_var_Fv, indx_var_r_leaf
       PUBLIC :: indx_var_carba, indx_var_carbs, indx_var_carbp
+      PUBLIC :: indx_var_snow
 
 
       CONTAINS

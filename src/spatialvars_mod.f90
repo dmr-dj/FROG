@@ -80,6 +80,7 @@
      real, dimension(:,:) ,allocatable           :: Temp_snow           !dmr [VERTCL, SPAT_VAR] temperature in snow layers               [C]
      real, dimension(:)   ,allocatable           :: depth_snow_layer    !dmr [SPAT_VAR]         depth of snow in the snow layers         [m]
      integer, dimension(:),allocatable           :: nb_snow_layer       !dmr [SPAT_VAR]         number of snow layers from discretization [1]
+     real, dimension(:),allocatable           :: snowlayer_depth !laa
 #endif
 
 
@@ -180,6 +181,8 @@
        allocate(beta_a_SV(1:z_num,1:gridNoMax))
        allocate(beta_s_SV(1:z_num,1:gridNoMax))
        allocate(beta_p_SV(1:z_num,1:gridNoMax))
+       allocate(snowlayer_depth(1:gridNoMax))
+
 
 #endif
 
@@ -334,7 +337,7 @@
 
         ![NOTA] dmr&nb -> ICI manque un appel à une routine de mise à jour de l'index orgalayer_indx, via deepSOM
         ! TYPOLOGIE du call: call update_orgalayer_indx(deepSOM(:,gridp),orgalayer_indx(gridp))
-        call update_orgalayer_indx(deepSOM(:,gridp),orgalayer_indx(gridp))
+      !  call update_orgalayer_indx(deepSOM(:,gridp),orgalayer_indx(gridp)) !ici
 
         write(*,*) 'deepSOM_tot_init', deepSOM_tot_init
 
@@ -652,7 +655,7 @@
 
 #if (CARBON == 1 )
         use grids_more,     only: indx_var_carb, indx_var_frac, indx_var_Fv, indx_var_r_leaf
-        use grids_more,     only: indx_var_carba, indx_var_carbs, indx_var_carbp
+        use grids_more,     only: indx_var_carba, indx_var_carbs,indx_var_carbp, indx_var_snow
         use carbon,         only : update_orgalayer_indx, write_carbon_output
 #endif
 
@@ -720,7 +723,7 @@
 
           ![NOTA] dmr&nb -> ICI manque un appel à une routine de mise à jour de l'index orgalayer_indx, via deepSOM
           ! TYPOLOGIE du call: call update_orgalayer_indx(deepSOM(:,gridp),orgalayer_indx(gridp))
-          call update_orgalayer_indx(deepSOM(:,gridp),orgalayer_indx(gridp))
+         ! call update_orgalayer_indx(deepSOM(:,gridp),orgalayer_indx(gridp))
 #endif
 
        enddo
@@ -740,6 +743,7 @@
        CALL WRITE_netCDF_output(temp_mmax_SV, indx_var_tmax_ig)
        CALL WRITE_netCDF_output(ALT_SV, indx_var_palt)
        CALL WRITE_netCDF_output(freeze_depth_SV(1,:)-freeze_depth_SV(2,:), indx_var_plt)
+       CALL WRITE_netCDF_output(snowlayer_depth, indx_var_snow)
 #if ( CARBON == 1 )
        !deepSOM_out(:,:)=deepSOM(:,:)
        CALL WRITE_netCDF_output(deepSOM, indx_var_carb)
@@ -751,6 +755,10 @@
        CALL WRITE_netCDF_output(Fv_SV, indx_var_Fv)
        CALL WRITE_netCDF_output(r_leaf_SV, indx_var_r_leaf)
 #endif
+
+       
+
+
      END SUBROUTINE DO_spatialvars_step
 
 
