@@ -252,7 +252,7 @@ contains
 
     !Modify f_a values depending on leaf/wood carbon ratio in the cell
     if (PRESENT(r_leaf)) then
-        write(*,*) 'r_leaf', r_leaf
+        !! write(*,*) 'r_leaf', r_leaf
         fraction_leaf=min(r_leaf,1.0)
         fraction_leaf=max(r_leaf,0.0)
         f_a=fraction_leaf
@@ -807,7 +807,11 @@ contains
   subroutine open_carbon_output()
   ! Open file for carbon output
 
+#if ( OFFLINE_RUN == 1 )
+        OPEN(newunit=c_perm_fich, file='C_permafrost.txt',status='unknown')
+#elif ( OFFLINE == 0 )
         OPEN(newunit=c_perm_fich, file='outputdata/carbon/C_permafrost.txt',status='unknown')
+#endif
 
         WRITE(c_perm_fich,'(1A20)') "DeepSOM_tot (GtC)"
 
