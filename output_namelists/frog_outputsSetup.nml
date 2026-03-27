@@ -7,3 +7,6 @@
   output_dim_names = "lat", "lon", "lev"
   output_var_names = "tempmean_ig", "tempmin_ig", "tempmax_ig", "palt", "plt", "carb", "frac", "carba", "carbs", "carbp", "Fv", "r_leaf" , "snow"
 /
+&outputDimSetup_3
+  output_time_fraction = 100
+/

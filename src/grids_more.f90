@@ -74,8 +74,9 @@
       INTEGER         :: spat_dim2, spat_dim1, time_id
       REAL, PUBLIC    :: undefined_value
       CHARACTER(LEN=str_len) :: typology_file  ! ="file_typology-r128x64.nc"
-      CHARACTER(LEN=str_len) :: netCDFout_file ! ="FROG-output.nc"
-
+      CHARACTER(LEN=str_len) :: netCDFout_file_base ! ="FROG-output"
+      CHARACTER(LEN=str_len) :: netCDFout_file ! ="actual name in use, such as FROG-output000.nc"
+      INTEGER         :: future_file_nb = 0
 !dmr --- / Bloc related to namelist reading for variable output generation ...
 
       INTEGER                :: nb_out_vars, nb_dim_vars
@@ -85,6 +86,8 @@
                             , output_std_names, output_lng_names, output_dms_names
 
       INTEGER, DIMENSION(:), ALLOCATABLE :: output_dim_len, output_dim_dimid
+
+      INTEGER :: output_time_fraction ! variable to split the output in pieces (unit == years)
       INTEGER :: current_time_record
 
       INTEGER, DIMENSION(:), ALLOCATABLE :: output_var_dimid
@@ -224,6 +227,7 @@
        INTEGER                       :: rc,fu
        NAMELIST /outputDimSetup_1/ output_aktiv, nb_dim_vars, nb_out_vars
        NAMELIST /outputDimSetup_2/ output_dim_names, output_var_names
+       NAMELIST /outputDimSetup_3/ output_time_fraction
 
        ! Start of the subroutine
 
@@ -258,12 +262,15 @@
 
         READ (nml=outputDimSetup_2, iostat=rc, unit=fu)
         IF (rc /= 0) WRITE (stderr, '("Error: invalid Namelist format")')
-      
+
+        READ (nml=outputDimSetup_3, iostat=rc, unit=fu)
+        IF (rc /= 0) WRITE (stderr, '("Error: invalid Namelist format")')
+
       endif
 
       CLOSE (fu)
 
-      WRITE(stdout,*) "VALUES for namelist output: ", output_aktiv, nb_dim_vars, nb_out_vars
+      WRITE(stdout,*) "VALUES for namelist output: ", output_aktiv, nb_dim_vars, nb_out_vars, output_time_fraction
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 ! dmr
@@ -272,6 +279,35 @@
       END SUBROUTINE read_base_namelist
 ! **********************************************************************************************************************************
 
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+! dmr
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+      SUBROUTINE generate_fileName(basefilename, file_nb, extension, generatedfilename)
+
+      CHARACTER(len=str_len), INTENT(in)  :: basefilename
+      CHARACTER(len=3)      , INTENT(in)  :: extension
+      INTEGER        ,        INTENT(in)  :: file_nb
+
+      CHARACTER(len=str_len), INTENT(out) :: generatedfilename
+
+
+      ! numberof characters in the filenumber
+      INTEGER, PARAMETER            :: nbcharfilenumb = 4
+      CHARACTER(len=nbcharfilenumb) :: generatedfilennb
+
+      WRITE(generatedfilennb, '(I0.4)') file_nb
+
+      generatedfilename = ""//TRIM(basefilename)//generatedfilennb//extension
+
+      !! WRITE(*,*) "Generated filename :: ", TRIM(generatedfilename)
+
+      END SUBROUTINE generate_fileName
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+! dmr
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
 ! **********************************************************************************************************************************
       SUBROUTINE read_vars_namelist(file_path, indx)
@@ -366,7 +402,7 @@
         CHARACTER(len=str_len), PARAMETER                         :: file_path_out ="output_namelists/frog_outputsSetup.nml"
 
         INTEGER                                                   :: rc,fu,n
-        NAMELIST /inputsGrid/ mask_file, typology_file, netCDFout_file
+        NAMELIST /inputsGrid/ mask_file, typology_file, netCDFout_file_base
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       MAIN BODY OF THE ROUTINE
@@ -587,8 +623,8 @@
 
        INTEGER :: ncid, nDims, nvars, nGlobalAtts, unlimdimid, d, n, depth_varid
 
-       CHARACTER(len=NF90_MAX_NAME), DIMENSION(:),   ALLOCATABLE :: dimNAMES
-       INTEGER                     , DIMENSION(:),   ALLOCATABLE :: dimLEN
+       CHARACTER(len=NF90_MAX_NAME), DIMENSION(:),   ALLOCATABLE :: dimNAMES_loc
+       INTEGER                     , DIMENSION(:),   ALLOCATABLE :: dimLEN_loc
 
        LOGICAL, DIMENSION(:), ALLOCATABLE :: dim_exists_file
 
@@ -596,13 +632,19 @@
 
 
        !dmr ALLOCATE the required arrays
-       ALLOCATE(output_dim_len(0:nb_dim_vars))
-       ALLOCATE(output_dim_dimid(0:nb_dim_vars))
+       if (.NOT. ALLOCATED(output_dim_len)) then
+         ALLOCATE(output_dim_len(0:nb_dim_vars))
+         ALLOCATE(output_dim_dimid(0:nb_dim_vars))
+       endif
+
        ALLOCATE(dim_exists_file(nb_dim_vars))
+
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       MAIN BODY OF THE ROUTINE
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+       call generate_fileName(netCDFout_file_base, future_file_nb, ".nc", netCDFout_file)
 
        ! Copy the typology file into the new output file
        command_to_copy="cp -f "//TRIM(typology_file)//" "//TRIM(netCDFout_file)
@@ -625,21 +667,21 @@
 
        output_dim_dimid(0) = unlimdimid
 
-       ALLOCATE(dimNAMES(nDims))
-       ALLOCATE(dimLEN(nDims))
+       ALLOCATE(dimNAMES_loc(nDims))
+       ALLOCATE(dimLEN_loc(nDims))
 
        DO d=1,nDims
 
        call handle_err(                                                                                &
-            nf90_inquire_dimension(ncid, d, dimNAMES(d), dimLEN(d))                                    &
+            nf90_inquire_dimension(ncid, d, dimNAMES_loc(d), dimLEN_loc(d))                            &
                       , __LINE__)
        DO n=1, nb_dim_vars
-          if (TRIM(dimNAMES(d)) == TRIM(output_dim_names(n))) then
+          if (TRIM(dimNAMES_loc(d)) == TRIM(output_dim_names(n))) then
              dim_exists_file(n) = .TRUE.
              call handle_err(                                                                          &
-                  nf90_inq_dimid(ncid, TRIM(dimNAMES(d)), output_dim_dimid(n))                         &
+                  nf90_inq_dimid(ncid, TRIM(dimNAMES_loc(d)), output_dim_dimid(n))                     &
                       , __LINE__)
-             output_dim_len(n) = dimLEN(d)
+             output_dim_len(n) = dimLEN_loc(d)
           endif
        ENDDO
 
@@ -669,6 +711,10 @@
 
        endif
 
+
+       DEALLOCATE(dimNAMES_loc)
+       DEALLOCATE(dimLEN_loc)
+
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
        ! define the depth variable (in meters below the surface of the ground, positive downwards)
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
@@ -693,8 +739,9 @@
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
        ! define the variables iteratively
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
-        ALLOCATE(output_var_dimid(nb_out_vars))
-
+        if (.NOT. ALLOCATED(output_var_dimid)) then
+          ALLOCATE(output_var_dimid(nb_out_vars))
+        endif
         DO indx_var=1, nb_out_vars
 
            c = count_words_string(output_dms_names(indx_var))
@@ -756,6 +803,8 @@
 
        current_time_record = 0
 
+       future_file_nb = future_file_nb + 1
+
       END SUBROUTINE INIT_netCDF_output
 
 
@@ -774,14 +823,20 @@
 
          current_time_record = current_time_record + 1
 
+         if (current_time_record .GT.output_time_fraction) then ! need to increment to a new file
+           call INIT_netCDF_output()
+           ! Variable current_time_record is set to zero in INIT_netCDF_output
+           current_time_record = 1
+         endif
+
        endif
 
        do z=1,z_num
          nc_vartowrite(z,:,:) = un_flatten_it(var_to_write(z,:))
        enddo
 
-       !WRITE(*,*) "VARIABLE TO NC WRITE: ", MINVAL(nc_vartowrite), MAXVAL(nc_vartowrite)
-       !WRITE(*,*) "dims :: ", z_num, spat_dim1, spat_dim2
+!~        WRITE(*,*) "VARIABLE TO NC WRITE: ", MINVAL(nc_vartowrite), MAXVAL(nc_vartowrite)
+!~        WRITE(*,*) "dims :: ", z_num, spat_dim1, spat_dim2, current_time_record, __LINE__
 
        call handle_err(                                                                                &
             nf90_open(path = TRIM(netCDFout_file), mode = NF90_WRITE, ncid = ncid)                     & ! open existing netCDF dataset
