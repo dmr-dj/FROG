@@ -731,7 +731,6 @@
 !$omp end parallel
 
 #if ( CARBON > 0 )
-          deepSOM_tot_yr=deepSOM_tot_yr+deepSOM_tot(gridp)
           write(*,*) 'deepSOM_tot_yr', deepSOM_tot_yr
           call write_carbon_output(deepSOM_tot_yr)
 #endif
@@ -756,7 +755,7 @@
        CALL WRITE_netCDF_output(r_leaf_SV, indx_var_r_leaf)
 #endif
 
-       
+
 
 
      END SUBROUTINE DO_spatialvars_step
