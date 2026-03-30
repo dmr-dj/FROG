@@ -25,7 +25,7 @@
 
       PRIVATE
 
-      PUBLIC :: INITIALIZE_VAMP, STEPFWD_VAMP, GET_COUPLING_STEP
+      PUBLIC :: INITIALIZE_FROG, STEPFWD_FROG, GET_COUPLING_STEP
 #if ( CARBON > 0 )
       PUBLIC :: INITIALIZE_CARBON_STOCK
 #endif
@@ -80,7 +80,7 @@
 
 
 
-     function INITIALIZE_VAMP() result(is_a_success)
+     function INITIALIZE_FROG() result(is_a_success)
 
        use grids_more,      only: INIT_maskGRID, nb_unmaskedp, forcing_timelength, INIT_netCDF_output
        use parameter_mod,   only: read_namelist, set_numbergridpoints, set_numberforcingsteps, t_disc, z_disc
@@ -141,7 +141,7 @@
 
         is_a_success = .TRUE.
 
-     end function INITIALIZE_VAMP
+     end function INITIALIZE_FROG
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !--------------------------
@@ -206,7 +206,7 @@
   end function INITIALIZE_CARBON_STOCK
 !--------------------------
 
-     function STEPFWD_VAMP(coupled_fields) result(is_a_success)
+     function STEPFWD_FROG(coupled_fields) result(is_a_success)
 
        USE spatialvars_mod, ONLY: DO_spatialvars_step
 #if (OFFLINE_RUN == 1)
@@ -287,7 +287,7 @@
 
         is_a_success = .TRUE.
 
-     end function STEPFWD_VAMP
+     end function STEPFWD_FROG
 
 
     END MODULE main_lib_FROG

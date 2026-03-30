@@ -2,22 +2,22 @@
 
 program test
 
-  use main_lib_FROG, only: INITIALIZE_VAMP, STEPFWD_VAMP
+  use main_lib_FROG, only: INITIALIZE_FROG, STEPFWD_FROG
 
   implicit none
 
   logical :: well_done = .FALSE.
-  integer :: s, steps=10
+  integer :: s, steps=5
 
 
-  well_done = INITIALIZE_VAMP()
+  well_done = INITIALIZE_FROG()
   if (well_done) then
     WRITE(*,*) "FROG INITIALIZATION COMPLETE"
   endif
 
   do s=1, steps
 
-    well_done = STEPFWD_VAMP()
+    well_done = STEPFWD_FROG()
 
   enddo
 

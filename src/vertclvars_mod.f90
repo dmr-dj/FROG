@@ -29,7 +29,6 @@
      CONTAINS
 
 
-
      SUBROUTINE DO_vertclvars_step(nb_steps_toDO, Kp, T_bottom, Temp, T_air, n, Per_depth,                                       &
                                                                       ! Temp is the one column temperature of soil
                                                                       ! T_air is the surface soil temperature forcing for the timesteps
@@ -78,40 +77,37 @@
         REAL, DIMENSION(1:z_num)        , INTENT(INOUT)     :: Tmean_col
         REAL, DIMENSION(1:z_num)        , INTENT(OUT)       :: Tmmin_col
         REAL, DIMENSION(1:z_num)        , INTENT(OUT)       :: Tmmax_col
-
-
-!~         INTEGER,DIMENSION(1:z_num), INTENT(inout), OPTIONAL :: Temp_positive                    ! Where temp is once positive over one year
-        REAL                      , INTENT(inout)           :: ALT, altmax_lastyear             ! Active Layer Thickness
+        REAL                            , INTENT(inout)     :: ALT, altmax_lastyear             ! Active Layer Thickness
+        TYPE(cell_time)                 , INTENT(inout)     :: compteur_time_step
+        INTEGER                         , INTENT(in)        :: organic_indd                     ! index of the end of the organic layer
 !~         REAL                      , INTENT(in),    OPTIONAL :: clay
-        TYPE(cell_time)           , INTENT(inout)           :: compteur_time_step
-        INTEGER                   , INTENT(in)              :: organic_indd                     ! index of the end of the organic layer
 !~         LOGICAL                   , INTENT(inout), OPTIONAL :: end_year
 
 #if ( CARBON == 1 )
-        REAL   ,DIMENSION(1:z_num), INTENT(inout),OPTIONAL  :: deepSOM_a, deepSOM_s, deepSOM_p
-        REAL   ,DIMENSION(1:z_num), INTENT(inout), OPTIONAL :: deepSOM
-        REAL, DIMENSION(ncarb,ncarb), intent(inout),OPTIONAL:: fc !! flux fractions within carbon pools
 
-        REAL, OPTIONAL,                   INTENT(in)        ::  b4_lok !b3_lok,
-        REAL, OPTIONAL,                   INTENT(in)        ::  Fv_lok 
-        REAL, OPTIONAL,                   INTENT(in)        ::  r_leaf_lok 
-        REAL, OPTIONAL,                   INTENT(in)        ::  fracgr_lok 
-        REAL, OPTIONAL,                   INTENT(in)        ::  darea_lok 
-        REAL, DIMENSION(1:z_num), OPTIONAL,            INTENT(inout)        ::  alpha_a_lok 
-        REAL, DIMENSION(1:z_num), OPTIONAL,            INTENT(inout)        ::  alpha_s_lok 
-        REAL, DIMENSION(1:z_num), OPTIONAL,            INTENT(inout)        ::  alpha_p_lok 
-        REAL, DIMENSION(1:z_num), OPTIONAL,            INTENT(inout)        ::  beta_a_lok 
-        REAL, DIMENSION(1:z_num), OPTIONAL,            INTENT(inout)        ::  beta_s_lok 
-        REAL, DIMENSION(1:z_num), OPTIONAL,            INTENT(inout)        ::  beta_p_lok 
-        REAL,                     OPTIONAL,            INTENT(inout)        ::  mu_soil_rev_lok 
-        REAL, OPTIONAL,            INTENT(inout)     ::  deepSOM_tot 
+        REAL, DIMENSION(ncarb,ncarb),OPTIONAL,            INTENT(inout)  :: fc !! flux fractions within carbon pools
+        REAL, DIMENSION(1:z_num),    OPTIONAL,            INTENT(inout)  :: deepSOM_a, deepSOM_s, deepSOM_p
+        REAL, DIMENSION(1:z_num),    OPTIONAL,            INTENT(inout)  :: deepSOM
+        REAL,                        OPTIONAL,            INTENT(in)     ::  b4_lok !b3_lok,
+        REAL,                        OPTIONAL,            INTENT(in)     ::  Fv_lok
+        REAL,                        OPTIONAL,            INTENT(in)     ::  r_leaf_lok
+        REAL,                        OPTIONAL,            INTENT(in)     ::  fracgr_lok
+        REAL,                        OPTIONAL,            INTENT(in)     ::  darea_lok
+        REAL, DIMENSION(1:z_num),    OPTIONAL,            INTENT(inout)  ::  alpha_a_lok
+        REAL, DIMENSION(1:z_num),    OPTIONAL,            INTENT(inout)  ::  alpha_s_lok
+        REAL, DIMENSION(1:z_num),    OPTIONAL,            INTENT(inout)  ::  alpha_p_lok
+        REAL, DIMENSION(1:z_num),    OPTIONAL,            INTENT(inout)  ::  beta_a_lok
+        REAL, DIMENSION(1:z_num),    OPTIONAL,            INTENT(inout)  ::  beta_s_lok
+        REAL, DIMENSION(1:z_num),    OPTIONAL,            INTENT(inout)  ::  beta_p_lok
+        REAL,                        OPTIONAL,            INTENT(inout)  ::  mu_soil_rev_lok
+        REAL,                        OPTIONAL,            INTENT(inout)  ::  deepSOM_tot
 #endif
 
           ! SNOW VARIABLES
-        REAL, DIMENSION(1:nb_steps_toDO), OPTIONAL, INTENT(in)        :: snowlayer_thick_forcing !! a time series of the snowlayer thickness [m]
-        REAL, DIMENSION(:)              , OPTIONAL, INTENT(INOUT)     :: Temp_snow_col   !! Snow temperature, whole column (max_nb_snow_layers)
-        INTEGER                         , OPTIONAL, INTENT(INOUT)     :: snowlayer_nb    !! Nb of active snow layers
-        REAL                            , OPTIONAL, INTENT(INOUT)     :: snowlayer_depth !! Thickness of snow layers
+        REAL, DIMENSION(1:nb_steps_toDO), OPTIONAL,       INTENT(in)     :: snowlayer_thick_forcing !! a time series of the snowlayer thickness [m]
+        REAL, DIMENSION(:)              , OPTIONAL,       INTENT(inout)  :: Temp_snow_col   !! Snow temperature, whole column (max_nb_snow_layers)
+        INTEGER                         , OPTIONAL,       INTENT(inout)  :: snowlayer_nb    !! Nb of active snow layers
+        REAL                            , OPTIONAL,       INTENT(inout)  :: snowlayer_depth !! Thickness of snow layers
 
 
 
@@ -266,8 +262,8 @@
          endif
 
         !dmr OUTPUT section
-         
-         Tmean_col(1:z_num) = Tmean_col(1:z_num) + Temp(1:z_num) / nb_steps_toDo 
+
+         Tmean_col(1:z_num) = Tmean_col(1:z_num) + Temp(1:z_num) / nb_steps_toDo
          where (Temp(1:z_num) .LT. Tmmin_col(1:z_num))
             Tmmin_col = Temp
          endwhere
