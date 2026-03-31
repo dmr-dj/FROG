@@ -160,14 +160,8 @@
        allocate(deepSOM_s(1:z_num,1:gridNoMax))
        allocate(deepSOM_p(1:z_num,1:gridNoMax))
        allocate(deepSOM(1:z_num,1:gridNoMax))
-!       allocate(deepSOM_out(1:z_num,1:gridNoMax))
-!~        allocate(temp_oncepositive(1:z_num,1:gridNoMax))
        allocate(fc_SV(1:ncarb,1:ncarb,1:gridNoMax))
-!~        allocate(clay_SV(1:gridNoMax))
-!       allocate(altmax_ly_SV(1:gridNoMax))
-!       allocate(compteur_tstep_SV(1:gridNoMax))
        allocate(end_year_SV(1:gridNoMax))
-       !allocate(b3_SV(1:gridNoMax))
        allocate(b4_SV(1:gridNoMax))
        allocate(Fv_SV(1:gridNoMax))
        allocate(r_leaf_SV(1:gridNoMax))
@@ -182,8 +176,6 @@
        allocate(beta_s_SV(1:z_num,1:gridNoMax))
        allocate(beta_p_SV(1:z_num,1:gridNoMax))
        allocate(snowlayer_depth(1:gridNoMax))
-
-
 #endif
 
        ! OUTPUT variables
@@ -309,6 +301,9 @@
 
 #endif
 
+#if ( CARBON == 1 )
+        call spatialvars_init_carbon
+#endif
 
      END SUBROUTINE spatialvars_init
 
@@ -327,7 +322,7 @@
           ! Here we call initialisation with b4 to have correct first amount of carbon from vecode
           !write(*,*) 'b4 in spatialvar', b4_SV(gridp)
           call carbon_init(deepSOM_a(:,gridp), deepSOM_s(:,gridp), deepSOM_p(:,gridp), fc_SV(:,:,gridp), ALT_SV(gridp)      &
-                          , b4_SV(gridp), Temp(:,gridp), deepSOM(:,gridp), deepSOM_tot(gridp)                               &
+                          , b4_SV(gridp), deepSOM(:,gridp), deepSOM_tot(gridp)                               &
                           , fracgr_SV(gridp), darea_SV(gridp)                                                               &
                           , alpha_a_SV(:,gridp), alpha_s_SV(:,gridp), alpha_p_SV(:,gridp)                                   &
                           , mu_soil_rev_SV(gridp), beta_a_SV(:,gridp), beta_s_SV(:,gridp), beta_p_SV(:,gridp))

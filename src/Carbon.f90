@@ -21,43 +21,36 @@ contains
   subroutine carbon_main (Temp, altmax_lastyear, deepSOM_a, deepSOM_s, deepSOM_p, max_cryoturb_alt,          &
                           min_cryoturb_alt, diff_k_const, bio_diff_k_const, bioturbation_depth,      &
                           deepSOM, fc, Fv_l, r_leaf_l, fracgr, darea, deepSOM_tot,                             &
-                          alpha_a, alpha_s, alpha_p, mu_soil_rev, beta_a, beta_s, beta_p) !b3_l, 
+                          alpha_a, alpha_s, alpha_p, mu_soil_rev, beta_a, beta_s, beta_p) !b3_l,
 
       use parameter_mod,  only : z_num, dt ! time step in seconds
       use parameter_mod, only: zf_soil
       use parameter_mod, only: D, dz
 
 
-      real, dimension(z_num), intent(in)                  :: Temp
-      !integer, dimension(z_num), intent(inout)            :: Temp_positive
-      !integer, intent(in)                                 :: compteur_time_step
-      !logical, intent(in)                                 :: end_year
-      !REAL, intent(in)                                    :: clay
-      REAL, intent(inout)                                 :: altmax_lastyear
-      real, dimension(z_num), intent(inout)                :: deepSOM_a, deepSOM_s, deepSOM_p
-      !real, dimension(z_num), intent(inout)               :: dz ! epaisseur de chaque couche
-      !real, dimension(z_num), intent(in)                  :: D
-      real, intent(in)                                    ::  max_cryoturb_alt, min_cryoturb_alt
-      !REAL, DIMENSION(0:z_num),  INTENT(in)               :: zf_soil        !! depths of full levels (m)
-      REAL, INTENT(in)                                    :: diff_k_const
-      REAL, INTENT(in)                                    :: bio_diff_k_const
-      real, intent(in)                                    :: bioturbation_depth
-      REAL, DIMENSION(ncarb,ncarb), intent(in)            :: fc                         !! flux fractions within carbon pools
-      REAL, dimension(z_num) , INTENT(out)                :: deepSOM
-      REAL, INTENT(out)                                   :: deepSOM_tot
-      REAL, intent(in)                                    :: Fv_l !b3_l,
-      REAL, intent(in)                                    :: r_leaf_l
-      REAL, intent(in)                                    :: fracgr ! fraction of land in cell
-      REAL, intent(in)                                    :: darea ! fraction of land in cell
-      REAL                                  :: mu_soil_rev
-      real, dimension(z_num)                :: alpha_a, alpha_s, alpha_p, beta_a, beta_s, beta_p
+      real, dimension(z_num),        intent(in)    :: Temp
+      REAL,                          intent(inout) :: altmax_lastyear
+      real, dimension(z_num),        intent(inout) :: deepSOM_a, deepSOM_s, deepSOM_p
+      real,                          intent(in)    ::  max_cryoturb_alt, min_cryoturb_alt
+      REAL,                          intent(in)    :: diff_k_const
+      REAL,                          intent(in)    :: bio_diff_k_const
+      real,                          intent(in)    :: bioturbation_depth
+      REAL, DIMENSION(ncarb,ncarb),  intent(in)    :: fc                         !! flux fractions within carbon pools
+      REAL, dimension(z_num) ,       intent(out)   :: deepSOM
+      REAL,                          intent(out)   :: deepSOM_tot
+      REAL,                          intent(in)    :: Fv_l !b3_l,
+      REAL,                          intent(in)    :: r_leaf_l
+      REAL,                          intent(in)    :: fracgr ! fraction of land in cell
+      REAL,                          intent(in)    :: darea ! fraction of land in cell
+      REAL,                          intent(out)   :: mu_soil_rev
+      real, dimension(z_num),        intent(out)   :: alpha_a, alpha_s, alpha_p, beta_a, beta_s, beta_p
 
 
       !!!tbd call compute_alt(Temp, Temp_positive, altmax_lastyear, compteur_time_step, end_year, altmax_lastyear, D)
       !!!tbd  write(*,*) 'altmax_lastyear', altmax_lastyear
 
       ! redistribute carbon from biosphere model
-      call carbon_redistribute(Temp, deepSOM_a, deepSOM_s, deepSOM_p, altmax_lastyear, Fv_l/360., r_leaf_l) !Attention Fv in kg/m2/YEAR -> per day
+      call carbon_redistribute(deepSOM_a, deepSOM_s, deepSOM_p, altmax_lastyear, Fv_l/360., r_leaf_l) !Attention Fv in kg/m2/YEAR -> per day
       !call carbon_redistribute(Temp, deepSOM_a, deepSOM_s, deepSOM_p, altmax_lastyear, Fv_l/360.) !Attention Fv in kg/m2/YEAR -> per day
 
       ! computes the decomposition in permafrost as a function of temperature (later : humidity and soil type?)
@@ -121,8 +114,8 @@ contains
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !  subroutine carbon_init(deepSOM_a, deepSOM_s, deepSOM_p,  fc, ALT, b4_spat, Temp) !b3_spat,
-  subroutine carbon_init(deepSOM_a, deepSOM_s, deepSOM_p, fc, altmax_lastyear, b4_spat, Temp, deepSOM, deepSOM_tot, fracgr, darea, &
-          alpha_a, alpha_s, alpha_p, mu_soil_rev, beta_a, beta_s, beta_p)
+  subroutine carbon_init(deepSOM_a, deepSOM_s, deepSOM_p, fc, altmax_lastyear, b4_spat, deepSOM, deepSOM_tot, fracgr, darea, &
+          alpha_a, alpha_s, alpha_p, mu_soil_rev, beta_a, beta_s, beta_p) ! Temp unused dmr 2026-03-31
 
   ! initialize the carbon variables to 0
   !initialize carbon stocks with b4
@@ -132,23 +125,22 @@ contains
 
     !! carbon pools: indices
 
-    real, dimension(z_num), intent(in)                  :: Temp
-    !real, dimension(z_num), intent(inout)               :: dz ! epaisseur de chaque couche
-    real,dimension(z_num), intent(inout) :: deepSOM_a, deepSOM_s, deepSOM_p
-    REAL, DIMENSION(ncarb,ncarb), intent(out)  :: fc                         !! flux fractions within carbon pools
-    REAL, DIMENSION(ncarb)                     :: fr                         !! fraction of decomposed carbon that goes into the atmosphere
-    REAL, intent(out)                          :: altmax_lastyear ! , altmax_lastyear b3_spat,
-    REAL, intent(out)                          :: b4_spat
+!~     real, dimension(z_num),       intent(in)    :: Temp
+    real,dimension(z_num),        intent(inout) :: deepSOM_a, deepSOM_s, deepSOM_p
+    REAL, DIMENSION(ncarb,ncarb), intent(out)   :: fc                         !! flux fractions within carbon pools
+    REAL,                         intent(out)   :: altmax_lastyear ! , altmax_lastyear b3_spat,
+    REAL,                         intent(out)   :: b4_spat
+    REAL, dimension(z_num) ,      intent(out)   :: deepSOM
+    REAL,                         intent(out)   :: deepSOM_tot
+    REAL,                         intent(in)    :: fracgr ! fraction of land in cell
+    REAL,                         intent(in)    :: darea ! fraction of land in cell
+    REAL,                         intent(out)   :: mu_soil_rev
+    real, dimension(z_num),       intent(out)   :: alpha_a, alpha_s, alpha_p, beta_a, beta_s, beta_p
 
+
+
+    REAL, DIMENSION(ncarb)                      :: fr                         !! fraction of decomposed carbon that goes into the atmosphere
     REAL, PARAMETER :: clay=1.0
-
-    REAL, dimension(z_num) , INTENT(out)                :: deepSOM
-    REAL, INTENT(out)                                   :: deepSOM_tot
-    REAL, intent(in)                                    :: fracgr ! fraction of land in cell
-    REAL, intent(in)                                    :: darea ! fraction of land in cell
-    REAL                                  :: mu_soil_rev
-    real, dimension(z_num)                :: alpha_a, alpha_s, alpha_p, beta_a, beta_s, beta_p
-
 
     deepSOM_a(:) = 0.0
     deepSOM_s(:) = 0.0
@@ -196,7 +188,7 @@ contains
     f_p=0.85
 
     !write(*,*) 'b4_spat dans carbon_init', b4_spat
-    call carbon_redistribute(Temp, deepSOM_a, deepSOM_s, deepSOM_p, altmax_lastyear, b4_spat) !b4 in kgC/m2/day
+    call carbon_redistribute(deepSOM_a, deepSOM_s, deepSOM_p, altmax_lastyear, b4_spat) !b4 in kgC/m2/day
 
     deepSOM(:) = deepSOM_a(:) + deepSOM_p(:) + deepSOM_s(:)
     deepSOM_tot = sum(deepSOM(:)*dz(:))*darea*fracgr
@@ -214,7 +206,7 @@ contains
 !--------------------------
 
 !--------------------------
-  subroutine carbon_redistribute(Temp, deepSOM_a, deepSOM_s, deepSOM_p, altmax_lastyear, b4, r_leaf) ! Temp,
+  subroutine carbon_redistribute(deepSOM_a, deepSOM_s, deepSOM_p, altmax_lastyear, b4, r_leaf) ! Temp unused, dmr, 2026-03-31
   ! initialize the carbon in the active layer by redistributing carbon
   ! from litter and soil from vecode
 
@@ -222,7 +214,7 @@ contains
     use parameter_mod, only: zf_soil
     use parameter_mod, only: dz
 
-    real, dimension(z_num),intent(in)              :: Temp
+!~     real, dimension(z_num),intent(in)              :: Temp
     real,                      intent(in)          :: altmax_lastyear
     real,dimension(z_num),intent(inout)            :: deepSOM_a, deepSOM_s, deepSOM_p !soil organic matter (g /m^3 )
     real                , intent(in)               :: b4 ! Carbon in litter and soil, should be in g/m2 b3
@@ -372,7 +364,7 @@ contains
 
     logical, parameter                          :: limit_decomp_moisture = .false. ! to be changed to true if humidity in model
     real, dimension(z_num)           :: moistfunc_result
-    REAL                                        :: stomate_tau = 4.699E6 !turnover of the active pool in seconds 
+    REAL                                        :: stomate_tau = 4.699E6 !turnover of the active pool in seconds
     REAL                                        :: depth_modifier = 1.E6             !! e-folding depth of turnover rates,following Koven et al.,2013,Biogeosciences. A very large value means no depth modification
 !    REAL, DIMENSION(:), INTENT(in)           :: clay            !! clay content
     REAL                                        :: fbact_a, fbact_s, fbact_p
