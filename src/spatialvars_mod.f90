@@ -175,7 +175,9 @@
        allocate(beta_a_SV(1:z_num,1:gridNoMax))
        allocate(beta_s_SV(1:z_num,1:gridNoMax))
        allocate(beta_p_SV(1:z_num,1:gridNoMax))
+#if ( SNOW_EFFECT == 1 )
        allocate(snowlayer_depth(1:gridNoMax))
+#endif
 #endif
 
        ! OUTPUT variables
@@ -737,7 +739,9 @@
        CALL WRITE_netCDF_output(temp_mmax_SV, indx_var_tmax_ig)
        CALL WRITE_netCDF_output(ALT_SV, indx_var_palt)
        CALL WRITE_netCDF_output(freeze_depth_SV(1,:)-freeze_depth_SV(2,:), indx_var_plt)
+#if ( SNOW_EFFECT == 1 )
        CALL WRITE_netCDF_output(snowlayer_depth, indx_var_snow)
+#endif
 #if ( CARBON == 1 )
        !deepSOM_out(:,:)=deepSOM(:,:)
        CALL WRITE_netCDF_output(deepSOM, indx_var_carb)
