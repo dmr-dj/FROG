@@ -95,7 +95,8 @@
 
 
 
-     PUBLIC:: spatialvars_allocate, spatialvars_init, UPDATE_climate_forcing, DO_spatialvars_step, SET_coupled_climate_forcing
+     PUBLIC:: spatialvars_allocate, spatialvars_init, UPDATE_climate_forcing, DO_spatialvars_step, SET_coupled_climate_forcing &
+            , WRTE_spatialvars_restart
 #if ( CARBON > 0 )
      PUBLIC :: spatialvars_init_carbon
 #endif
@@ -880,5 +881,11 @@
 
      END SUBROUTINE SET_coupled_climate_forcing
 
+
+     SUBROUTINE WRTE_spatialvars_restart(restartfileID)
+
+       integer, intent(in) :: restartfileID
+
+     END SUBROUTINE WRTE_spatialvars_restart
 
     END MODULE spatialvars_mod

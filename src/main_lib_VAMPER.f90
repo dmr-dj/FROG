@@ -26,7 +26,7 @@
       PRIVATE
 
       PUBLIC :: INITIALIZE_FROG, STEPFWD_FROG, GET_COUPLING_STEP
-      PUBLIC :: INITIALIZE_FROGVARS
+      PUBLIC :: INITIALIZE_FROGVARS, WRITE_FROGRESTART
 
       INTEGER :: nb_coupling_steps
 
@@ -208,6 +208,12 @@
         call spatialvars_init_carbon
 #endif
 
+
+        !dmr --- 2026-04-01
+        !dmr     ICI AJOUTER LA LECTURE DU RESTART SI NECESSAIRE
+
+
+
         is_a_success = .TRUE.
 
 
@@ -297,5 +303,18 @@
 
      end function STEPFWD_FROG
 
+     function WRITE_FROGRESTART () result(is_a_success)
+
+        use carbon,          only: close_carbon_output
+        use spatialvars_mod, only: WRTE_spatialvars_restart
+
+        logical :: is_a_success
+
+        integer :: resfile_ID
+
+        CALL close_carbon_output()
+        CALL WRTE_spatialvars_restart(resfile_ID)
+
+     end function WRITE_FROGRESTART
 
     END MODULE main_lib_FROG
