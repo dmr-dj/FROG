@@ -26,9 +26,7 @@
       PRIVATE
 
       PUBLIC :: INITIALIZE_FROG, STEPFWD_FROG, GET_COUPLING_STEP
-#if ( CARBON > 0 )
-      PUBLIC :: INITIALIZE_CARBON_STOCK
-#endif
+      PUBLIC :: INITIALIZE_FROGVARS
 
       INTEGER :: nb_coupling_steps
 
@@ -84,7 +82,7 @@
 
        use grids_more,      only: INIT_maskGRID, nb_unmaskedp, forcing_timelength, INIT_netCDF_output
        use parameter_mod,   only: read_namelist, set_numbergridpoints, set_numberforcingsteps, t_disc, z_disc
-       use spatialvars_mod, only: spatialvars_allocate, spatialvars_init
+       use spatialvars_mod, only: spatialvars_allocate
 #if ( CARBON == 1 )
        use carbon,          only: carbon_first_init
 #endif
@@ -131,11 +129,11 @@
         ! Allocation of main variables
         call spatialvars_allocate
 
-        ! Initialization of spatial variables (2D : z_num,gridpoints)
-        ! [NOTA] spatialvars_init needs a T_init and a GeoHFlux ...
-        !        need to read them before if to be spatialized
-        !        For now [2025-04-16], fixed to constants in parameter_mod
-        call spatialvars_init
+!~         ! Initialization of spatial variables (2D : z_num,gridpoints)
+!~         ! [NOTA] spatialvars_init needs a T_init and a GeoHFlux ...
+!~         !        need to read them before if to be spatialized
+!~         !        For now [2025-04-16], fixed to constants in parameter_mod
+!~         call spatialvars_init
 
         call INIT_netCDF_output
 
@@ -145,7 +143,7 @@
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !--------------------------
-  function INITIALIZE_CARBON_STOCK(coupled_fields) result(is_a_success)
+  function INITIALIZE_FROGVARS(coupled_fields) result(is_a_success)
 
 #if (OFFLINE_RUN == 1)
        USE spatialvars_mod, ONLY: UPDATE_climate_forcing
@@ -153,7 +151,7 @@
        USE spatialvars_mod, ONLY: SET_coupled_climate_forcing
        USE grids_more, ONLY: flatten_it_3D, flatten_it
 #endif
-       use spatialvars_mod, only: spatialvars_init_carbon
+       use spatialvars_mod, only: spatialvars_init_carbon, spatialvars_init
 
 
     logical :: is_a_success
@@ -165,7 +163,12 @@
        logical         , intent(in), optional :: coupled_fields ! dummy unused
 #endif
 
-        WRITE(*,*) "EXECUTING INITIALIZE_CARBON_STOCK"
+
+        ! Initialization of spatial variables (2D : z_num,gridpoints)
+        ! [NOTA] spatialvars_init needs a T_init and a GeoHFlux ...
+        !        need to read them before if to be spatialized
+        !        For now [2025-04-16], fixed to constants in parameter_mod
+        call spatialvars_init
 
 #if (OFFLINE_RUN == 1)
         ! UPDATE_CLIMATE_FORCING
@@ -201,12 +204,14 @@
 
 #endif
 
+#if ( CARBON == 1 )
         call spatialvars_init_carbon
+#endif
 
         is_a_success = .TRUE.
 
 
-  end function INITIALIZE_CARBON_STOCK
+  end function INITIALIZE_FROGVARS
 !--------------------------
 
      function STEPFWD_FROG(coupled_fields) result(is_a_success)

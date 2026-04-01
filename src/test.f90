@@ -2,7 +2,7 @@
 
 program test
 
-  use main_lib_FROG, only: INITIALIZE_FROG, STEPFWD_FROG
+  use main_lib_FROG, only: INITIALIZE_FROG, INITIALIZE_FROGVARS, STEPFWD_FROG
 
   implicit none
 
@@ -12,7 +12,12 @@ program test
 
   well_done = INITIALIZE_FROG()
   if (well_done) then
-    WRITE(*,*) "FROG INITIALIZATION COMPLETE"
+    WRITE(*,*) "FROG GRID INITIALIZATION DONE"
+  endif
+
+  well_done = INITIALIZE_FROGVARS()
+  if (well_done) then
+    WRITE(*,*) "FROG VARS INITIALIZATION DONE"
   endif
 
   do s=1, steps

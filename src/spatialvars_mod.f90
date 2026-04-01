@@ -236,6 +236,7 @@
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
        integer :: gridp
        logical :: logic_month_day
+
 !       real    :: deepSOM_tot_init
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       MAIN BODY OF THE ROUTINE
@@ -273,28 +274,17 @@
         Tinit_SV(:) = SUM(forcing_surface_temp(:,:),DIM=2)/UBOUND(forcing_surface_temp,DIM=2)
 #endif
 
-!        deepSOM_tot_init=0.0
 
             !dmr Initialization of all columns, one by one
         do gridp = 1, gridNoMax
           call vertclvars_init(GeoHFlux(gridp), Tinit_SV(gridp), Kp(:,gridp),Cp(:,gridp), orgalayer_indx(gridp), n(:,gridp) &
                              , Temp(:,gridp), T_bottom_SV(gridp))
 
-!#if ( CARBON == 1 )
- !         ! Here we call initialisation with b4 to have correct first amount of carbon from vecode
- !         write(*,*) 'b4 in spatialvar', b4_SV(gridp)
- !         call carbon_init(deepSOM_a(:,gridp), deepSOM_s(:,gridp), deepSOM_p(:,gridp), fc_SV(:,:,gridp), ALT_SV(gridp)      &
- !                         , b4_SV(gridp), Temp(:,gridp), deepSOM(:,gridp), deepSOM_tot(gridp)                               &
- !                         , fracgr_SV(gridp), darea_SV(gridp)) !b3_SV(gridp),
- !         deepSOM_tot_init=deepSOM_tot_init+deepSOM_tot(gridp)
-!#endif
 
           compteur_tstep_SV(gridp) = init_time_cell(0,.FALSE.,.FALSE.,logic_month_day)
 
 
         enddo
-
-!        write(*,*) 'deepSOM_tot_init', deepSOM_tot_init
 
 #if ( SNOW_EFFECT == 1 )
         Temp_snow(:,:) = 0.0 !dmr simplest possible init without data ... To be fixed!
@@ -303,10 +293,6 @@
 
 #endif
 
-#if ( CARBON == 1 )
-        call spatialvars_init_carbon
-        WRITE(*,*) "ALTERNATIVE INITIALIZE CARBON"
-#endif
 
      END SUBROUTINE spatialvars_init
 
@@ -316,6 +302,7 @@
 
        use parameter_mod,  only: gridNoMax, z_num ! , timFNoMax
        use carbon        , only: carbon_init, update_orgalayer_indx
+
        integer :: gridp
        real    :: deepSOM_tot_init
 
@@ -337,7 +324,7 @@
         ! TYPOLOGIE du call: call update_orgalayer_indx(deepSOM(:,gridp),orgalayer_indx(gridp))
       !  call update_orgalayer_indx(deepSOM(:,gridp),orgalayer_indx(gridp)) !ici
 
-        write(*,*) 'deepSOM_tot_init', deepSOM_tot_init
+        write(*,*) 'deepSOM_tot_init / spatialvars_init_carbon', deepSOM_tot_init, __LINE__
 
      END SUBROUTINE spatialvars_init_carbon
 #endif
