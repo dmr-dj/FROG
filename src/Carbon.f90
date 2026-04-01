@@ -129,7 +129,7 @@ contains
     real,dimension(z_num),        intent(inout) :: deepSOM_a, deepSOM_s, deepSOM_p
     REAL, DIMENSION(ncarb,ncarb), intent(out)   :: fc                         !! flux fractions within carbon pools
     REAL,                         intent(out)   :: altmax_lastyear ! , altmax_lastyear b3_spat,
-    REAL,                         intent(out)   :: b4_spat
+    REAL,                         intent(in)    :: b4_spat
     REAL, dimension(z_num) ,      intent(out)   :: deepSOM
     REAL,                         intent(out)   :: deepSOM_tot
     REAL,                         intent(in)    :: fracgr ! fraction of land in cell
@@ -192,7 +192,7 @@ contains
 
     deepSOM(:) = deepSOM_a(:) + deepSOM_p(:) + deepSOM_s(:)
     deepSOM_tot = sum(deepSOM(:)*dz(:))*darea*fracgr
-    !write(*,*) 'deepSOM_tot in carbon_init in GtC', deepSOM_tot*1e-15
+!~     write(*,*) 'deepSOM_tot in carbon_init in GtC', deepSOM_tot*1e-15
     !write(*,*) 'deepSOM_a, s, p in carbon_init', sum(deepSOM_a(:)*dz(:))*darea*fracgr, sum(deepSOM_s(:)*dz(:))*darea*fracgr,  sum(deepSOM_p(:)*dz(:))*darea*fracgr
 
     !modify values for redistribution of carbon (this will be written on by the

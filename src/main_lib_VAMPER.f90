@@ -165,40 +165,43 @@
        logical         , intent(in), optional :: coupled_fields ! dummy unused
 #endif
 
-!~ #if (OFFLINE_RUN == 1)
-!~         ! UPDATE_CLIMATE_FORCING
-!~     CALL UPDATE_climate_forcing(nb_coupling_steps,temperature_forcing_nextsteps                                                 &
-!~ #if ( SNOW_EFFECT == 1 )
-!~                                   , snowthickness_forcing_nextsteps                                                             &
-!~ #endif
-!~                                    )
-!~ #else
-!~         ! FORCING is coming from the coupled component
-!~         if (PRESENT(coupled_fields)) then
+        WRITE(*,*) "EXECUTING INITIALIZE_CARBON_STOCK"
 
-!~     CALL SET_coupled_climate_forcing(nb_coupling_steps, temperature_forcing_nextsteps,                                          &
-!~                    coupled_temp_set = flatten_it_3D(coupled_fields%TempForc,UBOUND(coupled_fields%TempForc,dim=3))              &
-!~ #if ( CARBON == 1 )
-!~                  , b4_content = flatten_it(TRANSPOSE(coupled_fields%B4_vegForc(:,:)))                                           &
-!~                  , Fv_content = flatten_it(TRANSPOSE(coupled_fields%Fv_vegForc(:,:)))                                           &
-!~                  , r_leaf_content = flatten_it(TRANSPOSE(coupled_fields%r_leaf_vegForc(:,:)))                                   &
-!~                  , fracgr_content = flatten_it(TRANSPOSE(coupled_fields%fracgr_vegForc(:,:)))                                   &
-!~                  , darea_content = flatten_it(TRANSPOSE(coupled_fields%darea_vegForc(:,:)))                                     &
-!~ #endif
-!~ #if ( SNOW_EFFECT == 1 )
-!~                  , snowthick_forc_nxt = snowthickness_forcing_nextsteps                                                         &
-!~                  , coupled_dsnow_set  = flatten_it_3D(coupled_fields%dsnow_thick,UBOUND(coupled_fields%dsnow_thick,dim=3))      &
-!~ #endif
-!~                                           )
+#if (OFFLINE_RUN == 1)
+        ! UPDATE_CLIMATE_FORCING
+    CALL UPDATE_climate_forcing(nb_coupling_steps,temperature_forcing_nextsteps                                                 &
+#if ( SNOW_EFFECT == 1 )
+                                  , snowthickness_forcing_nextsteps                                                             &
+#endif
+                                   )
+#else
+        ! FORCING is coming from the coupled component
+        if (PRESENT(coupled_fields)) then
 
-!~ !dmr [TODO] UPDATED NEED FOR THE COUPLED CASE RE. SNOW THICKNESS !!!
+    CALL SET_coupled_climate_forcing(nb_coupling_steps, temperature_forcing_nextsteps,                                          &
+                   coupled_temp_set = flatten_it_3D(coupled_fields%TempForc,UBOUND(coupled_fields%TempForc,dim=3))              &
+#if ( CARBON == 1 )
+                 , b4_content = flatten_it(TRANSPOSE(coupled_fields%B4_vegForc(:,:)))                                           &
+                 , Fv_content = flatten_it(TRANSPOSE(coupled_fields%Fv_vegForc(:,:)))                                           &
+                 , r_leaf_content = flatten_it(TRANSPOSE(coupled_fields%r_leaf_vegForc(:,:)))                                   &
+                 , fracgr_content = flatten_it(TRANSPOSE(coupled_fields%fracgr_vegForc(:,:)))                                   &
+                 , darea_content = flatten_it(TRANSPOSE(coupled_fields%darea_vegForc(:,:)))                                     &
+#endif
+#if ( SNOW_EFFECT == 1 )
+                 , snowthick_forc_nxt = snowthickness_forcing_nextsteps                                                         &
+                 , coupled_dsnow_set  = flatten_it_3D(coupled_fields%dsnow_thick,UBOUND(coupled_fields%dsnow_thick,dim=3))      &
+#endif
+                                          )
 
-!~         else
-!~           WRITE(*,*) "[ABORT] :: we are in coupled setup, need a forcing input fields"
-!~         endif
+!dmr [TODO] UPDATED NEED FOR THE COUPLED CASE RE. SNOW THICKNESS !!!
 
-!~ #endif
-!~         call spatialvars_init_carbon
+        else
+          WRITE(*,*) "[ABORT] :: we are in coupled setup, need a forcing input fields"
+        endif
+
+#endif
+
+        call spatialvars_init_carbon
 
         is_a_success = .TRUE.
 

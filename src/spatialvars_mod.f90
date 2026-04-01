@@ -305,6 +305,7 @@
 
 #if ( CARBON == 1 )
         call spatialvars_init_carbon
+        WRITE(*,*) "ALTERNATIVE INITIALIZE CARBON"
 #endif
 
      END SUBROUTINE spatialvars_init

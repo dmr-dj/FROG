@@ -75,6 +75,7 @@
       REAL, PUBLIC    :: undefined_value
       CHARACTER(LEN=str_len) :: typology_file  ! ="file_typology-r128x64.nc"
       CHARACTER(LEN=str_len) :: netCDFout_file_base ! ="FROG-output"
+      CHARACTER(LEN=str_len) :: netCDFout_dir_base ! ="outputdata/permafrost" in coupled mode
       CHARACTER(LEN=str_len) :: netCDFout_file ! ="actual name in use, such as FROG-output000.nc"
       INTEGER         :: future_file_nb = 0
 !dmr --- / Bloc related to namelist reading for variable output generation ...
@@ -284,11 +285,12 @@
 ! dmr
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-      SUBROUTINE generate_fileName(basefilename, file_nb, extension, generatedfilename)
+      SUBROUTINE generate_fileName(basefilename, file_nb, extension, generatedfilename,dirlocationname)
 
-      CHARACTER(len=str_len), INTENT(in)  :: basefilename
-      CHARACTER(len=3)      , INTENT(in)  :: extension
-      INTEGER        ,        INTENT(in)  :: file_nb
+      CHARACTER(len=str_len), INTENT(in)            :: basefilename
+      CHARACTER(len=3)      , INTENT(in)            :: extension
+      INTEGER        ,        INTENT(in)            :: file_nb
+      CHARACTER(len=str_len), INTENT(in), OPTIONAL  :: dirlocationname
 
       CHARACTER(len=str_len), INTENT(out) :: generatedfilename
 
@@ -301,7 +303,10 @@
 
       generatedfilename = ""//TRIM(basefilename)//generatedfilennb//extension
 
-      !! WRITE(*,*) "Generated filename :: ", TRIM(generatedfilename)
+      if (PRESENT(dirlocationname)) then
+         generatedfilename=""//TRIM(dirlocationname)//"/"//TRIM(generatedfilename)
+      endif
+!~       WRITE(*,*) "Generated filename :: ", TRIM(generatedfilename)
 
       END SUBROUTINE generate_fileName
 
@@ -402,7 +407,7 @@
         CHARACTER(len=str_len), PARAMETER                         :: file_path_out ="output_namelists/frog_outputsSetup.nml"
 
         INTEGER                                                   :: rc,fu,n
-        NAMELIST /inputsGrid/ mask_file, typology_file, netCDFout_file_base
+        NAMELIST /inputsGrid/ mask_file, typology_file, netCDFout_file_base, netCDFout_dir_base
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       MAIN BODY OF THE ROUTINE
@@ -644,8 +649,11 @@
 !       MAIN BODY OF THE ROUTINE
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
+#if ( OFFLINE_RUN == 1 )
        call generate_fileName(netCDFout_file_base, future_file_nb, ".nc", netCDFout_file)
-
+#else
+       call generate_fileName(netCDFout_file_base, future_file_nb, ".nc", netCDFout_file, dirlocationname=netCDFout_dir_base)
+#endif
        ! Copy the typology file into the new output file
        command_to_copy="cp -f "//TRIM(typology_file)//" "//TRIM(netCDFout_file)
        ! debug WRITE(*,*) "COMMAND // ", TRIM(command_to_copy)
