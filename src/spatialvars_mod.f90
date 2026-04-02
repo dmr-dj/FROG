@@ -96,17 +96,11 @@
 
 
      PUBLIC:: spatialvars_allocate, spatialvars_init, UPDATE_climate_forcing, DO_spatialvars_step, SET_coupled_climate_forcing &
-            , WRTE_spatialvars_restart
+            , WRTE_spatialvars_restart, READ_spatialvars_restart
 #if ( CARBON > 0 )
      PUBLIC :: spatialvars_init_carbon
 #endif
      CONTAINS
-
-
-
-
-
-
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 ! dmr   Allocation of two dimensional variables (VERTCL, SPAT_VAR)
@@ -881,11 +875,128 @@
 
      END SUBROUTINE SET_coupled_climate_forcing
 
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+! dmr
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
      SUBROUTINE WRTE_spatialvars_restart(restartfileID)
 
        integer, intent(in) :: restartfileID
 
+       WRITE(restartfileID)  Temp            & !dmr [SPAT_VAR], soil temperature over the vertical // prognostic
+                            ,Kp              & !dmr [CNTST]     heat conductivity constant over the depth, current value is 2
+                            ,n               & !dmr [SPAT_VAR], porosity on the vertical
+                            ,Cp              & !dmr [SPAT_VAR]  specific heat capacity
+                            ,pori            & !dmr [???  TBC]
+                            ,porf            & !dmr [???  TBC]
+                            ,GeoHFlux        & !
+                            ,Tinit_SV        & !
+                            ,T_bottom_SV     & !
+                            ,freeze_depth_SV & !
+                            ,orgalayer_indx
+#if ( SNOW_EFFECT == 1 )
+       WRITE(restartfileID)  Temp_snow       & !dmr [VERTCL, SPAT_VAR] temperature in snow layers               [C]
+                            ,depth_snow_layer& !dmr [SPAT_VAR]         depth of snow in the snow layers         [m]
+                            ,nb_snow_layer   & !dmr [SPAT_VAR]         number of snow layers from discretization [1]
+                            ,snowlayer_depth !laa
+#endif
+#if ( CARBON == 1 )
+       WRITE(restartfileID)  deepSOM_a       & !dmr [TBD]
+                            ,deepSOM_s       & !dmr [TBD]
+                            ,deepSOM_p       & !dmr [TBD]
+                            ,deepSOM         & !
+                            ,fc_SV           & !
+                            ,alpha_a_SV      & !
+                            ,alpha_s_SV      & !
+                            ,alpha_p_SV      & !
+                            ,beta_a_SV       & !
+                            ,beta_s_SV       & !
+                            ,beta_p_SV       & !
+                            ,mu_soil_rev_SV  & !
+                            ,b4_SV           & !
+                            ,Fv_SV           & !
+                            ,r_leaf_SV       & !
+                            ,fracgr_SV       & !
+                            ,darea_SV        & !
+                            ,deepSOM_tot     & !
+                            ,deepSOM_tot_yr
+#endif
+
      END SUBROUTINE WRTE_spatialvars_restart
+
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+! dmr
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+     SUBROUTINE READ_spatialvars_restart()
+
+       use parameter_mod, only: frogvars_restfile
+
+       integer :: restartfileID
+       logical :: exists
+
+       INQUIRE(FILE=frogvars_restfile,exist=exists)
+
+       if (exists) then
+
+         OPEN(newunit=restartfileID,file=frogvars_restfile,status='old',form='unformatted')
+
+         READ(restartfileID) Temp            & !dmr [SPAT_VAR], soil temperature over the vertical // prognostic
+                            ,Kp              & !dmr [CNTST]     heat conductivity constant over the depth, current value is 2
+                            ,n               & !dmr [SPAT_VAR], porosity on the vertical
+                            ,Cp              & !dmr [SPAT_VAR]  specific heat capacity
+                            ,pori            & !dmr [???  TBC]
+                            ,porf            & !dmr [???  TBC]
+                            ,GeoHFlux        & !
+                            ,Tinit_SV        & !
+                            ,T_bottom_SV     & !
+                            ,freeze_depth_SV & !
+                            ,orgalayer_indx
+#if ( SNOW_EFFECT == 1 )
+         READ(restartfileID) Temp_snow       & !dmr [VERTCL, SPAT_VAR] temperature in snow layers               [C]
+                            ,depth_snow_layer& !dmr [SPAT_VAR]         depth of snow in the snow layers         [m]
+                            ,nb_snow_layer   & !dmr [SPAT_VAR]         number of snow layers from discretization [1]
+                            ,snowlayer_depth !laa
+#endif
+#if ( CARBON == 1 )
+         READ(restartfileID) deepSOM_a       & !dmr [TBD]
+                            ,deepSOM_s       & !dmr [TBD]
+                            ,deepSOM_p       & !dmr [TBD]
+                            ,deepSOM         & !
+                            ,fc_SV           & !
+                            ,alpha_a_SV      & !
+                            ,alpha_s_SV      & !
+                            ,alpha_p_SV      & !
+                            ,beta_a_SV       & !
+                            ,beta_s_SV       & !
+                            ,beta_p_SV       & !
+                            ,mu_soil_rev_SV  & !
+                            ,b4_SV           & !
+                            ,Fv_SV           & !
+                            ,r_leaf_SV       & !
+                            ,fracgr_SV       & !
+                            ,darea_SV        & !
+                            ,deepSOM_tot     & !
+                            ,deepSOM_tot_yr
+#endif
+
+        CLOSE(restartfileID)
+
+     else
+
+       WRITE(*,*) "Restart file "//frogvars_restfile//" does not exist [ABORT]"
+       STOP
+
+     endif
+
+     END SUBROUTINE READ_spatialvars_restart
+
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+! dmr
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+
 
     END MODULE spatialvars_mod

@@ -151,8 +151,8 @@
        USE spatialvars_mod, ONLY: SET_coupled_climate_forcing
        USE grids_more, ONLY: flatten_it_3D, flatten_it
 #endif
-       use spatialvars_mod, only: spatialvars_init_carbon, spatialvars_init
-
+       use spatialvars_mod, only: spatialvars_init_carbon, spatialvars_init, READ_spatialvars_restart
+       use parameter_mod, only: read_restart
 
     logical :: is_a_success
     REAL, DIMENSION(:,:), ALLOCATABLE :: temperature_forcing_nextsteps, snowthickness_forcing_nextsteps
@@ -211,8 +211,9 @@
 
         !dmr --- 2026-04-01
         !dmr     ICI AJOUTER LA LECTURE DU RESTART SI NECESSAIRE
-
-
+        if (read_restart) then
+            CALL READ_spatialvars_restart()
+        endif
 
         is_a_success = .TRUE.
 
@@ -303,18 +304,33 @@
 
      end function STEPFWD_FROG
 
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+! dmr
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
      function WRITE_FROGRESTART () result(is_a_success)
 
         use carbon,          only: close_carbon_output
         use spatialvars_mod, only: WRTE_spatialvars_restart
+        use grids_more,      only: create_restartfile
 
         logical :: is_a_success
 
-        integer :: resfile_ID
+        integer :: resfile_ID, file_nb = 0
 
         CALL close_carbon_output()
+
+        resfile_ID = create_restartfile(file_nb)
+
         CALL WRTE_spatialvars_restart(resfile_ID)
 
+        close(resfile_ID)
+
      end function WRITE_FROGRESTART
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+! dmr
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
     END MODULE main_lib_FROG

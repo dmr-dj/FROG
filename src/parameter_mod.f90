@@ -48,6 +48,7 @@ MODULE parameter_mod
   CHARACTER(len=str_len) :: GHF_variable_name
   CHARACTER(len=str_len) :: Tinit_spatial_file
   CHARACTER(len=str_len) :: Tinit_variable_name
+  CHARACTER(len=str_len) :: frogvars_restfile
 
 
   character(len=str_len) :: namerun
@@ -63,6 +64,7 @@ MODULE parameter_mod
   integer :: Bool_Organic       ! prise en compte de la couche organique ou non (1 ou 0)
   integer :: EQ_Tr             ! Equilibrum run (0) or Transient run (1) -> using different forcing Temperature and snow
   integer :: EQ1_EQ2           ! EQ1(1) initial temperature calculated with the Geothermal heat flux. EQ2 initial temperature read in a file .txt
+  logical :: read_restart
   integer :: Bool_delta        !
   integer :: Bool_glacial          ! Using glacial index to modify air temperature
 !~   integer :: Bool_layer_temp       ! Creation of .txt with the temperature of the soil at different layer
@@ -361,12 +363,12 @@ CONTAINS
 
 
     NAMELIST /inputFiles/ forc_tas_file, name_tas_variable, GHF_spatial_file, GHF_variable_name, Tinit_spatial_file    &
-                        , Tinit_variable_name
+                        , Tinit_variable_name, frogvars_restfile
 
     NAMELIST /Param/ namerun,TotTime,nb_day_per_month,nb_mon_per_year, t_fin,YearType,Bool_glacial,alpha,PorosityType, &
                      Bool_Organic,Porosity_soil,organic_depth,n_organic,n_soil_bot, q_quartz,Gfx,Bool_Snow,            &
                      Bool_Swe_Snw,Bool_Model_Snow,Bool_Bessi,s_l_max,z_num,GridType,                                   &
-                     Depth,T_init,Bool_delta,Bool_geometric, EQ_Tr, EQ1_EQ2 ! Bool_layer_temp,
+                     Depth,T_init,read_restart, Bool_delta,Bool_geometric, EQ_Tr, EQ1_EQ2 ! Bool_layer_temp,
 
     NAMELIST /Physique/ rho_snow_freeze,rho_water,rho_ice,rho_organic,rho_soil,rho_snow_fresh,C_water,C_ice,           &
             C_organic,C_dry_soil,K_other_minerals,K_quartz,K_organic,K_ice,K_fluids,T_freeze,freezing_range,           &

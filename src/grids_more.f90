@@ -112,7 +112,7 @@
       END INTERFACE WRITE_netCDF_output
 
       PUBLIC :: INIT_maskGRID, INIT_netCDF_output, indx_var_tmean_ig, indx_var_tmin_ig, indx_var_tmax_ig,           &
-                indx_var_palt, indx_var_plt, WRITE_netCDF_output
+                indx_var_palt, indx_var_plt, WRITE_netCDF_output, create_restartfile
 
       PUBLIC :: indx_var_carb, flatten_it_3D, flatten_it
       PUBLIC :: indx_var_frac, indx_var_Fv, indx_var_r_leaf
@@ -285,14 +285,50 @@
 ! dmr
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-      SUBROUTINE generate_fileName(basefilename, file_nb, extension, generatedfilename,dirlocationname)
+      FUNCTION create_restartfile(file_nb) result(fileID)
+
+      INTEGER,INTENT(in)  :: file_nb
+
+      INTEGER fileID
+      CHARACTER(len=str_len) :: restartfileName
+      INTEGER                :: fileNB
+      logical :: exists
+
+      CHARACTER(len=str_len), parameter :: genfile_name = "FROG_vars", ext_name = ".rest"
+
+      fileNB = file_nb
+      restartfileName = generate_fileName(genfile_name, fileNB, ext_name)
+      INQUIRE(FILE=restartfileName,exist=exists)
+
+      DO WHILE (exists)
+         fileNB = fileNB + 1
+         restartfileName = generate_fileName(genfile_name, fileNB, ext_name)
+         INQUIRE(FILE=restartfileName,exist=exists)
+      ENDDO
+
+      WRITE(*,*) "Creating restartfile = ", restartfileName
+      OPEN(newunit=fileID,file=restartfileName,status='new',form='unformatted')
+
+      END FUNCTION create_restartfile
+
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+! dmr
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+! dmr
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+      FUNCTION generate_fileName(basefilename, file_nb, extension, dirlocationname) result(generatedfilename)
 
       CHARACTER(len=str_len), INTENT(in)            :: basefilename
-      CHARACTER(len=3)      , INTENT(in)            :: extension
+      CHARACTER(len=5)      , INTENT(in)            :: extension
       INTEGER        ,        INTENT(in)            :: file_nb
       CHARACTER(len=str_len), INTENT(in), OPTIONAL  :: dirlocationname
 
-      CHARACTER(len=str_len), INTENT(out) :: generatedfilename
+      CHARACTER(len=str_len)                        :: generatedfilename
 
 
       ! numberof characters in the filenumber
@@ -301,14 +337,14 @@
 
       WRITE(generatedfilennb, '(I0.4)') file_nb
 
-      generatedfilename = ""//TRIM(basefilename)//generatedfilennb//extension
+      generatedfilename = ""//TRIM(basefilename)//generatedfilennb//TRIM(extension)
 
       if (PRESENT(dirlocationname)) then
          generatedfilename=""//TRIM(dirlocationname)//"/"//TRIM(generatedfilename)
       endif
 !~       WRITE(*,*) "Generated filename :: ", TRIM(generatedfilename)
 
-      END SUBROUTINE generate_fileName
+      END FUNCTION generate_fileName
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 ! dmr
@@ -635,6 +671,8 @@
 
        INTEGER :: c, indx_var
 
+       CHARACTER(len=5) :: ncExt = ".nc"
+
 
        !dmr ALLOCATE the required arrays
        if (.NOT. ALLOCATED(output_dim_len)) then
@@ -650,9 +688,9 @@
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
 #if ( OFFLINE_RUN == 1 )
-       call generate_fileName(netCDFout_file_base, future_file_nb, ".nc", netCDFout_file)
+       netCDFout_file = generate_fileName(netCDFout_file_base, future_file_nb, ncExt)
 #else
-       call generate_fileName(netCDFout_file_base, future_file_nb, ".nc", netCDFout_file, dirlocationname=netCDFout_dir_base)
+       netCDFout_file = generate_fileName(netCDFout_file_base, future_file_nb, ncExt, dirlocationname=netCDFout_dir_base)
 #endif
        ! Copy the typology file into the new output file
        command_to_copy="cp -f "//TRIM(typology_file)//" "//TRIM(netCDFout_file)

@@ -6,6 +6,7 @@
   GHF_variable_name   = "GHF_mean"
   Tinit_spatial_file  = " "
   Tinit_variable_name = " "
+  frogvars_restfile   = "FROG_vars0000.rest"
 /
 
 &Param
@@ -45,7 +46,7 @@
   GridType = 1              !(1) Log-generated, (2) Linear-generated
   Depth = 1000.0            !profondeur de la modélisation
   T_init = -7.0             !température initiale a la surface
-
+  read_restart = .FALSE.     !should I read the restart file provided?
 
 !jsp où classer ca
   Bool_delta = 0            ! inutile
