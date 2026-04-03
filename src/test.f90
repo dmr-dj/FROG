@@ -37,7 +37,7 @@ program test
     WRITE(*,*) "FROG INTEGRATION COMPLETED"
   endif
 
-  well_done = WRITE_FROGRESTART()
+  well_done = WRITE_FROGRESTART(-1)
 
 
  end program test

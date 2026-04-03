@@ -7,6 +7,7 @@
   Tinit_spatial_file  = " "
   Tinit_variable_name = " "
   frogvars_restfile   = "FROG_vars0000.rest"
+  frogvars_restdir    = "startdata"
 /
 
 &Param

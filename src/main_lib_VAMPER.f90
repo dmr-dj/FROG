@@ -309,23 +309,36 @@
 ! dmr
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-     function WRITE_FROGRESTART () result(is_a_success)
+     function WRITE_FROGRESTART (realend, filename) result(is_a_success)
 
         use carbon,          only: close_carbon_output
         use spatialvars_mod, only: WRTE_spatialvars_restart
         use grids_more,      only: create_restartfile
 
+        integer, intent(in) :: realend
+        character(len=*), intent(out), optional :: filename
+
         logical :: is_a_success
 
         integer :: resfile_ID, file_nb = 0
 
-        CALL close_carbon_output()
+        if (realend == -1) then
 
-        resfile_ID = create_restartfile(file_nb)
+          CALL close_carbon_output()
 
-        CALL WRTE_spatialvars_restart(resfile_ID)
+        else
 
-        close(resfile_ID)
+          resfile_ID = create_restartfile(file_nb)
+
+          CALL WRTE_spatialvars_restart(resfile_ID)
+
+          if (PRESENT(filename)) then
+            inquire(unit=resfile_ID, name=filename)
+          endif
+
+          close(resfile_ID)
+
+        endif
 
      end function WRITE_FROGRESTART
 

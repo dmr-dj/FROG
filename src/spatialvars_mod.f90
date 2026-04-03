@@ -931,16 +931,23 @@
 
      SUBROUTINE READ_spatialvars_restart()
 
-       use parameter_mod, only: frogvars_restfile
+       use parameter_mod, only: frogvars_restfile, frogvars_restdir, str_len
 
        integer :: restartfileID
        logical :: exists
+       character(len=str_len) :: filefullname
 
-       INQUIRE(FILE=frogvars_restfile,exist=exists)
+#if ( OFFLINE_RUN == 0)
+       filefullname = ""//TRIM(frogvars_restdir)//"/"//TRIM(frogvars_restfile)
+#else
+       filefullname = ""//TRIM(frogvars_restfile)
+#endif
+
+       INQUIRE(FILE=filefullname,exist=exists)
 
        if (exists) then
 
-         OPEN(newunit=restartfileID,file=frogvars_restfile,status='old',form='unformatted')
+         OPEN(newunit=restartfileID,file=filefullname,status='old',form='unformatted')
 
          READ(restartfileID) Temp            & !dmr [SPAT_VAR], soil temperature over the vertical // prognostic
                             ,Kp              & !dmr [CNTST]     heat conductivity constant over the depth, current value is 2
@@ -985,7 +992,7 @@
 
      else
 
-       WRITE(*,*) "Restart file "//frogvars_restfile//" does not exist [ABORT]"
+       WRITE(*,*) "Restart file "//filefullname//" does not exist [ABORT]"
        STOP
 
      endif

@@ -49,6 +49,7 @@ MODULE parameter_mod
   CHARACTER(len=str_len) :: Tinit_spatial_file
   CHARACTER(len=str_len) :: Tinit_variable_name
   CHARACTER(len=str_len) :: frogvars_restfile
+  CHARACTER(len=str_len) :: frogvars_restdir
 
 
   character(len=str_len) :: namerun
@@ -363,7 +364,7 @@ CONTAINS
 
 
     NAMELIST /inputFiles/ forc_tas_file, name_tas_variable, GHF_spatial_file, GHF_variable_name, Tinit_spatial_file    &
-                        , Tinit_variable_name, frogvars_restfile
+                        , Tinit_variable_name, frogvars_restfile, frogvars_restdir
 
     NAMELIST /Param/ namerun,TotTime,nb_day_per_month,nb_mon_per_year, t_fin,YearType,Bool_glacial,alpha,PorosityType, &
                      Bool_Organic,Porosity_soil,organic_depth,n_organic,n_soil_bot, q_quartz,Gfx,Bool_Snow,            &
