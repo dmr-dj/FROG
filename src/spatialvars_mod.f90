@@ -80,7 +80,7 @@
      real, dimension(:,:) ,allocatable           :: Temp_snow           !dmr [VERTCL, SPAT_VAR] temperature in snow layers               [C]
      real, dimension(:)   ,allocatable           :: depth_snow_layer    !dmr [SPAT_VAR]         depth of snow in the snow layers         [m]
      integer, dimension(:),allocatable           :: nb_snow_layer       !dmr [SPAT_VAR]         number of snow layers from discretization [1]
-     real, dimension(:),allocatable           :: snowlayer_depth !laa
+!~      real, dimension(:),allocatable           :: snowlayer_depth !laa
 #endif
 
 
@@ -171,7 +171,7 @@
        allocate(beta_s_SV(1:z_num,1:gridNoMax))
        allocate(beta_p_SV(1:z_num,1:gridNoMax))
 #if ( SNOW_EFFECT == 1 )
-       allocate(snowlayer_depth(1:gridNoMax))
+!~        allocate(snowlayer_depth(1:gridNoMax))
 #endif
 #endif
 
@@ -663,7 +663,6 @@
        temp_mmin_SV(:,:) = 100.0
        temp_mmax_SV(:,:) = -100.0
 
-
        ! This is where the parallelization could find place ...
 !$omp parallel
 !$omp do
@@ -689,7 +688,7 @@
 #endif
 #if ( SNOW_EFFECT == 1 )
             ! SNOW ONLY VARIABLES
-                               , snowlayer_thick_forcing = forcage_epaisseurneige,  Temp_snow_col=Temp_snow(:,gridp)          &
+                               , snowlayer_thick_forcing = forcage_epaisseurneige(gridp,:),  Temp_snow_col=Temp_snow(:,gridp) &
                                , snowlayer_depth = depth_snow_layer(gridp), snowlayer_nb = nb_snow_layer(gridp)               &
 #endif
             ! OUTPUT ONLY VARIABLES (MANDATORY PRESENCE)
@@ -723,8 +722,10 @@
        CALL WRITE_netCDF_output(ALT_SV, indx_var_palt)
        CALL WRITE_netCDF_output(freeze_depth_SV(1,:)-freeze_depth_SV(2,:), indx_var_plt)
 #if ( SNOW_EFFECT == 1 )
-       CALL WRITE_netCDF_output(snowlayer_depth, indx_var_snow)
+       CALL WRITE_netCDF_output(depth_snow_layer, indx_var_snow)
+       WRITE(*,*) "FROG ", __FILE__, __LINE__, MINVAL(depth_snow_layer), MAXVAL(depth_snow_layer)
 #endif
+
 #if ( CARBON == 1 )
        !deepSOM_out(:,:)=deepSOM(:,:)
        CALL WRITE_netCDF_output(deepSOM, indx_var_carb)
@@ -850,6 +851,7 @@
        endif
        if (PRESENT(coupled_dsnow_set)) then
          snowthick_forc_nxt(:,:) = coupled_dsnow_set(:,:)
+         WRITE(*,*) "FROG ", __FILE__, __LINE__, MINVAL(snowthick_forc_nxt), MAXVAL(snowthick_forc_nxt)
        else
          WRITE(*,*) "[ABORT] Missing forcing for dsnow in coupled mode"
        endif
@@ -897,8 +899,8 @@
 #if ( SNOW_EFFECT == 1 )
        WRITE(restartfileID)  Temp_snow       & !dmr [VERTCL, SPAT_VAR] temperature in snow layers               [C]
                             ,depth_snow_layer& !dmr [SPAT_VAR]         depth of snow in the snow layers         [m]
-                            ,nb_snow_layer   & !dmr [SPAT_VAR]         number of snow layers from discretization [1]
-                            ,snowlayer_depth !laa
+                            ,nb_snow_layer   !& !dmr [SPAT_VAR]         number of snow layers from discretization [1]
+!~                             ,snowlayer_depth !laa
 #endif
 #if ( CARBON == 1 )
        WRITE(restartfileID)  deepSOM_a       & !dmr [TBD]
@@ -963,8 +965,8 @@
 #if ( SNOW_EFFECT == 1 )
          READ(restartfileID) Temp_snow       & !dmr [VERTCL, SPAT_VAR] temperature in snow layers               [C]
                             ,depth_snow_layer& !dmr [SPAT_VAR]         depth of snow in the snow layers         [m]
-                            ,nb_snow_layer   & !dmr [SPAT_VAR]         number of snow layers from discretization [1]
-                            ,snowlayer_depth !laa
+                            ,nb_snow_layer   !& !dmr [SPAT_VAR]         number of snow layers from discretization [1]
+!~                             ,snowlayer_depth !laa
 #endif
 #if ( CARBON == 1 )
          READ(restartfileID) deepSOM_a       & !dmr [TBD]
