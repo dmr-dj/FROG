@@ -213,6 +213,7 @@ contains
     use parameter_mod, only: z_num, one_day, dt   ! z_num nombre d'horizons (couches)
     use parameter_mod, only: zf_soil
     use parameter_mod, only: dz
+    use parameter_mod, only: fraction_of_b2_in_slow
 
 !~     real, dimension(z_num),intent(in)              :: Temp
     real,                      intent(in)          :: altmax_lastyear
@@ -248,7 +249,7 @@ contains
         fraction_leaf=min(r_leaf,1.0)
         fraction_leaf=max(r_leaf,0.0)
         f_a=fraction_leaf
-        f_s=(1-fraction_leaf)*0.75
+        f_s=(1-fraction_leaf)*fraction_of_b2_in_slow
         f_p=1-(f_a+f_s)
         !f_p=0
     !else

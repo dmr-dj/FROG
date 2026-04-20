@@ -159,6 +159,7 @@ MODULE parameter_mod
     REAL, parameter :: min_stomate = 1.E-6    !! Epsilon to detect a near zero floating point (unitless)
 !~     real            :: ALT
 !~     real            :: altmax_lastyear
+    REAL :: fraction_of_b2_in_slow           !! Carbon fraction of vegetation that is to be put in the slow carbon pool
 #endif
 
 CONTAINS
@@ -377,6 +378,10 @@ CONTAINS
 
     NAMELIST /Tempdata/ Tempsolinit, Tempairmonth, Tempairday, Tempsnowmonth, Tempsnowday
 
+#if ( CARBON == 1 )
+    NAMELIST /Carbonite/ fraction_of_b2_in_slow
+#endif
+
     INQUIRE (file=file_path, iostat=rc)
 
     IF (rc /= 0) THEN
@@ -400,7 +405,11 @@ CONTAINS
     READ (nml=Tempdata, iostat=rc, unit=fu)
 
     IF (rc /= 0) WRITE (stderr, '("Error: invalid Namelist format")')
+#if ( CARBON == 1 )
+    READ (nml=Carbonite, iostat=rc, unit=fu)
 
+    IF (rc /= 0) WRITE (stderr, '("Error: invalid Namelist format")')
+#endif
     CLOSE (fu)
 
     call pretty_print_namelist
@@ -538,6 +547,10 @@ CONTAINS
     write(fo,*) adjustl(to_print), trim(Tempsnowmonth)
     write(to_print,'(a30)') "Tempsnowday"
     write(fo,*) adjustl(to_print), trim(Tempsnowday)
+#if ( CARBON == 1 )
+    write(to_print,'(a30)') "Fraction_of_b2_in_slow"
+    write(fo,*) adjustl(to_print), fraction_of_b2_in_slow
+#endif
 
     write(fo,*) "=== ************* ==="
 

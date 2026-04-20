@@ -101,7 +101,9 @@
   Tempsnowday ="Donnee/Snow_fresh_day.txt" !Snow temp par jours
 /
 
-
+&Carbonite
+  fraction_of_b2_in_slow = 0.75
+/
 
 
 
