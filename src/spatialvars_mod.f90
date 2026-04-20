@@ -296,7 +296,10 @@
      SUBROUTINE spatialvars_init_carbon ! VERTCL, SPAT_VAR
 
        use parameter_mod,  only: gridNoMax, z_num ! , timFNoMax
-       use carbon        , only: carbon_init, update_orgalayer_indx
+       use carbon        , only: carbon_init
+#if ( CARB_OM >0 )
+       use carbon        , only: update_orgalayer_indx
+#endif
 
        integer :: gridp
        real    :: deepSOM_tot_init
@@ -317,8 +320,9 @@
 
         ![NOTA] dmr&nb -> ICI manque un appel à une routine de mise à jour de l'index orgalayer_indx, via deepSOM
         ! TYPOLOGIE du call: call update_orgalayer_indx(deepSOM(:,gridp),orgalayer_indx(gridp))
-      !  call update_orgalayer_indx(deepSOM(:,gridp),orgalayer_indx(gridp)) !ici
-
+#if ( CARB_OM >0 )
+        call update_orgalayer_indx(deepSOM(:,gridp),orgalayer_indx(gridp)) !ici
+#endif
         write(*,*) 'deepSOM_tot_init / spatialvars_init_carbon', deepSOM_tot_init, __LINE__
 
      END SUBROUTINE spatialvars_init_carbon
@@ -636,7 +640,10 @@
 #if (CARBON == 1 )
         use grids_more,     only: indx_var_carb, indx_var_frac, indx_var_Fv, indx_var_r_leaf
         use grids_more,     only: indx_var_carba, indx_var_carbs,indx_var_carbp, indx_var_snow
-        use carbon,         only : update_orgalayer_indx, write_carbon_output
+        use carbon,         only : write_carbon_output
+#if ( CARB_OM >0 )
+        use carbon,         only : update_orgalayer_indx
+#endif
 #endif
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
@@ -702,7 +709,10 @@
 
           ![NOTA] dmr&nb -> ICI manque un appel à une routine de mise à jour de l'index orgalayer_indx, via deepSOM
           ! TYPOLOGIE du call: call update_orgalayer_indx(deepSOM(:,gridp),orgalayer_indx(gridp))
-         ! call update_orgalayer_indx(deepSOM(:,gridp),orgalayer_indx(gridp))
+#if ( CARB_OM >0 )
+          call update_orgalayer_indx(deepSOM(:,gridp),orgalayer_indx(gridp))
+#endif 
+
 #endif
 
        enddo

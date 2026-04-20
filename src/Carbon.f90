@@ -775,7 +775,7 @@ contains
 
   end subroutine bio_cryoturbation
 !--------------------------
-
+#if ( CARB_OM > 0 )
   subroutine update_orgalayer_indx(deepSOM, orgalayer_indx)
   ! Update of organic layer depth index depending on the max depth of carbon
   ! (deepSOM)
@@ -795,6 +795,7 @@ contains
       enddo
 
   end subroutine update_orgalayer_indx
+#endif
 !--------------------------
 
   subroutine open_carbon_output()
