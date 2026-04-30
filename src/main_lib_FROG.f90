@@ -27,6 +27,7 @@
 
       PUBLIC :: INITIALIZE_FROG, STEPFWD_FROG, GET_COUPLING_STEP
       PUBLIC :: INITIALIZE_FROGVARS, WRITE_FROGRESTART
+      PUBLIC :: FEEDBACK_FROG
 
       INTEGER :: nb_coupling_steps
 
@@ -47,7 +48,13 @@
 
       END TYPE cpl_fields
 
-      PUBLIC :: cpl_fields
+      TYPE cpl_feedback
+#if ( CARBON == 1 )
+        REAL :: deep_C_sumtot
+#endif
+      END TYPE cpl_feedback
+
+      PUBLIC :: cpl_fields, cpl_feedback
 
      contains
 
@@ -219,6 +226,37 @@
 
 
   end function INITIALIZE_FROGVARS
+!--------------------------
+
+     function FEEDBACK_FROG() result(feedback_vars_toCLIM)
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       BY REFERENCE VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       LOCAL VARIABLES
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+
+
+#if ( OFFLINE_RUN == 0 )
+       type(cpl_feedback) :: feedback_vars_toCLIM
+#else
+       logical            :: feedback_vars_toCLIM ! dummy unused
+#endif
+
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!       MAIN BODY OF THE ROUTINE
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+#if ( OFFLINE_RUN == 0 )
+#if ( CARBON == 1 )
+!~           feedback_vars_toCLIM%deep_C_sumtot = la_jolie_valeur_a_ajouter !!!
+#endif
+#endif
+
+     end function FEEDBACK_FROG
+
 !--------------------------
 
      function STEPFWD_FROG(coupled_fields) result(is_a_success)
