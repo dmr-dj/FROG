@@ -1,0 +1,7 @@
+&VAROUTPUT
+  out_var_name = "temppositnot"
+  out_unt_name = "[1]"
+  out_std_name = "number_nonfrost_days"
+  out_lng_name = "number of days without frost"
+  out_dms_name = "lev lon lat time"
+/

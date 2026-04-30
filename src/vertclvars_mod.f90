@@ -41,14 +41,14 @@
                                    , deepSOM_tot                                                                                 &
                                    , snowlayer_thick_forcing, Temp_snow_col                                                      &
                                    , snowlayer_depth, snowlayer_nb                                                               &
-                                   , Tmean_col, Tmmin_col, Tmmax_col)
+                                   , Tmean_col, Tmmin_col, Tmmax_col, temp_positive_or_not)
 
 
 
 
 
         USE parameter_mod,     ONLY: z_num ! organic_ind
-        USE parameter_mod,     ONLY: D, dt, dz
+        USE parameter_mod,     ONLY: D, dt, dz, T_freeze
         use Fonction_temp,     ONLY: diagnose_frost_Depth
         use Fonction_implicit, ONLY: Implicit_T
         use timer_mod,         ONLY: cell_time, update_time_cell
@@ -77,11 +77,11 @@
         REAL, DIMENSION(1:z_num)        , INTENT(INOUT)     :: Tmean_col
         REAL, DIMENSION(1:z_num)        , INTENT(OUT)       :: Tmmin_col
         REAL, DIMENSION(1:z_num)        , INTENT(OUT)       :: Tmmax_col
+        REAL, DIMENSION(1:z_num)        , INTENT(OUT)       :: temp_positive_or_not
         REAL                            , INTENT(inout)     :: ALT, altmax_lastyear             ! Active Layer Thickness
         TYPE(cell_time)                 , INTENT(inout)     :: compteur_time_step
         INTEGER                         , INTENT(in)        :: organic_indd                     ! index of the end of the organic layer
-!~         REAL                      , INTENT(in),    OPTIONAL :: clay
-!~         LOGICAL                   , INTENT(inout), OPTIONAL :: end_year
+
 
 #if ( CARBON == 1 )
 
@@ -139,6 +139,9 @@
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
         altmax_thisyear=0.0
+
+        !dmr --- a simple counter that count positive temperature days
+        temp_positive_or_not(:) = 0
 
         do ll=1,nb_steps_toDO !boucle temporelle / nombre de pas de temps à faire en avant
 
@@ -204,11 +207,6 @@
             snowlayer_depth = SUM(dz_snowlayers(1:nb_snowlayers),DIM=1)
             snowlayer_nb    = nb_snowlayers
 
-!~             WRITE(*,*) "STATS WITH SNOW"
-!~             WRITE(*,*) Temp_snow_col(1:nb_snowlayers)
-!~             WRITE(*,*) snowlayer_depth, snowlayer_nb
-!~             WRITE(*,*) Kp(1:nb_snowlayers)
-
             deallocate(T_old_WC)
             deallocate(dz_WC)
             deallocate(Temp_WC)
@@ -223,7 +221,7 @@
          endif
 
 
-#else
+#else /* SNOW_EFFECT  */
 
        !-------------- Numerical difference routine when there is no snow --------!
 
@@ -231,7 +229,7 @@
 
 
 
-#endif
+#endif /* SNOW_EFFECT  */
 
 
 
@@ -250,18 +248,15 @@
                           deepSOM, fc, Fv_lok, r_leaf_lok, fracgr_lok, darea_lok, deepSOM_tot,        &
                           alpha_a_lok, alpha_s_lok, alpha_p_lok,                                      &
                           mu_soil_rev_lok, beta_a_lok, beta_s_lok, beta_p_lok)
-#endif
+#endif /* CARBON */
 
          if (end_year) then
            altmax_lastyear = ALT
            ALT = altmax_thisyear
            altmax_thisyear = 0.0
-
-           !dmr [TODO] send the stored yearly temp result to the routine that prepares output
-
          endif
 
-        !dmr OUTPUT section
+        !dmr OUTPUT preparation section
 
          Tmean_col(1:z_num) = Tmean_col(1:z_num) + Temp(1:z_num) / nb_steps_toDo
          where (Temp(1:z_num) .LT. Tmmin_col(1:z_num))
@@ -269,6 +264,10 @@
          endwhere
          where (Temp(1:z_num) .GT. Tmmax_col(1:z_num))
             Tmmax_col = Temp
+         endwhere
+
+         where (Temp(1:z_num) .GT. T_freeze)
+            temp_positive_or_not = temp_positive_or_not + 1.0
          endwhere
 
         enddo ! boucle temporelle

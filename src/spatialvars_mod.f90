@@ -84,9 +84,10 @@
 #endif
 
 
-     real, dimension(:,:),allocatable            :: temp_mean_SV       !dmr placeholder for mean temperature output
-     real, dimension(:,:),allocatable            :: temp_mmin_SV       !dmr placeholder for mean temperature output
-     real, dimension(:,:),allocatable            :: temp_mmax_SV       !dmr placeholder for mean temperature output
+     real,    dimension(:,:),allocatable            :: temp_mean_SV       !dmr placeholder for mean temperature output
+     real,    dimension(:,:),allocatable            :: temp_mmin_SV       !dmr placeholder for mean temperature output
+     real,    dimension(:,:),allocatable            :: temp_mmax_SV       !dmr placeholder for mean temperature output
+     real,    dimension(:,:),allocatable            :: temppositnot       !dmr placeholder for counter of positive/negative [NOTA] stupid to have it as real, but I do not have a writing function for int
 
 !   Main Timer variable
 
@@ -180,6 +181,7 @@
        allocate(temp_mean_SV(1:z_num,1:gridNoMax)) !dmr SPAT_VAR
        allocate(temp_mmin_SV(1:z_num,1:gridNoMax)) !dmr SPAT_VAR
        allocate(temp_mmax_SV(1:z_num,1:gridNoMax)) !dmr SPAT_VAR
+       allocate(temppositnot(1:z_num,1:gridNoMax)) !dmr SPAT_VAR
 
 #if ( SNOW_EFFECT == 1)
        allocate(Temp_snow(1:max_nb_snow_layers,1:gridNoMax))    !dmr [VERTCL, SPAT_VAR] temperature in snow layers  [C]
@@ -635,7 +637,7 @@
         use parameter_mod,  only: gridNoMax
         use vertclvars_mod, only: DO_vertclvars_step
         use grids_more,     only: WRITE_netCDF_output, indx_var_tmean_ig, indx_var_tmin_ig, indx_var_tmax_ig,       &
-                                  indx_var_palt, indx_var_plt
+                                  indx_var_palt, indx_var_plt, indx_var_tposnot
 
 #if (CARBON == 1 )
         use grids_more,     only: indx_var_carb, indx_var_frac, indx_var_Fv, indx_var_r_leaf
@@ -702,6 +704,7 @@
                                , Tmean_col = temp_mean_SV(:,gridp)                                                            &
                                , Tmmin_col = temp_mmin_SV(:,gridp)                                                            &
                                , Tmmax_col = temp_mmax_SV(:,gridp)                                                            &
+                               , temp_positive_or_not = temppositnot(:,gridp)                                                 &
                                )
 
 #if ( CARBON > 0 )
@@ -729,6 +732,7 @@
        CALL WRITE_netCDF_output(temp_mean_SV, indx_var_tmean_ig)
        CALL WRITE_netCDF_output(temp_mmin_SV, indx_var_tmin_ig)
        CALL WRITE_netCDF_output(temp_mmax_SV, indx_var_tmax_ig)
+       CALL WRITE_netCDF_output(temppositnot, indx_var_tposnot)
        CALL WRITE_netCDF_output(ALT_SV, indx_var_palt)
        CALL WRITE_netCDF_output(freeze_depth_SV(1,:)-freeze_depth_SV(2,:), indx_var_plt)
 #if ( SNOW_EFFECT == 1 )
