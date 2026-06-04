@@ -99,7 +99,7 @@
      PUBLIC:: spatialvars_allocate, spatialvars_init, UPDATE_climate_forcing, DO_spatialvars_step, SET_coupled_climate_forcing &
             , WRTE_spatialvars_restart, READ_spatialvars_restart
 #if ( CARBON > 0 )
-     PUBLIC :: spatialvars_init_carbon
+     PUBLIC :: spatialvars_init_carbon, deepSOM_tot_yr
 #endif
      CONTAINS
 

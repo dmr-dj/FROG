@@ -234,6 +234,9 @@
 !       BY REFERENCE VARIABLES
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
+#if ( CARBON == 1 )
+        use spatialvars_mod, only: deepSOM_tot_yr
+#endif
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       LOCAL VARIABLES
@@ -252,6 +255,7 @@
 #if ( OFFLINE_RUN == 0 )
 #if ( CARBON == 1 )
 !~           feedback_vars_toCLIM%deep_C_sumtot = la_jolie_valeur_a_ajouter !!!
+           feedback_vars_toCLIM%deep_C_sumtot = deepSOM_tot_yr !!!
 #endif
 #endif
 
