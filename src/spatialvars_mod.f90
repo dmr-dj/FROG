@@ -639,13 +639,16 @@
         use grids_more,     only: WRITE_netCDF_output, indx_var_tmean_ig, indx_var_tmin_ig, indx_var_tmax_ig,       &
                                   indx_var_palt, indx_var_plt, indx_var_tposnot
 
-#if (CARBON == 1 )
+#if ( CARBON == 1 )
         use grids_more,     only: indx_var_carb, indx_var_frac, indx_var_Fv, indx_var_r_leaf
-        use grids_more,     only: indx_var_carba, indx_var_carbs,indx_var_carbp, indx_var_snow
+        use grids_more,     only: indx_var_carba, indx_var_carbs,indx_var_carbp
         use carbon,         only : write_carbon_output
-#if ( CARB_OM >0 )
+#if ( CARB_OM > 0 )
         use carbon,         only : update_orgalayer_indx
 #endif
+#endif
+#if ( SNOW_EFFECT )
+        use grids_more,     only: indx_var_snow
 #endif
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|

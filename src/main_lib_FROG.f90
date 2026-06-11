@@ -158,7 +158,10 @@
        USE spatialvars_mod, ONLY: SET_coupled_climate_forcing
        USE grids_more, ONLY: flatten_it_3D, flatten_it
 #endif
-       use spatialvars_mod, only: spatialvars_init_carbon, spatialvars_init, READ_spatialvars_restart
+       use spatialvars_mod, only: spatialvars_init, READ_spatialvars_restart
+#if ( CARBON > 0 )
+       use spatialvars_mod, only: spatialvars_init_carbon
+#endif
        use parameter_mod, only: read_restart
 
     logical :: is_a_success
@@ -353,7 +356,9 @@
 
      function WRITE_FROGRESTART (realend, filename) result(is_a_success)
 
+#if ( CARBON > 0 )
         use carbon,          only: close_carbon_output
+#endif
         use spatialvars_mod, only: WRTE_spatialvars_restart
         use grids_more,      only: create_restartfile
 
@@ -366,8 +371,9 @@
 
         if (realend == -1) then
 
+#if ( CARBON > 0 )
           CALL close_carbon_output()
-
+#endif
         else
 
           resfile_ID = create_restartfile(file_nb)

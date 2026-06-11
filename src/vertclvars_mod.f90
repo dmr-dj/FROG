@@ -35,12 +35,17 @@
                                                                       ! T_air should be T_air(nb_steps_toDO) exactly
                                                                       ! n is porosity in the vertical
                                                                       ! Per_depth is the diagnosed "permafrost" or freezing depth (in meters)
-                                   ALT, altmax_lastyear, compteur_time_step, organic_indd, deepSOM_a, deepSOM_s, deepSOM_p       &
+                                   ALT, altmax_lastyear, compteur_time_step, organic_indd                                        &
+#if ( CARBON > 0 )
+                                   , deepSOM_a, deepSOM_s, deepSOM_p                                                             &
                                    , deepSOM, fc,  b4_lok, Fv_lok, r_leaf_lok, fracgr_lok, darea_lok                             &
                                    , alpha_a_lok, alpha_s_lok, alpha_p_lok, mu_soil_rev_lok, beta_a_lok, beta_s_lok, beta_p_lok  &
                                    , deepSOM_tot                                                                                 &
+#endif
+#if ( SNOW_EFFECT == 1 )
                                    , snowlayer_thick_forcing, Temp_snow_col                                                      &
                                    , snowlayer_depth, snowlayer_nb                                                               &
+#endif
                                    , Tmean_col, Tmmin_col, Tmmax_col, temp_positive_or_not)
 
 
