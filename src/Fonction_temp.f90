@@ -88,7 +88,8 @@ module Fonction_temp
     use parameter_mod, only: tK_zero_C
 
     integer, intent(in) :: org_ind
-    real, dimension(z_num), intent(in) :: h_n, h_pori, h_porf, Temp
+    real, dimension(z_num-1), intent(in) :: h_n, h_pori, h_porf
+    real, dimension(z_num), intent(in) :: Temp
     real, dimension(z_num), intent(out) :: THCD_out
 
     real :: Ksoil, Kice, Kfluids
@@ -127,7 +128,6 @@ module Fonction_temp
 !~     THCD_out(1:z_num-1) = (Ther_cond(1:z_num-1)+Ther_cond(2:z_num))*0.5
     THCD_out(1:z_num-1) = Ther_cond(1:z_num-1)
     THCD_out(z_num) = 2.0
-
 
   end subroutine ThermalConductivity
 
