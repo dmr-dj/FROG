@@ -59,9 +59,12 @@ module Fonction_temp
        end if
 
        if (T(kk) < Tf) then
-
           a = - (((T(kk) - Tf) / freezing_range) ** 2.0)
-          theta = exp(a)
+          if (a.GE.log(1.E8*tiny(a))) then
+            theta = exp(a)
+          else
+            theta = 0.0
+          endif
           a = -2.0 / (freezing_range * freezing_range)
           dTheta = a * (T(kk) - Tf) * theta
           porf(kk) = n(kk) * theta
@@ -204,7 +207,7 @@ module Fonction_temp
       IF (ALL(mask_depth,dim=1)) then ! Frozen everywhere
         freeze_temp_max_min(1) = Depth_vals(z_num)
         freeze_temp_max_min(2) = Depth_vals(1)
-        freeze_temp_max_min(2) = 0.0
+        freeze_temp_max_min(3) = 0.0
 
       ELSE                            ! not frozen everywhere
 
