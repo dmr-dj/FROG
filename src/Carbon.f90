@@ -329,7 +329,6 @@ contains
        dsom_litter_z = 0.0
      endwhere
 
-     write(*,*)__LINE__ ,deepSOM_a, "rrr", f_a ,dsom_litter_z
 
      deepSOM_a(:)=deepSOM_a(:)+f_a*dsom_litter_z(:) !* dz (:)
      deepSOM_s(:)=deepSOM_s(:)+f_s*dsom_litter_z(:) !* dz (:)
