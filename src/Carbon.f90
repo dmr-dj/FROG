@@ -214,6 +214,7 @@ contains
     use parameter_mod, only: zf_soil
     use parameter_mod, only: dz
     use parameter_mod, only: fraction_of_b2_in_slow
+    use fonction_temp, only: approx_exp
 
 !~     real, dimension(z_num),intent(in)              :: Temp
     real,                      intent(in)          :: altmax_lastyear
@@ -260,7 +261,7 @@ contains
     z_lit=0.2 ! arbitrary, peut aussi dependre de la prof des racines
     intdep = max(altmax_lastyear, z_lit) !depth of integration pour l instant = ALT, peut dependre de
 !    la profondeur des racines... et ne peut etre plus petit que z_lit
-
+   ! write(*,*)"intdep fct CARB" , zf_soil ,z_lit , z_num  
     ! initialise valeur carbon dans couche active
 
     ! si couche active plus petite que les 2 premieres couches on repartit dans les 2 premieres couches
@@ -281,9 +282,12 @@ contains
 
       som_profile(:)=0.0
       do il = 1, z_num ! sur la verticale
-        som_profile(il) = 1.0 / ( 1.0 - EXP( -intdep / z_lit ) ) * &
-                        ( EXP(-zf_soil(il-1)/z_lit)  - &
-                        EXP( -zf_soil(il)/z_lit ) )
+        !som_profile(il) = 1.0 / ( 1.0 - EXP( -intdep / z_lit ) ) * &
+        !                ( EXP(-zf_soil(il-1)/z_lit)  - &
+        !                EXP( -zf_soil(il)/z_lit ) )
+        som_profile(il) = 1.0 / ( 1.0 - approx_exp( -intdep / z_lit ) ) * &
+                        ( approx_exp(-zf_soil(il-1)/z_lit)  - &
+                        approx_exp( -zf_soil(il)/z_lit ) )
       enddo
      !The above calculation should result in a som_profile of 0.9999999 which is
                    ! pretty good but not good enough to keep the mass balance
@@ -314,14 +318,19 @@ contains
      diff=dsom_litter-som_input_TS
      dsom_litter_z(1)=dsom_litter_z(1)-diff/dz(1)
      verif_som=sum(dsom_litter_z(:)* dz(:))
-     !write(*,*) 'dsom_litter, som_input_TS after, diff, dsom_litter_z', verif_som, som_input_TS, diff, dsom_litter_z
-
+    ! write(*,*) 'dsom_litter, som_input_TS after, diff, dsom_litter_z', verif_som, som_input_TS, diff, dsom_litter_z
      !deepSOM_a(:)=deepSOM_a(:)+1/3.*dsom_litter_z(:) !* dz (:)
      !deepSOM_s(:)=deepSOM_s(:)+1/3.*dsom_litter_z(:) !* dz (:)
      !deepSOM_p(:)=deepSOM_p(:)+1/3.*dsom_litter_z(:) !* dz (:)
      !deepSOM_a(:)=deepSOM_a(:)+0.01*dsom_litter_z(:) !* dz (:)
      !deepSOM_s(:)=deepSOM_s(:)+0.09*dsom_litter_z(:) !* dz (:)
      !deepSOM_p(:)=deepSOM_p(:)+0.9*dsom_litter_z(:) !* dz (:)
+     where (dsom_litter_z(:).le.(1.E5*tiny(f_a)))
+       dsom_litter_z = 0.0
+     endwhere
+
+     write(*,*)__LINE__ ,deepSOM_a, "rrr", f_a ,dsom_litter_z
+
      deepSOM_a(:)=deepSOM_a(:)+f_a*dsom_litter_z(:) !* dz (:)
      deepSOM_s(:)=deepSOM_s(:)+f_s*dsom_litter_z(:) !* dz (:)
      deepSOM_p(:)=deepSOM_p(:)+f_p*dsom_litter_z(:) !* dz (:)

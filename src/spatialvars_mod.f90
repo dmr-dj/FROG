@@ -318,14 +318,15 @@
                           , mu_soil_rev_SV(gridp), beta_a_SV(:,gridp), beta_s_SV(:,gridp), beta_p_SV(:,gridp))
 
            deepSOM_tot_init=deepSOM_tot_init+deepSOM_tot(gridp)
-        enddo
+        
 
         ![NOTA] dmr&nb -> ICI manque un appel à une routine de mise à jour de l'index orgalayer_indx, via deepSOM
         ! TYPOLOGIE du call: call update_orgalayer_indx(deepSOM(:,gridp),orgalayer_indx(gridp))
 #if ( CARB_OM >0 )
         call update_orgalayer_indx(deepSOM(:,gridp),orgalayer_indx(gridp)) !ici
 #endif
-        write(*,*) 'deepSOM_tot_init / spatialvars_init_carbon', deepSOM_tot_init, __LINE__
+       enddo   
+    !write(*,*) 'deepSOM_tot_init / spatialvars_init_carbon', deepSOM_tot_init, __LINE__
 
      END SUBROUTINE spatialvars_init_carbon
 #endif

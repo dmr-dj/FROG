@@ -26,10 +26,22 @@ module Fonction_temp
   implicit none
 
   private
-  public:: AppHeatCapacity, ThermalConductivity, diagnose_frost_Depth, AppHeatCapacitySnow, ThermalConductivitySnow
+  public:: AppHeatCapacity, ThermalConductivity, diagnose_frost_Depth, AppHeatCapacitySnow, ThermalConductivitySnow, approx_exp
 
   contains
 
+  function approx_exp(val) result (ap_exp)
+
+  real, intent(in) :: val
+  real :: ap_exp
+
+  if (val.GE.log(1.E10*tiny(val))) then
+    ap_exp = exp(val)
+  else
+    ap_exp = 0.0
+  endif
+
+  end function approx_exp
 
 
   subroutine AppHeatCapacity(z_num, T, Tf, n, org_ind, Cp, porf, pori)
@@ -60,11 +72,12 @@ module Fonction_temp
 
        if (T(kk) < Tf) then
           a = - (((T(kk) - Tf) / freezing_range) ** 2.0)
-          if (a.GE.log(1.E8*tiny(a))) then
-            theta = exp(a)
-          else
-            theta = 0.0
-          endif
+!          if (a.GE.log(1.E8*tiny(a))) then
+!            theta = exp(a)
+!          else
+!            theta = 0.0
+!          endif
+          theta = approx_exp(a)
           a = -2.0 / (freezing_range * freezing_range)
           dTheta = a * (T(kk) - Tf) * theta
           porf(kk) = n(kk) * theta
