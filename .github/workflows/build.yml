@@ -1,0 +1,235 @@
+name: build
+
+# Compile FROG across the configurations that constant.h is expected to
+# support. This catches the class of problem where a preprocessor branch
+# silently stops compiling because nobody has built that combination in
+# months -- see e.g. the `#elif ( OFFLINE == 0 )` branch in Carbon.f90,
+# which tests a macro that does not exist.
+#
+# This workflow does NOT run the model: it only checks that every supported
+# configuration still compiles and links. Adding a regression run against a
+# reference case is the natural next step (see docs/ROADMAP or the issue
+# tracker).
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:        # allows manual runs, used by the optional
+                            # Intel / NVIDIA jobs below
+
+jobs:
+
+  # ---------------------------------------------------------------------------
+  # Primary job: gfortran, every supported constant.h combination
+  # ---------------------------------------------------------------------------
+  gfortran:
+    name: "gfortran (${{ matrix.label }})"
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false      # report every broken configuration in one run,
+                            # not just the first one
+      matrix:
+        include:
+          # Reference configuration: what most offline users run
+          - label: "offline, carbon, snow"
+            carbon: 1
+            carb_om: 1
+            snow: 1
+            offline: 1
+
+          # Thermal core only -- the configuration validated for OpenMP
+          - label: "offline, no carbon, snow"
+            carbon: 0
+            carb_om: 0
+            snow: 1
+            offline: 1
+
+          # Minimal build: isolates the heat diffusion solver
+          - label: "offline, no carbon, no snow"
+            carbon: 0
+            carb_om: 0
+            snow: 0
+            offline: 1
+
+          # Carbon without the organic-layer feedback on thermal properties
+          - label: "offline, carbon, no CARB_OM"
+            carbon: 1
+            carb_om: 0
+            snow: 1
+            offline: 1
+
+          # Carbon without snow -- exercises the non-snow branch of Implicit_T
+          - label: "offline, carbon, no snow"
+            carbon: 1
+            carb_om: 1
+            snow: 0
+            offline: 1
+
+          # Coupled build. Compiles as a library only: the standalone driver
+          # test.f90 calls STEPFWD_FROG without the coupled_fields argument,
+          # so only the `libfrog.a` target is meaningful here.
+          - label: "coupled, carbon, snow (lib only)"
+            carbon: 1
+            carb_om: 1
+            snow: 1
+            offline: 0
+            libonly: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            gfortran \
+            libnetcdff-dev \
+            libnetcdf-dev \
+            liblapack-dev
+          # libnetcdf-dev is pulled in by libnetcdff-dev, but is listed
+          # explicitly: installing only libnetcdf-dev is a common mistake
+          # and leaves you without netcdf.mod.
+
+      - name: Report toolchain versions
+        run: |
+          gfortran --version | head -1
+          nf-config --version || echo "nf-config unavailable"
+
+      - name: Generate constant.h for this configuration
+        run: |
+          cat > src/constant.h <<'EOF'
+          #define DAILY 1
+          #define CARBON ${{ matrix.carbon }}
+          #define SP_GHF 0
+          #define SP_Tinit 0
+          #define OFFLINE_RUN ${{ matrix.offline }}
+          #define SNOW_EFFECT ${{ matrix.snow }}
+          #define CARB_OM ${{ matrix.carb_om }}
+          EOF
+          echo "--- constant.h ---"
+          cat src/constant.h
+
+      - name: Configure build
+        run: cp make.macros.ci make.macros
+
+      - name: Build
+        run: |
+          if [ "${{ matrix.libonly }}" = "true" ]; then
+            make MODE=production libfrog.a
+          else
+            make MODE=production
+          fi
+
+      - name: Verify artefact exists
+        run: |
+          if [ "${{ matrix.libonly }}" = "true" ]; then
+            test -f libfrog.a && echo "libfrog.a built successfully"
+            ar t libfrog.a | head -20
+          else
+            test -f FROG.x && echo "FROG.x built successfully"
+            ls -la FROG.x
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Warning audit: reference configuration built with the full warning set.
+  # Non-blocking for now (the current tree emits warnings for unused
+  # variables among other things). Flip `continue-on-error` to false once
+  # the tree is clean, to prevent regressions.
+  # ---------------------------------------------------------------------------
+  warnings:
+    name: "gfortran -Wall -Wextra (audit)"
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            gfortran libnetcdff-dev libnetcdf-dev liblapack-dev
+
+      - name: Configure build
+        run: cp make.macros.ci make.macros
+
+      - name: Build with full checking
+        run: make MODE=debug 2>&1 | tee build.log
+
+      - name: Summarise warnings
+        if: always()
+        run: |
+          echo "### Warning summary" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          grep -E "Warning:" build.log | sed 's/.*Warning: //' \
+            | sort | uniq -c | sort -rn | head -30 >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "Total warnings: $(grep -c 'Warning:' build.log || echo 0)" \
+            >> "$GITHUB_STEP_SUMMARY"
+
+  # ---------------------------------------------------------------------------
+  # Intel compiler. Manual / scheduled only: the oneAPI install is slow
+  # (several minutes) and would make every push expensive.
+  #
+  # NOTE: this targets ifx (LLVM-based). ifort classic is deprecated since
+  # 2024 and is no longer distributed in recent oneAPI releases.
+  # ---------------------------------------------------------------------------
+  intel:
+    name: "ifx (reference config)"
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install oneAPI Fortran compiler
+        run: |
+          wget -qO- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB \
+            | sudo gpg --dearmor -o /usr/share/keyrings/oneapi-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" \
+            | sudo tee /etc/apt/sources.list.d/oneAPI.list
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            intel-oneapi-compiler-fortran \
+            libnetcdff-dev libnetcdf-dev liblapack-dev
+
+      - name: Build
+        run: |
+          source /opt/intel/oneapi/setvars.sh
+          cp make.macros.ci make.macros
+          # [CHECK] ifort19.options is used as a starting point for ifx.
+          # Flag syntax is close but not identical -- a dedicated
+          # ifx.options is likely needed.
+          make COMPILER=intel-llvm MODE=production
+
+  # ---------------------------------------------------------------------------
+  # NVIDIA HPC SDK. Manual only: the SDK download is several GB.
+  # ---------------------------------------------------------------------------
+  nvidia:
+    name: "nvfortran (reference config)"
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install NVIDIA HPC SDK
+        run: |
+          curl -fsSL https://developer.download.nvidia.com/hpc-sdk/ubuntu/DEB-GPG-KEY-NVIDIA-HPC-SDK \
+            | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-hpcsdk-archive-keyring.gpg
+          echo 'deb [signed-by=/usr/share/keyrings/nvidia-hpcsdk-archive-keyring.gpg] https://developer.download.nvidia.com/hpc-sdk/ubuntu/amd64 /' \
+            | sudo tee /etc/apt/sources.list.d/nvhpc.list
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends nvhpc-25-1 \
+            libnetcdff-dev libnetcdf-dev liblapack-dev
+
+      - name: Build
+        run: |
+          export PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/25.1/compilers/bin:$PATH
+          cp make.macros.ci make.macros
+          make COMPILER=nvidia MODE=production

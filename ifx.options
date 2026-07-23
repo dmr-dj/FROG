@@ -1,0 +1,58 @@
+# Generic definitions ...
+
+F_OPTIM_HIGH  = -O2
+F_PRE_PROCESS = -cpp
+F_FLAGS_EXTD  = -132
+F_FLAGS_CARD  = -80
+F_DFLT_DBLE8  = 
+F_DFLT_REAL8  = -r8
+F_DFLT_DBLE   = $(F_DFLT_REAL8) $(F_DFLT_DBLE8)
+F_DFLT_INTG8  = -i8
+F_DFLT_INTG4  = -i4
+F_INIT_ZERO   = -zero
+F_STRCT_EIGHT = -stand f08 -free
+F_TREAT_FORTR = -Tf
+F_IMPLIC_NONE = -u
+F_SYNTAX_ONLY = -syntax-only
+
+# By default intel fortran compilers do not care about the sign of zero.
+# To have a zero signed, use -assume minus0
+F_SIGN_ZERO   = -assume nominus0
+F_REC_MARK    = -assume byterecl
+# ???
+F_HEAD_FIL    = -I
+F_MODULE_DIR  = -module
+F_MAX_ERR     =
+DIAG_DISABLE  = -diag-disable warn
+
+F_BIG_ENDIAN  = -convert big_endian
+# Could be deprecated if no commons left ...
+F_NO_ALIGN    = -noalign
+F_MEM_MODEL_M = -mcmodel=medium
+F_MEM_MODEL_L = -mcmodel=large
+F_LARGE_ARRAY =
+# Added a proper list of debug flags to track errors - should be used before commit!
+DBG_FLAGS     = -traceback -fpe0 -check noarg_temp_created -fpe-all=0 -no-ftz -traceback -ftrapuv  -check uninit -init=arrays,snan -fp-speculation=safe -check all -warn all
+# can be used for alternate DBG_FLAGS line
+
+CMP_SPECF     = -fp-model precise -gen-interface -qopt-report=0 -diag-disable 10246 -diag-disable 10212
+OPENMP        = -qopenmp -qopenmp-link=static -norecursive
+
+# OpenMP, split into compile flag and link-time library so that both can be
+# applied independently. With ifx, -qopenmp already pulls in the runtime at
+# link time, so F_OPENMP_LIB is empty -- unlike gfortran, which needs -lgomp
+# explicitly on the final link line.
+F_OPENMP      = -qopenmp
+F_OPENMP_LIB  =
+
+ifeq ($(strip $(lib_netcdff_path)),)
+LIBNETCDF     = -Wl,-rpath=${lib_netcdf_path} -L${lib_netcdf_path} -lnetcdf -lnetcdff
+INCNETCDF     = -I${inc_netcdf_path}
+else
+LIBNETCDFF    = -Wl,-rpath=${lib_netcdff_path} -L${lib_netcdff_path} -lnetcdff
+INCNETCDFF    = -I${inc_netcdff_path}
+LIBNETCDF     = -Wl,-rpath=${lib_netcdf_path} -L${lib_netcdf_path} -lnetcdf
+INCNETCDF     = -I${inc_netcdf_path}
+endif
+
+# The End of All Things (op. cit.)

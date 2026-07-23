@@ -1,0 +1,45 @@
+# Generic definitions for the NVIDIA HPC SDK Fortran compiler (nvfortran)
+#
+# [NOTA] This file was written from the nvfortran documentation and has NOT
+# been validated by an actual build. Flags marked [CHECK] should be verified
+# against the compiler version available on the target cluster before use.
+
+F_OPTIM_HIGH  = -O3
+F_PRE_PROCESS = -cpp
+F_FLAGS_EXTD  = -Mextend
+F_FLAGS_CARD  =
+F_DFLT_DBLE8  = -r8
+F_DFLT_REAL8  = -r8
+F_DFLT_DBLE   = $(F_DFLT_REAL8)
+F_DFLT_INTG8  = -i8
+F_DFLT_INTG4  = -i4
+F_INIT_ZERO   = -Msave                    # [CHECK] not a strict equivalent of
+                                          # gfortran's -finit-local-zero
+F_STRCT_EIGHT = -Mstandard
+F_TREAT_FORTR =
+F_IMPLIC_NONE = -Mdclchk
+
+F_SIGN_ZERO   =                           # [CHECK] no direct equivalent
+F_REC_MARK    =                           # [CHECK] see -Mbyteswapio for endianness
+
+F_HEAD_FIL    = -I
+F_MAX_ERR     =                           # [CHECK] nvfortran has no -fmax-errors
+DIAG_DISABLE  =
+
+# OpenMP
+F_OPENMP      = -mp
+F_OPENMP_LIB  =                           # nvfortran links its OpenMP runtime
+                                          # automatically when -mp is given
+
+F_BIG_ENDIAN  = -Mbyteswapio
+F_NO_ALIGN    =
+F_MEM_MODEL_M = -mcmodel=medium
+F_MEM_MODEL_L =
+F_LARGE_ARRAY =
+
+DBG_FLAGS     = -g -Mbounds -Mchkptr -traceback -Minform=inform
+
+CMP_SPECF     =
+OPENMP        =
+
+# The End of All Things (op. cit.)

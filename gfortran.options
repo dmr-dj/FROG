@@ -22,6 +22,12 @@ F_HEAD_FIL    = -I
 F_MAX_ERR     = -fmax-errors=5
 DIAG_DISABLE  =
 
+# OpenMP: the compile flag and the runtime library are needed separately,
+# since the library must also appear on the final link line of the executable
+# (including when FROG is linked as libfrog.a into a coupled model).
+F_OPENMP      = -fopenmp
+F_OPENMP_LIB  = -lgomp
+
 F_BIG_ENDIAN  = -fconvert='big-endian'
 # Could be deprecated if no commons left ...
 F_NO_ALIGN    = -fno-align-commons
@@ -29,10 +35,21 @@ F_MEM_MODEL_M =
 F_MEM_MODEL_L =
 F_LARGE_ARRAY =
 #
-DBG_FLAGS     = -w -g -p -ggdb -ffpe-trap=invalid,zero,overflow,underflow -fbacktrace -fcheck=all
-DBG_FLAGS     = -p -ggdb -Wall -W -Wextra -Wsurprising -pedantic -fbounds-check -fstrict-aliasing -fimplicit-none -Warray-temporaries -Wextra -fbacktrace -fcheck=all
+# [NOTA] Two DBG_FLAGS definitions were present here; in make the second
+# silently overrides the first. The unused variant is now commented out
+# rather than left as a dead assignment, so that reading this file tells
+# you what is actually in effect.
+#
+# Variant A -- FPE trapping, warnings suppressed:
+#DBG_FLAGS    = -w -g -p -ggdb -ffpe-trap=invalid,zero,overflow,underflow -fbacktrace -fcheck=all
+#
+# Variant B (ACTIVE) -- full warnings + bounds checking.
+# NB: -Wextra was listed twice; kept once.
+DBG_FLAGS     = -p -ggdb -Wall -W -Wextra -Wsurprising -pedantic -fbounds-check -fstrict-aliasing -fimplicit-none -Warray-temporaries -fbacktrace -fcheck=all
 
 CMP_SPECF     =
+# [DEPRECATED] superseded by F_OPENMP / F_OPENMP_LIB above; kept empty for
+# backward compatibility with existing make.macros files.
 OPENMP        =
 
 # The End of All Things (op. cit.)
