@@ -1,0 +1,7 @@
+&VAROUTPUT
+  out_var_name = "deepSOM_ig"
+  out_unt_name = "erer"
+  out_std_name = "mean_carbonnn"
+  out_lng_name = "mean hrehr"
+  out_dms_name = "lev lon lat time"
+/

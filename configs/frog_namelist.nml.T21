@@ -14,7 +14,7 @@
 ! Name of the experiment
   namerun = "TestiLOVECLIM" ! Name of the run
 !Time
-  TotTime = 10               !temps total en année
+  TotTime = 1               !temps total en année
   nb_day_per_month = 30     !nombre de jour dans un mois
   nb_mon_per_year = 12      !nombre de mois par an
   t_fin = 0       ! inutile
@@ -102,7 +102,7 @@
 /
 
 &Carbonite
-  fraction_of_b2_in_slow = 0.75
+  fraction_of_b2_in_slow = 0.70
 /
 
 

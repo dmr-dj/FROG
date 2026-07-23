@@ -54,21 +54,30 @@ module Fonction_temp
     real, dimension(z_num), intent(out) ::  porf, pori
     integer :: kk
     real :: dTheta, theta, a, Csoil
+!quick fixe 
+! probleme la sur l'indexation mat org et calcul Csoil écrasé 
+!    do kk = 1, z_num
+!      if (kk <= org_ind ) then ! ergo, we are in the zone where there is organic material: 1 -> org_indx
+!         Csoil = (1.0 - n(kk)) * rho_organic * C_organic
+!      else                     ! no organic material in this zone
+!         Csoil = (1.0 - n(kk)) * rho_soil * C_dry_soil
+!      end if
+!       if (kk <= 0) then
+!          Csoil=((1 - n(kk))* rho_organic * C_organic)
+!       else
+!          Csoil= 1.E6
+!       end if
 
-
-    if (org_ind > 1) then
-
-       Csoil = (1.0 - n(1)) * rho_organic * C_organic
-    else
-       Csoil = (1.0 - n(1)) * rho_soil * C_dry_soil
-    end if
     do kk = 1, z_num
-
-       if (kk <= 0) then
-          Csoil=((1 - n(kk))* rho_organic * C_organic)
+       if (kk == 1) then   ! premiere epaisseur litiere 
+          Csoil = (1.0 - n(kk)) * rho_organic * C_organic
        else
-          Csoil= 1.E6
+          ! toutes les autres couches matière minérale avec la bonne valeur 
+          Csoil = (1.0 - n(kk)) * rho_soil * C_dry_soil
        end if
+    
+
+
 
        if (T(kk) < Tf) then
           a = - (((T(kk) - Tf) / freezing_range) ** 2.0)

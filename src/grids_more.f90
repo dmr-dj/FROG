@@ -714,6 +714,8 @@
 
        output_dim_dimid(0) = unlimdimid
 
+!dmr [TODO] ici a creer : editer la variable "units" du temps pour modifier years/months/days en fonction du type d'output
+
        ALLOCATE(dimNAMES_loc(nDims))
        ALLOCATE(dimLEN_loc(nDims))
 
@@ -854,7 +856,7 @@
 
       END SUBROUTINE INIT_netCDF_output
 
-
+!dmr [TODO] ici a creer : une fonction WRITE_netCDF_output4D avec le temps (12 mois ou 360 jours)
 
       SUBROUTINE WRITE_netCDF_output3D(var_to_write, indx_var)
 
