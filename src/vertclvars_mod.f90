@@ -133,7 +133,9 @@
         REAL                     :: altmax_thisyear
 
 #if ( SNOW_EFFECT == 1 )
-        integer                  :: nb_snowlayers = 0, nb_layers_WC
+!dmr&clo no initialiser here: it would give nb_snowlayers the SAVE attribute
+!dmr&clo (cf. simple_snow) -- harmless in serial but shared between threads.
+        integer                  :: nb_snowlayers, nb_layers_WC
         real, dimension(:), allocatable :: rho_snow, dz_snowlayers
 
         real, dimension(:), allocatable :: T_old_WC, dz_WC, Temp_WC, Kp_WC
@@ -149,6 +151,10 @@
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
         altmax_thisyear=0.0
+
+#if ( SNOW_EFFECT == 1 )
+        nb_snowlayers = 0
+#endif
 
         !dmr --- a simple counter that count positive temperature days
         temp_positive_or_not(:) = 0

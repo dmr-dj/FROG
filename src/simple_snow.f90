@@ -102,8 +102,13 @@
        real, dimension(:), allocatable, intent(out) :: dz_snowlayers !! Actual thickness of the snow layers [m]
 
        ! Local variables
-       logical :: add_layer=.false.
+       !dmr [NOTA] Do NOT initialise in the declaration: that gives add_layer
+       !dmr        the SAVE attribute, leaking state between calls (and
+       !dmr        sharing it between OpenMP threads).
+       logical :: add_layer
        ! Begining of the subroutine
+
+       add_layer = .false.
 
            !dmr find what the thickness means in terms of nb of layers given the discretization above
        nb_snowlayers = get_indxby_low(depth_layer,snowlayer_thick)-1 !dmr need to remove one since index of the array starts at zero ...

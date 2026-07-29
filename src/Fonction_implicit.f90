@@ -33,6 +33,12 @@
 
         subroutine Implicit_T(z_max,z_snow, T_old,Tu,Tb,dt,dz,n,org_ind,Timp,Kp, rho_snow)
 
+         !dmr [NOTA] This routine calls sgtsv, the SINGLE precision LAPACK
+         !dmr        tridiagonal solver. FROG must therefore be built in single
+         !dmr        precision. If the working precision is ever changed (via
+         !dmr        -fdefault-real-8, or by introducing an explicit kind
+         !dmr        parameter), switch to dgtsv accordingly: passing 8-byte
+         !dmr        reals to sgtsv corrupts memory silently.
 
          use parameter_mod, only : z_num, rho_ice, Gfx, T_freeze,rho_snow_freeze,s_l_max
          use Fonction_temp, only : AppHeatCapacity, ThermalConductivity, AppHeatCapacitySnow, ThermalConductivitySnow
@@ -52,15 +58,14 @@
          real, dimension(1:z_snow), optional, intent(in) :: rho_snow !dmr density of snow per snow layer       [?]
 
          real, dimension(1:z_max) :: pori, porf, Cp_temp
-         real, dimension(1:z_max,1:z_max) :: MM
          real, dimension(1:z_max) :: Knows
          real :: m_Gfx, A, B, C, Z1
-         integer :: kk, ll, ll_soil
+         integer :: kk, ll
          real, dimension(1:z_max) :: T_last, Kp_m
          real, dimension(1:z_max) :: T_iter
          real, dimension(1:z_max) :: DD
          real, dimension(1:z_max-1) :: DL, DU
-         integer :: info_dgesv
+         integer :: info_lapack
          integer :: z_eff
 
 #if ( SNOW_EFFECT == 1 )
@@ -71,6 +76,13 @@
 
          m_Gfx = gfx/1000.0
          z_eff = z_max-z_num+1
+
+         !dmr Guard: sgtsv expects 4-byte reals. Fail loudly rather than
+         !dmr corrupting memory if the build precision ever changes.
+         if (kind(Knows) /= kind(1.0e0)) then
+           WRITE(*,*) "[ABORT] Implicit_T: sgtsv requires single precision reals, got kind =", kind(Knows)
+           STOP
+         endif
 
 
          T_last(1:z_max) = T_old(1:z_max)
@@ -84,7 +96,6 @@
 
          do kk=1,5 ! dmr --- why doing this 5 times ??
 
-           MM(1:z_max,1:z_max) = 0
            DD(1:z_max)=0
            DL(1:z_max-1)=0
            DU(1:z_max-1)=0
@@ -134,9 +145,6 @@
 
              C= 1+A+B
 
-             MM(ll,ll-1) = -A
-             MM(ll,ll) = C
-             MM(ll,ll+1) = -B
              DL(ll-1) = -A
              DU(ll) = -B
              DD(ll) = C
@@ -148,8 +156,6 @@
            C=1.0+A
            Knows(1) = Tu
            Knows(z_max)=Tb
-           MM(z_max,z_max)=1
-           MM(1,1)=1
            DD(1) = 1
            DD(z_max) = 1+A
            DL(z_max-1) = -A
@@ -198,7 +204,17 @@
 !>               completed unless i = N.
 !~ dmr [INFO] LAPACK CALL
 
-           call sgtsv(z_num,1,DL,DD,DU,Knows,z_num,info_dgesv)
+           !dmr The system spans z_max rows (snow + soil), not z_num. Using
+           !dmr z_num here left the deepest nb_snowlayers rows unsolved
+           !dmr whenever snow was present, detaching the bottom boundary
+           !dmr condition (geothermal heat flux).
+           call sgtsv(z_max,1,DL,DD,DU,Knows,z_max,info_lapack)
+
+           if (info_lapack /= 0) then
+             WRITE(*,*) "[ABORT] Implicit_T: sgtsv failed, info =", info_lapack
+             WRITE(*,*) "        z_max =", z_max, " z_snow =", z_snow
+             STOP
+           endif
 
            T_iter(1:z_max) = Knows(1:z_max)
 

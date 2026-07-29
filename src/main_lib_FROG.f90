@@ -367,7 +367,11 @@
 
         logical :: is_a_success
 
-        integer :: resfile_ID, file_nb = 0
+        integer :: resfile_ID, file_nb
+
+        !dmr [NOTA] no initialiser in the declaration: that would imply SAVE
+        file_nb      = 0
+        is_a_success = .FALSE.   !dmr result was previously never set
 
         if (realend == -1) then
 
@@ -387,6 +391,8 @@
           close(resfile_ID)
 
         endif
+
+        is_a_success = .TRUE.
 
      end function WRITE_FROGRESTART
 
