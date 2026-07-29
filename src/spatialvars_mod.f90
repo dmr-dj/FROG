@@ -212,6 +212,8 @@
            ! Temporary addendum [2025-04-16]
        use parameter_mod,  only: Gfx, T_init
        use parameter_mod,  only: forc_tas_file, name_tas_variable
+!dmr&clo --- optional snow thickness forcing for offline runs
+       use parameter_mod,  only: forc_snow_file, name_snow_variable, forcing_snow_default
 
        use parameter_mod,  only: GHF_spatial_file, GHF_variable_name, Tinit_spatial_file, Tinit_variable_name
 
@@ -233,6 +235,10 @@
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
        integer :: gridp
        logical :: logic_month_day
+#if ( OFFLINE_RUN == 1 && SNOW_EFFECT == 1 )
+!dmr&clo --- used to decide between file-based and constant snow forcing
+       logical :: snow_file_exists
+#endif
 
 !       real    :: deepSOM_tot_init
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
@@ -248,10 +254,50 @@
 #if ( OFFLINE_RUN == 1 )
         call get_clim_forcing(forc_tas_file, name_tas_variable,forcing_surface_temp)
         call fix_Kelvin_or_Celsius(forcing_surface_temp)
-!dmr --- Would need to repeat the work for get_clim_forcing to get the snow thickness ...
-!dmr [TBD] another day ... 2025-07-08
+
 #if ( SNOW_EFFECT == 1 )
-        forcing_snow_thick(:,:) = 1.5
+!dmr&clo --- Snow thickness forcing. Read from file when one is given in the
+!dmr&clo     namelist, otherwise fall back on a constant thickness, which is
+!dmr&clo     what FROG did unconditionally until now.
+!dmr&clo
+!dmr&clo     The file is checked with INQUIRE rather than left to
+!dmr&clo     get_clim_forcing: that routine does not test any of its netCDF
+!dmr&clo     return codes, so a missing file would leave forcing_snow_thick
+!dmr&clo     undefined instead of raising an error.
+
+        snow_file_exists = .FALSE.
+
+        if (LEN_TRIM(forc_snow_file) > 0) then
+          INQUIRE(file=TRIM(forc_snow_file), exist=snow_file_exists)
+          if (.NOT.snow_file_exists) then
+            WRITE(*,*) "[ABORT] spatialvars_init: snow forcing file not found:"
+            WRITE(*,*) "        ", TRIM(forc_snow_file)
+            WRITE(*,*) "        Leave forc_snow_file blank in the namelist to use"
+            WRITE(*,*) "        a constant thickness instead."
+            STOP
+          endif
+        endif
+
+        if (snow_file_exists) then
+
+          call get_clim_forcing(forc_snow_file, name_snow_variable, forcing_snow_thick)
+
+!dmr&clo --- A negative thickness is physically meaningless and would produce a
+!dmr&clo     negative number of snow layers downstream. Clip rather than abort:
+!dmr&clo     small negatives are a common artefact of interpolated forcing.
+          where (forcing_snow_thick < 0.0) forcing_snow_thick = 0.0
+
+          WRITE(*,*) "[INFO ] snow thickness read from ", TRIM(forc_snow_file)
+          WRITE(*,*) "        variable: ", TRIM(name_snow_variable),               &
+                     ", range [m]: ", MINVAL(forcing_snow_thick), MAXVAL(forcing_snow_thick)
+
+        else
+
+          forcing_snow_thick(:,:) = forcing_snow_default
+          WRITE(*,*) "[INFO ] no snow forcing file given, using constant thickness [m]: ", &
+                     forcing_snow_default
+
+        endif
 #endif
 
 #endif
@@ -390,6 +436,12 @@
 !      dmr GETTING THE VARIABLE NEEDED
 
       ret_stat = nf90_open(nc_file_to_read, nf90_nowrite, ncid)
+      if (ret_stat /= nf90_noerr) then
+        WRITE(*,*) "[ABORT] get_Spatial_2Dforcing: cannot open netCDF file:"
+        WRITE(*,*) "        ", TRIM(nc_file_to_read), " -- ", TRIM(nf90_strerror(ret_stat))
+        STOP
+      endif
+
       ret_stat = nf90_inquire(ncid, nDims, nVars, nGlobalAtts, unlimdimid)
 
       ! I look forward to get a grid with one spatial variable and two dimensions for now
@@ -534,8 +586,28 @@
 
 !      dmr GETTING THE VARIABLE NEEDED
 
+!dmr&clo --- Test the return code of nf90_open before doing anything else.
+!dmr&clo     Without this, a path that does not resolve (a common case: the
+!dmr&clo     namelist path is relative to the run directory, not the source
+!dmr&clo     tree) leaves ncid invalid; nf90_inquire then returns nDims/nVars/
+!dmr&clo     unlimdimid undefined, and the validity test below reads arbitrary
+!dmr&clo     stack values -- producing the misleading "does not match
+!dmr&clo     expectations" message on a file that is in fact well-formed.
       ret_stat = nf90_open(forc_surf_file, nf90_nowrite, ncid)
+      if (ret_stat /= nf90_noerr) then
+        WRITE(*,*) "[ABORT] get_clim_forcing: cannot open netCDF file:"
+        WRITE(*,*) "        ", TRIM(forc_surf_file)
+        WRITE(*,*) "        ", TRIM(nf90_strerror(ret_stat))
+        WRITE(*,*) "        (path is resolved relative to the run directory)"
+        STOP
+      endif
+
       ret_stat = nf90_inquire(ncid, nDims, nVars, nGlobalAtts, unlimdimid)
+      if (ret_stat /= nf90_noerr) then
+        WRITE(*,*) "[ABORT] get_clim_forcing: nf90_inquire failed on:"
+        WRITE(*,*) "        ", TRIM(forc_surf_file), " -- ", TRIM(nf90_strerror(ret_stat))
+        STOP
+      endif
 
       ! I look forward to get a grid with one spatial variable and two dimensions for now
       ! Hence I should get nDims = 3, nVars = 4 at least (could be more if more variables), unlimited with time, hence unlimdimid != -1
@@ -564,7 +636,15 @@
        ret_stat = nf90_inquire_variable(ncid, v, varNAMES(v), varXTYPE(v), varNDIMS(v), varDIMIDS(v,:), varNATTS(v))
 
       else
-         WRITE(*,*) "netCDF file for VAR does not match expectations", name_surf_variable
+!dmr&clo --- Report the actual values that failed the test, not just the
+!dmr&clo     variable name. Expected: nDims=3, nVars>=4, a time (unlimited)
+!dmr&clo     dimension.
+         WRITE(*,*) "[ABORT] get_clim_forcing: netCDF file does not match expectations"
+         WRITE(*,*) "        file     : ", TRIM(forc_surf_file)
+         WRITE(*,*) "        variable : ", TRIM(name_surf_variable)
+         WRITE(*,*) "        expected : nDims=3, nVars>=4, unlimited(time) present"
+         WRITE(*,*) "        found    : nDims=", nDims, " nVars=", nVars,             &
+                    " unlimdimid=", unlimdimid, " (-1 means no unlimited dim)"
          STOP
       endif
 

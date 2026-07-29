@@ -44,6 +44,14 @@ MODULE parameter_mod
 
   CHARACTER(len=str_len) :: forc_tas_file      ! = "tas_ewembi_1979-2016-r128x64-maskocean.nc4"
   CHARACTER(len=str_len) :: name_tas_variable  ! ="topo"
+!dmr&clo --- Snow thickness forcing for offline runs. Optional: when
+!dmr&clo     forc_snow_file is left blank (or points at a file that cannot be
+!dmr&clo     opened) spatialvars_init falls back to the constant thickness in
+!dmr&clo     forcing_snow_default, which is what FROG did unconditionally
+!dmr&clo     before this was added.
+  CHARACTER(len=str_len) :: forc_snow_file     ! = "forcing_snowthick.nc"
+  CHARACTER(len=str_len) :: name_snow_variable ! = "snowthick"
+  REAL                   :: forcing_snow_default ! [m], used when no file is given
   CHARACTER(len=str_len) :: GHF_spatial_file
   CHARACTER(len=str_len) :: GHF_variable_name
   CHARACTER(len=str_len) :: Tinit_spatial_file
@@ -365,7 +373,9 @@ CONTAINS
 
 
     NAMELIST /inputFiles/ forc_tas_file, name_tas_variable, GHF_spatial_file, GHF_variable_name, Tinit_spatial_file    &
-                        , Tinit_variable_name, frogvars_restfile, frogvars_restdir
+                        , Tinit_variable_name, frogvars_restfile, frogvars_restdir                                     &
+!dmr&clo --- optional snow forcing, see the defaults set just below
+                        , forc_snow_file, name_snow_variable, forcing_snow_default
 
     NAMELIST /Param/ namerun,TotTime,nb_day_per_month,nb_mon_per_year, t_fin,YearType,Bool_glacial,alpha,PorosityType, &
                      Bool_Organic,Porosity_soil,organic_depth,n_organic,n_soil_bot, q_quartz,Gfx,Bool_Snow,            &
@@ -388,6 +398,15 @@ CONTAINS
                 WRITE (stderr, '("Error: input file ", a, " does not exist")') file_path
                 STOP
     ENDIF
+
+!dmr&clo --- Defaults for the optional snow forcing entries. These must be set
+!dmr&clo     BEFORE the namelist is read: a namelist file written before these
+!dmr&clo     entries existed simply leaves them untouched, and without a default
+!dmr&clo     they would be used undefined. The blank filename selects the
+!dmr&clo     constant-thickness fallback.
+    forc_snow_file       = " "
+    name_snow_variable   = "snowthick"
+    forcing_snow_default = 1.5   !dmr&clo [m] historical hard-coded value
 
     ! Open and read Namelist file.
     OPEN (action='read', file=file_path, iostat=rc, newunit=fu)
@@ -439,6 +458,17 @@ CONTAINS
     write(fo,*) adjustl(to_print), trim(forc_tas_file)
     write(to_print,'(a30)') "name_tas_variable"
     write(fo,*) adjustl(to_print), trim(name_tas_variable)
+!dmr&clo --- snow forcing, offline runs only
+    write(to_print,'(a30)') "forc_snow_file"
+    if (LEN_TRIM(forc_snow_file) > 0) then
+      write(fo,*) adjustl(to_print), trim(forc_snow_file)
+    else
+      write(fo,*) adjustl(to_print), "(none: constant thickness used)"
+    endif
+    write(to_print,'(a30)') "name_snow_variable"
+    write(fo,*) adjustl(to_print), trim(name_snow_variable)
+    write(to_print,'(a30)') "forcing_snow_default"
+    write(fo,*) adjustl(to_print), forcing_snow_default
     write(to_print,'(a30)') "namerun"
     write(fo,*) adjustl(to_print), trim(namerun)
     write(to_print,'(a30)') "TotTime"

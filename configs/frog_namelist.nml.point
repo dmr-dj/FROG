@@ -1,11 +1,18 @@
 ! mbv  Namelist parametres 
 &inputFiles
-  forc_tas_file       = "Input_Data/point_Boike/Boikedata_lonlat.nc"
-  name_tas_variable   = "tas"
+  forc_tas_file        = "Input_Data/point_Bayelva/forcing_tas.nc"
+  name_tas_variable    = "tas"
+!dmr&clo --- new, optional
+  forc_snow_file       = "Input_Data/point_Bayelva/forcing_snowthick.nc"
+  name_snow_variable   = "snowthick"
+  forcing_snow_default = 1.5
+!dmr&clo --- end new
   GHF_spatial_file    = " "
   GHF_variable_name   = "GHF_mean"
   Tinit_spatial_file  = " "
   Tinit_variable_name = "topo"
+  frogvars_restfile   = "FROG_vars0000.rest"
+  frogvars_restdir    = "startdata"
 /
 
 &Param
@@ -45,7 +52,7 @@
   GridType = 1              !(1) Log-generated, (2) Linear-generated 
   Depth = 1000.0            !profondeur de la modélisation
   T_init = -7.0             !température initiale a la surface
-
+  read_restart = .FALSE.     !should I read the restart file provided?
 
 !jsp où classer ca 
   Bool_delta = 0            ! inutile 
@@ -99,7 +106,9 @@
   Tempsnowday ="Donnee/Snow_fresh_day.txt" !Snow temp par jours 
 /
 
-
+&Carbonite
+  fraction_of_b2_in_slow = 0.70
+/
 
 
 

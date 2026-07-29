@@ -109,10 +109,15 @@
 #endif
 
           ! SNOW VARIABLES
+!dmr&clo [NOTA] These must be guarded exactly like the argument list above:
+!dmr&clo        with SNOW_EFFECT == 0 they are not dummy arguments, and
+!dmr&clo        declaring INTENT on them is an error.
+#if ( SNOW_EFFECT == 1 )
         REAL, DIMENSION(1:nb_steps_toDO), OPTIONAL,       INTENT(in)     :: snowlayer_thick_forcing !! a time series of the snowlayer thickness [m]
         REAL, DIMENSION(:)              , OPTIONAL,       INTENT(inout)  :: Temp_snow_col   !! Snow temperature, whole column (max_nb_snow_layers)
         INTEGER                         , OPTIONAL,       INTENT(inout)  :: snowlayer_nb    !! Nb of active snow layers
         REAL                            , OPTIONAL,       INTENT(inout)  :: snowlayer_depth !! Thickness of snow layers
+#endif
 
 
 
