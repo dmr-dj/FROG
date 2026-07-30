@@ -443,6 +443,10 @@
       endif
 
       ret_stat = nf90_inquire(ncid, nDims, nVars, nGlobalAtts, unlimdimid)
+      if (ret_stat /= nf90_noerr) then
+        WRITE(*,*) "[ABORT] get_Spatial_2Dforcing: nf90_inquire failed", TRIM(nf90_strerror(ret_stat))
+        STOP
+      endif
 
       ! I look forward to get a grid with one spatial variable and two dimensions for now
       ! Hence I should get nDims = 3, nVars = 4 at least (could be more if more variables), unlimited without time, hence unlimdimid == -1
@@ -455,12 +459,23 @@
 
        DO d=1,nDims
          ret_stat = nf90_inquire_dimension(ncid, d, dimNAMES(d), dimLEN(d))
+         if (ret_stat /= nf90_noerr) STOP "[ABORT] nf90_inquire_dimension failed"
 !~          WRITE(*,*) "Found dimensions ::", dimNAMES(d), d
        ENDDO
 
        ! really only need the length of the unlimited (time) variable
 
        ret_stat = nf90_inq_varid(ncid,name_surf_variable,v)
+!dmr&clo --- Test this: if the variable name is not in the file, nf90_inq_varid
+!dmr&clo     fails and v is left undefined. The v.NE.0 test further down does
+!dmr&clo     not protect, since v was never set to 0, and v is used as an array
+!dmr&clo     index (varNAMES(v)) before that test is reached.
+       if (ret_stat /= nf90_noerr) then
+         WRITE(*,*) "[ABORT] variable not found in netCDF file:"
+         WRITE(*,*) "        variable: ", TRIM(name_surf_variable)
+         WRITE(*,*) "        ", TRIM(nf90_strerror(ret_stat))
+         STOP
+       endif
 
        ALLOCATE(varNAMES(nVars))
        ALLOCATE(varXTYPE(nVars))
@@ -470,6 +485,7 @@
        ALLOCATE(varisDIM(nVars))
 
        ret_stat = nf90_inquire_variable(ncid, v, varNAMES(v), varXTYPE(v), varNDIMS(v), varDIMIDS(v,:), varNATTS(v))
+       if (ret_stat /= nf90_noerr) STOP "[ABORT] nf90_inquire_variable failed"
 
       else
          WRITE(*,*) "netCDF file for VAR does not match expectations", name_surf_variable
@@ -619,12 +635,23 @@
 
        DO d=1,nDims
          ret_stat = nf90_inquire_dimension(ncid, d, dimNAMES(d), dimLEN(d))
+         if (ret_stat /= nf90_noerr) STOP "[ABORT] nf90_inquire_dimension failed"
 !~          WRITE(*,*) "Found dimensions ::", dimNAMES(d), d
        ENDDO
 
        ! really only need the length of the unlimited (time) variable
 
        ret_stat = nf90_inq_varid(ncid,name_surf_variable,v)
+!dmr&clo --- Test this: if the variable name is not in the file, nf90_inq_varid
+!dmr&clo     fails and v is left undefined. The v.NE.0 test further down does
+!dmr&clo     not protect, since v was never set to 0, and v is used as an array
+!dmr&clo     index (varNAMES(v)) before that test is reached.
+       if (ret_stat /= nf90_noerr) then
+         WRITE(*,*) "[ABORT] variable not found in netCDF file:"
+         WRITE(*,*) "        variable: ", TRIM(name_surf_variable)
+         WRITE(*,*) "        ", TRIM(nf90_strerror(ret_stat))
+         STOP
+       endif
 
        ALLOCATE(varNAMES(nVars))
        ALLOCATE(varXTYPE(nVars))
@@ -634,6 +661,7 @@
        ALLOCATE(varisDIM(nVars))
 
        ret_stat = nf90_inquire_variable(ncid, v, varNAMES(v), varXTYPE(v), varNDIMS(v), varDIMIDS(v,:), varNATTS(v))
+       if (ret_stat /= nf90_noerr) STOP "[ABORT] nf90_inquire_variable failed"
 
       else
 !dmr&clo --- Report the actual values that failed the test, not just the

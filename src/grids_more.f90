@@ -26,6 +26,8 @@
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
       use, intrinsic :: iso_fortran_env, only: stdin=>input_unit, stdout=>output_unit, stderr=>error_unit
+!dmr&clo --- shared namelist-read error handler, defined once in parameter_mod
+      use parameter_mod, only: check_nml_read
 
       IMPLICIT NONE
 
@@ -245,11 +247,13 @@
 
       ! Open and read Namelist file.
       OPEN (action='read', file=file_path, iostat=rc, newunit=fu)
-      IF (rc /= 0) WRITE (stderr, '("Error: Cannot open namelist file")')
-      write(*,*) file_path
+      IF (rc /= 0) THEN
+         WRITE (stderr, '("Error: cannot open namelist file: ", a)') TRIM(file_path)
+         STOP
+      ENDIF
 
       READ (nml=outputDimSetup_1, iostat=rc, unit=fu)
-      IF (rc /= 0) WRITE (stderr, '("Error: invalid Namelist format")')
+      call check_nml_read(rc, "outputDimSetup_1", file_path)
 
       if ( output_aktiv ) then
 
@@ -263,10 +267,10 @@
         ALLOCATE(output_dms_names(nb_out_vars))
 
         READ (nml=outputDimSetup_2, iostat=rc, unit=fu)
-        IF (rc /= 0) WRITE (stderr, '("Error: invalid Namelist format")')
+        call check_nml_read(rc, "outputDimSetup_2", file_path)
 
         READ (nml=outputDimSetup_3, iostat=rc, unit=fu)
-        IF (rc /= 0) WRITE (stderr, '("Error: invalid Namelist format")')
+        call check_nml_read(rc, "outputDimSetup_3", file_path)
 
       endif
 
@@ -386,7 +390,7 @@
       IF (rc /= 0) WRITE (stderr, '("Error: Cannot open namelist file")')
 
       READ (nml=VAROUTPUT, iostat=rc, unit=fu)
-      IF (rc /= 0) WRITE (stderr, '("Error: invalid Namelist format")')
+      call check_nml_read(rc, "VAROUTPUT", file_path)
 
       CLOSE (fu)
 
@@ -471,7 +475,7 @@
       write (*,*) file_path_inp
 
       READ (nml=inputsGrid, iostat=rc, unit=fu)
-      IF (rc /= 0) WRITE (stderr, '("Error: invalid Namelist format")')
+      call check_nml_read(rc, "inputsGrid", file_path_inp)
 
       CLOSE (fu)
 

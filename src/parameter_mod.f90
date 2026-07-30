@@ -409,31 +409,64 @@ CONTAINS
     forcing_snow_default = 1.5   !dmr&clo [m] historical hard-coded value
 
     ! Open and read Namelist file.
+!dmr&clo --- Each READ must be checked on the rc it produces, and the failure
+!dmr&clo     must stop the run. The previous version tested rc BEFORE the READ
+!dmr&clo     that sets it (so every check reported the previous operation), and
+!dmr&clo     never called STOP -- a typo in the file continued with undefined
+!dmr&clo     variables and crashed far away. check_nml_read below names the
+!dmr&clo     offending group and file, then stops.
     OPEN (action='read', file=file_path, iostat=rc, newunit=fu)
+    IF (rc /= 0) THEN
+       WRITE (stderr, '("Error: cannot open namelist file: ", a)') TRIM(file_path)
+       STOP
+    ENDIF
 
-    IF (rc /= 0) WRITE (stderr, '("Error: invalid Namelist format")')
     READ (nml=inputFiles, iostat=rc, unit=fu)
+    call check_nml_read(rc, "inputFiles", file_path)
 
-    IF (rc /= 0) WRITE (stderr, '("Error: invalid Namelist format")')
     READ (nml=Param, iostat=rc, unit=fu)
+    call check_nml_read(rc, "Param", file_path)
 
-    IF (rc /= 0) WRITE (stderr, '("Error: invalid Namelist format")')
     READ (nml=Physique, iostat=rc, unit=fu)
+    call check_nml_read(rc, "Physique", file_path)
 
-    IF (rc /= 0) WRITE (stderr, '("Error: invalid Namelist format")')
     READ (nml=Tempdata, iostat=rc, unit=fu)
+    call check_nml_read(rc, "Tempdata", file_path)
 
-    IF (rc /= 0) WRITE (stderr, '("Error: invalid Namelist format")')
 #if ( CARBON == 1 )
     READ (nml=Carbonite, iostat=rc, unit=fu)
-
-    IF (rc /= 0) WRITE (stderr, '("Error: invalid Namelist format")')
+    call check_nml_read(rc, "Carbonite", file_path)
 #endif
+
     CLOSE (fu)
 
     call pretty_print_namelist
 
   end subroutine read_namelist
+
+
+!dmr&clo -----------------------------------------------------------------------
+!dmr&clo   check_nml_read -- report a failed namelist READ and stop.
+!dmr&clo
+!dmr&clo   A non-zero iostat on a namelist READ almost always means a stray or
+!dmr&clo   misspelled variable name in the file (an unknown name in a group is
+!dmr&clo   rejected), or a group missing entirely. Naming the group and the
+!dmr&clo   file turns an opaque failure into an actionable one.
+!dmr&clo -----------------------------------------------------------------------
+  subroutine check_nml_read(iostat_code, group_name, nml_file)
+
+    integer,          intent(in) :: iostat_code
+    character(len=*), intent(in) :: group_name, nml_file
+
+    if (iostat_code /= 0) then
+       WRITE (stderr, '("Error: failed to read namelist group &", a)') TRIM(group_name)
+       WRITE (stderr, '("       from file: ", a)') TRIM(nml_file)
+       WRITE (stderr, '("       iostat = ", i0, ". Likely a misspelled or stray")') iostat_code
+       WRITE (stderr, '("       variable name in that group, or the group is absent.")')
+       STOP
+    endif
+
+  end subroutine check_nml_read
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
