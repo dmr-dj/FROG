@@ -121,7 +121,7 @@
       PUBLIC :: indx_var_frac, indx_var_Fv, indx_var_r_leaf
       PUBLIC :: indx_var_carba, indx_var_carbs, indx_var_carbp
       PUBLIC :: indx_var_snow, indx_var_tposnot
-
+      PUBLIC :: netCDF_init_output_from_mask
 
       CONTAINS
 ! ---
@@ -665,7 +665,6 @@
 !       LOCAL VARIABLES
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-       CHARACTER(len=str_len) :: command_to_copy ! ="cp -f "//TRIM(typology_file)//" "//TRIM(netCDFout_file)
 
        INTEGER :: ncid, nDims, nvars, nGlobalAtts, unlimdimid, d, n, depth_varid
 
@@ -697,10 +696,11 @@
 #else
        netCDFout_file = generate_fileName(netCDFout_file_base, future_file_nb, ncExt, dirlocationname=netCDFout_dir_base)
 #endif
-       ! Copy the typology file into the new output file
-       command_to_copy="cp -f "//TRIM(typology_file)//" "//TRIM(netCDFout_file)
-       ! debug WRITE(*,*) "COMMAND // ", TRIM(command_to_copy)
-       call execute_command_line(TRIM(command_to_copy))
+!dmr&clo --- Build the output grid directly from the mask, replacing the old
+!dmr&clo     "cp -f typology_file output_file" (unchecked return, shell
+!dmr&clo     dependency, redundant typology file). See
+!dmr&clo     netCDF_init_output_from_mask above.
+       call netCDF_init_output_from_mask(mask_file, netCDFout_file)
 
        ! Now need to check and define the dimension if needed (levels for sure)
 
@@ -976,6 +976,210 @@
         endif
 
       END SUBROUTINE handle_err
+
+
+!dmr&clo -----------------------------------------------------------------------
+!dmr&clo   netCDF_init_output_from_mask
+!dmr&clo
+!dmr&clo   Create a fresh output netCDF file whose grid (dimensions + coordinate
+!dmr&clo   variables lat/lon/time, with their attributes and values) is
+!dmr&clo   replicated from the mask file.
+!dmr&clo
+!dmr&clo   This replaces the previous approach, which shelled out to
+!dmr&clo   "cp -f typology_file output_file". That had three problems: the
+!dmr&clo   return code of cp was never checked (a failure surfaced later as an
+!dmr&clo   opaque nf90_open error); it depended on a POSIX shell; and it
+!dmr&clo   required the user to supply a separate typology file that was really
+!dmr&clo   just the mask with the data variable stripped and time reduced --
+!dmr&clo   a redundancy with no consistency guarantee. Building the output grid
+!dmr&clo   directly from the mask removes all three.
+!dmr&clo
+!dmr&clo   What is replicated:
+!dmr&clo     - every dimension of the mask (time is recreated UNLIMITED);
+!dmr&clo     - the coordinate variables only, i.e. variables whose name equals
+!dmr&clo       a dimension name (lat(lat), lon(lon), time(time)); their
+!dmr&clo       attributes and values are copied.
+!dmr&clo   What is deliberately NOT replicated:
+!dmr&clo     - the data variable of the mask (e.g. tas(time,lat,lon)); the
+!dmr&clo       output file gets its own variables added later by
+!dmr&clo       INIT_netCDF_output.
+!dmr&clo
+!dmr&clo   The file is left CLOSED. INIT_netCDF_output reopens it in NF90_WRITE,
+!dmr&clo   exactly as it did with the copied file.
+!dmr&clo -----------------------------------------------------------------------
+      SUBROUTINE netCDF_init_output_from_mask(mask_filename, out_filename)
+
+        USE netcdf
+
+        CHARACTER(len=*), INTENT(IN) :: mask_filename, out_filename
+
+        INTEGER :: ncid_in, ncid_out
+        INTEGER :: nDims, nVars, nGlobalAtts, unlimdimid
+        INTEGER :: d, v, a, xtype, vndims, vnatts
+        INTEGER :: dlen, dimid_out, varid_in, varid_out
+        INTEGER, DIMENSION(:), ALLOCATABLE :: vdimids, dimid_map
+        CHARACTER(len=NF90_MAX_NAME) :: dname, vname, aname
+
+        !dmr&clo --- coordinate variable values are read/written as the two
+        !dmr&clo     types actually used in the mask files (float coords,
+        !dmr&clo     double time). Anything else is copied structurally but
+        !dmr&clo     without values, with a warning.
+        REAL,    DIMENSION(:), ALLOCATABLE :: rvals
+        REAL(8), DIMENSION(:), ALLOCATABLE :: dvals
+
+        LOGICAL :: is_coordinate
+
+        !dmr&clo --- OPEN THE MASK (read only) --------------------------------
+        call handle_err( nf90_open(TRIM(mask_filename), NF90_NOWRITE, ncid_in), __LINE__ )
+        call handle_err( nf90_inquire(ncid_in, nDims, nVars, nGlobalAtts, unlimdimid), __LINE__ )
+
+        !dmr&clo --- CREATE THE OUTPUT FILE -----------------------------------
+        call handle_err( nf90_create(TRIM(out_filename), NF90_CLOBBER, ncid_out), __LINE__ )
+
+        !dmr&clo dimid_map(d_in) -> dimid_out, so coordinate variables can be
+        !dmr&clo redefined against the output file's dimension ids.
+        ALLOCATE(dimid_map(nDims))
+
+        !dmr&clo --- REPLICATE DIMENSIONS ----------------------------------
+        DO d = 1, nDims
+          call handle_err( nf90_inquire_dimension(ncid_in, d, dname, dlen), __LINE__ )
+          if (d == unlimdimid) then
+            call handle_err( nf90_def_dim(ncid_out, TRIM(dname), NF90_UNLIMITED, dimid_out), __LINE__ )
+          else
+            call handle_err( nf90_def_dim(ncid_out, TRIM(dname), dlen, dimid_out), __LINE__ )
+          endif
+          dimid_map(d) = dimid_out
+        ENDDO
+
+        !dmr&clo --- COPY GLOBAL ATTRIBUTES --------------------------------
+        !dmr&clo Inherit whatever the mask carried, then add FROG's own. Any
+        !dmr&clo name clash (e.g. history) is overwritten by the FROG value
+        !dmr&clo below, which is the intended behaviour.
+        DO a = 1, nGlobalAtts
+          call handle_err( nf90_inq_attname(ncid_in, NF90_GLOBAL, a, aname), __LINE__ )
+          call handle_err( nf90_copy_att(ncid_in, NF90_GLOBAL, TRIM(aname), ncid_out, NF90_GLOBAL), __LINE__ )
+        ENDDO
+
+        !dmr&clo --- FROG GLOBAL ATTRIBUTES ---------------------------------
+        !dmr&clo A small, CF-flavoured set of provenance attributes. The values
+        !dmr&clo marked "EDIT:" are placeholders meant to be changed per run or
+        !dmr&clo per institution -- ideally promoted to namelist entries later
+        !dmr&clo so they need not be edited in the source. The date is filled
+        !dmr&clo automatically.
+        call write_frog_global_atts(ncid_out, TRIM(mask_filename))
+
+        !dmr&clo --- DEFINE COORDINATE VARIABLES ONLY ------------------------
+        DO v = 1, nVars
+          call handle_err( nf90_inquire_variable(ncid_in, v, vname, xtype, vndims, nAtts=vnatts), __LINE__ )
+
+          !dmr&clo A coordinate variable is 1-D and named like its dimension.
+          is_coordinate = .FALSE.
+          if (vndims == 1) then
+            ALLOCATE(vdimids(1))
+            call handle_err( nf90_inquire_variable(ncid_in, v, dimids=vdimids), __LINE__ )
+            call handle_err( nf90_inquire_dimension(ncid_in, vdimids(1), dname), __LINE__ )
+            if (TRIM(dname) == TRIM(vname)) is_coordinate = .TRUE.
+            DEALLOCATE(vdimids)
+          endif
+
+          if (.NOT. is_coordinate) cycle   !dmr&clo skip data variables (e.g. tas)
+
+          !dmr&clo redefine the coordinate against the OUTPUT dimension id
+          call handle_err( nf90_inq_dimid(ncid_out, TRIM(vname), dimid_out), __LINE__ )
+          call handle_err( nf90_def_var(ncid_out, TRIM(vname), xtype, (/ dimid_out /), varid_out), __LINE__ )
+
+          !dmr&clo copy this variable's attributes
+          DO a = 1, vnatts
+            call handle_err( nf90_inq_attname(ncid_in, v, a, aname), __LINE__ )
+            call handle_err( nf90_copy_att(ncid_in, v, TRIM(aname), ncid_out, varid_out), __LINE__ )
+          ENDDO
+        ENDDO
+
+        call handle_err( nf90_enddef(ncid_out), __LINE__ )
+
+        !dmr&clo --- COPY COORDINATE VALUES --------------------------------
+        !dmr&clo Done after enddef. The unlimited (time) coordinate is left
+        !dmr&clo empty on purpose: the output file grows its own time axis as
+        !dmr&clo records are written. Only fixed coordinates carry values here.
+        DO v = 1, nVars
+          call handle_err( nf90_inquire_variable(ncid_in, v, vname, xtype, vndims), __LINE__ )
+          if (vndims /= 1) cycle
+          ALLOCATE(vdimids(1))
+          call handle_err( nf90_inquire_variable(ncid_in, v, dimids=vdimids), __LINE__ )
+          call handle_err( nf90_inquire_dimension(ncid_in, vdimids(1), dname, dlen), __LINE__ )
+          is_coordinate = ( TRIM(dname) == TRIM(vname) )
+
+          if (is_coordinate .AND. vdimids(1) /= unlimdimid) then
+            call handle_err( nf90_inq_varid(ncid_in,  TRIM(vname), varid_in ), __LINE__ )
+            call handle_err( nf90_inq_varid(ncid_out, TRIM(vname), varid_out), __LINE__ )
+            select case (xtype)
+              case (NF90_FLOAT)
+                ALLOCATE(rvals(dlen))
+                call handle_err( nf90_get_var(ncid_in,  varid_in,  rvals), __LINE__ )
+                call handle_err( nf90_put_var(ncid_out, varid_out, rvals), __LINE__ )
+                DEALLOCATE(rvals)
+              case (NF90_DOUBLE)
+                ALLOCATE(dvals(dlen))
+                call handle_err( nf90_get_var(ncid_in,  varid_in,  dvals), __LINE__ )
+                call handle_err( nf90_put_var(ncid_out, varid_out, dvals), __LINE__ )
+                DEALLOCATE(dvals)
+              case default
+                WRITE(*,*) "[WARN ] netCDF_init_output_from_mask: coordinate ", &
+                           TRIM(vname), " has an unhandled type; values not copied."
+            end select
+          endif
+          DEALLOCATE(vdimids)
+        ENDDO
+
+        call handle_err( nf90_close(ncid_in),  __LINE__ )
+        call handle_err( nf90_close(ncid_out), __LINE__ )
+        DEALLOCATE(dimid_map)
+
+      END SUBROUTINE netCDF_init_output_from_mask
+
+
+!dmr&clo -----------------------------------------------------------------------
+!dmr&clo   write_frog_global_atts
+!dmr&clo
+!dmr&clo   Write a small set of CF-style provenance global attributes to an
+!dmr&clo   already-open netCDF file that is in define mode. Kept deliberately
+!dmr&clo   simple. Values tagged EDIT: are placeholders; the creation date is
+!dmr&clo   generated automatically.
+!dmr&clo -----------------------------------------------------------------------
+      SUBROUTINE write_frog_global_atts(ncid, source_file)
+
+        USE netcdf
+
+        INTEGER,          INTENT(IN) :: ncid
+        CHARACTER(len=*), INTENT(IN) :: source_file
+
+        CHARACTER(len=8)  :: ddate
+        CHARACTER(len=10) :: ttime
+        CHARACTER(len=5)  :: zzone
+        CHARACTER(len=64) :: timestamp
+
+        call date_and_time(date=ddate, time=ttime, zone=zzone)
+        !dmr&clo ISO-8601-ish: YYYY-MM-DDThh:mm:ss+zzzz
+        timestamp = ddate(1:4)//"-"//ddate(5:6)//"-"//ddate(7:8)//"T"//        &
+                    ttime(1:2)//":"//ttime(3:4)//":"//ttime(5:6)//zzone
+
+        !dmr&clo --- CF discovery attributes (see CF conventions, ACDD) -------
+        call handle_err( nf90_put_att(ncid, NF90_GLOBAL, "Conventions",  "CF-1.8"),                    __LINE__ )
+        call handle_err( nf90_put_att(ncid, NF90_GLOBAL, "title",        "FROG permafrost model output"), __LINE__ )
+        call handle_err( nf90_put_att(ncid, NF90_GLOBAL, "source",       "FROG (FORTRAN FROzen Ground model)"), __LINE__ )
+        call handle_err( nf90_put_att(ncid, NF90_GLOBAL, "history",      TRIM(timestamp)//": created by FROG"), __LINE__ )
+
+        !dmr&clo --- provenance placeholders: EDIT these, or promote to namelist
+        call handle_err( nf90_put_att(ncid, NF90_GLOBAL, "institution",  "EDIT: your institution"),     __LINE__ )
+        call handle_err( nf90_put_att(ncid, NF90_GLOBAL, "author",       "EDIT: your name"),            __LINE__ )
+        call handle_err( nf90_put_att(ncid, NF90_GLOBAL, "contact",      "EDIT: your.email@example.org"), __LINE__ )
+        call handle_err( nf90_put_att(ncid, NF90_GLOBAL, "references",   "EDIT: model description DOI"), __LINE__ )
+        call handle_err( nf90_put_att(ncid, NF90_GLOBAL, "comment",      "EDIT: free-text run description"), __LINE__ )
+
+        !dmr&clo --- traceability: which mask this grid came from -------------
+        call handle_err( nf90_put_att(ncid, NF90_GLOBAL, "grid_source",  TRIM(source_file)),            __LINE__ )
+
+      END SUBROUTINE write_frog_global_atts
 
 ! dmr adapted from: https://www.reddit.com/r/fortran/comments/yzhkw5/reading_a_file_into_individual_words/
 
