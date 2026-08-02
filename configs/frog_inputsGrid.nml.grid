@@ -1,4 +1,5 @@
 &inputsGrid
   mask_file = "Input_Data/grid_EWEMBI/tas_ewembi_1979-2016-r128x64-maskocean.nc4"
-  netCDFout_file = "FROG-output.nc"
+  netCDFout_file_base = "FROG-output"
+  netCDFout_dir_base = "outputdata/permafrost"
 /
