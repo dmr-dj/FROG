@@ -75,7 +75,6 @@ MODULE parameter_mod
   integer :: EQ1_EQ2           ! EQ1(1) initial temperature calculated with the Geothermal heat flux. EQ2 initial temperature read in a file .txt
   logical :: read_restart
   integer :: Bool_delta        !
-  integer :: Bool_glacial          ! Using glacial index to modify air temperature
 !~   integer :: Bool_layer_temp       ! Creation of .txt with the temperature of the soil at different layer
 !~   integer :: Forcage_Month_day     ! (1) Daily or (0) monthly forcing
   integer :: Bool_Swe_Snw          ! (1) Snow forcing, (0) Swe forcing
@@ -92,7 +91,6 @@ MODULE parameter_mod
   real :: organic_depth     ! profondeur de la couche organique
   real :: n_organic           ! porosité de la couche organique
   real :: n_soil_bot         ! porosité en bas de la couche de sol
-  real :: alpha
 
   !       DENSITÉ DE DIFFÉRENTES MATIÈRES (en kg/m³) !
 
@@ -377,7 +375,7 @@ CONTAINS
 !dmr&clo --- optional snow forcing, see the defaults set just below
                         , forc_snow_file, name_snow_variable, forcing_snow_default
 
-    NAMELIST /Param/ namerun,TotTime,nb_day_per_month,nb_mon_per_year, t_fin,YearType,Bool_glacial,alpha,PorosityType, &
+    NAMELIST /Param/ namerun,TotTime,nb_day_per_month,nb_mon_per_year, t_fin,YearType,PorosityType, &
                      Bool_Organic,Porosity_soil,organic_depth,n_organic,n_soil_bot, q_quartz,Gfx,Bool_Snow,            &
                      Bool_Swe_Snw,Bool_Model_Snow,Bool_Bessi,s_l_max,z_num,GridType,                                   &
                      Depth,T_init,read_restart, Bool_delta,Bool_geometric, EQ_Tr, EQ1_EQ2 ! Bool_layer_temp,
@@ -572,8 +570,6 @@ CONTAINS
     write(fo,*) adjustl(to_print), EQ1_EQ2           ! EQ1(1) initial temperature calculated with the Geothermal heat flux. EQ2 initial temperature read in a file .txt
     write(to_print,'(a30)') "Bool_delta"
     write(fo,*) adjustl(to_print), Bool_delta        !
-    write(to_print,'(a30)') "Bool_glacial"
-    write(fo,*) adjustl(to_print), Bool_glacial          ! Using glacial index to modify air temperature
 !~     write(to_print,'(a30)') "Bool_layer_temp"
 !~     write(fo,*) adjustl(to_print), Bool_layer_temp       ! Creation of .txt with the temperature of the soil at different layer
     write(to_print,'(a30)') "Bool_Swe_Snw"
@@ -602,8 +598,6 @@ CONTAINS
     write(fo,*) adjustl(to_print), n_organic           ! porosité de la couche organique
     write(to_print,'(a30)') "n_soil_bot"
     write(fo,*) adjustl(to_print), n_soil_bot         ! porosité en bas de la couche de sol
-    write(to_print,'(a30)') "alpha"
-    write(fo,*) adjustl(to_print), alpha
     write(to_print,'(a30)') "rho_snow_freeze"
     write(fo,*) adjustl(to_print), rho_snow_freeze            ! densité de la neige
     write(to_print,'(a30)') "rho_water"

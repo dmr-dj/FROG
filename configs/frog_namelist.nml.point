@@ -26,9 +26,6 @@
   YearType = 365            !nombre de jour par an le fichier d'entrée quotidien à 365
   !tbd Forcage_Month_day = 0     ! (1) Daily or (0) monthly forcing dans un flag 
 
-!Glacial_index  !à sortir ?
-  Bool_glacial =  0         ! 0 non 1 glacial index 
-  alpha = -13               ! multiplicateur temp pour glacial index 
 
 !Sol  
   PorosityType = 3          !(1) linéaire, (autre) exponentiellement décroissante en fonction de la profondeur
