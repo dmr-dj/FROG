@@ -865,7 +865,9 @@
       SUBROUTINE WRITE_netCDF_output3D(var_to_write, indx_var)
 
        USE netcdf
-       USE parameter_mod, only: z_num
+!dmr&clo YearType is the number of days per year (360 or 365); needed to write
+!dmr&clo the time axis in days consistently with the run's calendar.
+       USE parameter_mod, only: z_num, YearType
 
        INTEGER :: ncid, z
        REAL, DIMENSION(:,:), INTENT(in) :: var_to_write ! variables are 1:z_num, 1:gridNoMax
@@ -915,7 +917,15 @@
                          , __LINE__)
 
           call handle_err(                                                                                &
-               nf90_put_var(ncid, time_id,current_time_record*365., start=(/current_time_record/))             &  ! provide new variable values
+!dmr&clo current_time_record counts output records (one per year, cf.
+!dmr&clo output_time_fraction in years); the time axis is in days, so the value
+!dmr&clo is record * (days per year). Was hard-coded to 365, which drifted by
+!dmr&clo 5 days/year against a 360-day run. YearType now carries the right
+!dmr&clo length. [TODO E4b] the axis 'units' is still inherited verbatim from
+!dmr&clo the mask (e.g. 'days since 2002-1-1'), which is wrong whenever the run
+!dmr&clo does not start in that year -- to be reconciled with the run's own
+!dmr&clo reference date, ideally from the namelist.
+               nf90_put_var(ncid, time_id,real(current_time_record)*real(YearType), start=(/current_time_record/))    &  ! provide new variable values
                         , __LINE__)
 
           call handle_err(                                                                                & ! close netcdf dataset
