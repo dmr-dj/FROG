@@ -408,6 +408,23 @@ CONTAINS
     name_snow_variable   = "snowthick"
     forcing_snow_default = 1.5   !dmr&clo [m] historical hard-coded value
 
+!dmr&clo --- D3: defaults for optional /inputFiles/ fields, set BEFORE the READ.
+!dmr&clo     A field absent from the namelist keeps the value set here; without
+!dmr&clo     it, an absent field would be used undefined (a namelist READ does
+!dmr&clo     not error on a missing variable, only on an unknown one).
+    frogvars_restdir     = "."
+    frogvars_restfile    = "frogvars_restart"
+    GHF_spatial_file     = " "     !dmr&clo only read if SP_GHF   == 1
+    GHF_variable_name    = " "
+    Tinit_spatial_file   = " "     !dmr&clo only read if SP_Tinit == 1
+    Tinit_variable_name  = " "
+
+!dmr&clo --- D3: sentinels for REQUIRED fields, checked after the READ. These
+!dmr&clo     have no sensible default; an absent one must stop the run rather
+!dmr&clo     than run with an invented value.
+    forc_tas_file        = "UNSET"
+    name_tas_variable    = "UNSET"
+
     ! Open and read Namelist file.
 !dmr&clo --- Each READ must be checked on the rc it produces, and the failure
 !dmr&clo     must stop the run. The previous version tested rc BEFORE the READ
@@ -423,6 +440,14 @@ CONTAINS
 
     READ (nml=inputFiles, iostat=rc, unit=fu)
     call check_nml_read(rc, "inputFiles", file_path)
+
+!dmr&clo --- D3: presence check for the climate forcing file. Offline only:
+!dmr&clo     in coupled mode the forcing comes from the coupler and these
+!dmr&clo     fields are meaningless.
+#if ( OFFLINE_RUN == 1 )
+    if (forc_tas_file     == "UNSET") call missing_required("forc_tas_file",     "inputFiles", file_path)
+    if (name_tas_variable == "UNSET") call missing_required("name_tas_variable", "inputFiles", file_path)
+#endif
 
     READ (nml=Param, iostat=rc, unit=fu)
     call check_nml_read(rc, "Param", file_path)
@@ -467,6 +492,25 @@ CONTAINS
     endif
 
   end subroutine check_nml_read
+
+
+!dmr&clo -----------------------------------------------------------------------
+!dmr&clo   missing_required -- report a required namelist field that was left
+!dmr&clo   at its UNSET sentinel, and stop. Companion to check_nml_read:
+!dmr&clo   check_nml_read catches a malformed group, this catches a well-formed
+!dmr&clo   group that simply omits a field that has no sensible default.
+!dmr&clo -----------------------------------------------------------------------
+  subroutine missing_required(field_name, group_name, nml_file)
+
+    character(len=*), intent(in) :: field_name, group_name, nml_file
+
+    WRITE (stderr, '("Error: required field ", a, " is missing")') TRIM(field_name)
+    WRITE (stderr, '("       from namelist group &", a)') TRIM(group_name)
+    WRITE (stderr, '("       in file: ", a)') TRIM(nml_file)
+    WRITE (stderr, '("       This field has no default and must be provided.")')
+    STOP
+
+  end subroutine missing_required
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 

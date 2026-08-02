@@ -27,7 +27,7 @@
 
       use, intrinsic :: iso_fortran_env, only: stdin=>input_unit, stdout=>output_unit, stderr=>error_unit
 !dmr&clo --- shared namelist-read error handler, defined once in parameter_mod
-      use parameter_mod, only: check_nml_read
+      use parameter_mod, only: check_nml_read, missing_required
 
       IMPLICIT NONE
 
@@ -469,13 +469,26 @@
          STOP
       ENDIF
 
+!dmr&clo --- D3: default for the optional output directory (used in coupled
+!dmr&clo     mode only), and UNSET sentinels for the required fields, all set
+!dmr&clo     BEFORE the READ.
+      netCDFout_dir_base  = "."
+      mask_file           = "UNSET"
+      netCDFout_file_base = "UNSET"
+
       ! Open and read Namelist file.
       OPEN (action='read', file=file_path_inp, iostat=rc, newunit=fu)
-      IF (rc /= 0) WRITE (stderr, '("Error: Cannot open namelist file")')
-      write (*,*) file_path_inp
+      IF (rc /= 0) THEN
+         WRITE (stderr, '("Error: cannot open namelist file: ", a)') TRIM(file_path_inp)
+         STOP
+      ENDIF
 
       READ (nml=inputsGrid, iostat=rc, unit=fu)
       call check_nml_read(rc, "inputsGrid", file_path_inp)
+
+!dmr&clo --- D3: presence checks for required grid/output fields (both modes).
+      if (mask_file           == "UNSET") call missing_required("mask_file",           "inputsGrid", file_path_inp)
+      if (netCDFout_file_base == "UNSET") call missing_required("netCDFout_file_base", "inputsGrid", file_path_inp)
 
       CLOSE (fu)
 
