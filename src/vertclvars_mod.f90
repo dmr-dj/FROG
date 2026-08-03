@@ -366,7 +366,27 @@
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
 
-       do ll = 1,2 !dmr WhatIs ll <- Repeating the steps two times?
+!dmr&clo --- [TODO G3b] This loop runs twice but is currently a no-op: it
+!dmr&clo     recomputes Cp/porf/pori/Kp from temperature_profvertcl, which is
+!dmr&clo     NOT updated inside the loop, so pass 2 reproduces pass 1 exactly.
+!dmr&clo
+!dmr&clo     It looks like an unfinished T<->Kp fixed point. The sequence is:
+!dmr&clo       (1) Kp_loc = 2 (constant, hard-coded above)
+!dmr&clo       (2) GeoHeatFlow builds temperature_profvertcl from that constant Kp
+!dmr&clo       (3) this loop computes a REAL Kp_loc(T, porosity, organic)
+!dmr&clo     The missing step is re-calling GeoHeatFlow inside the loop with the
+!dmr&clo     new Kp_loc, so the initial profile becomes consistent with the true
+!dmr&clo     soil conductivity instead of Kp=2. As written, that feedback never
+!dmr&clo     happens and the second pass is wasted.
+!dmr&clo
+!dmr&clo     Two ways to resolve, deferred on purpose (they change the initial
+!dmr&clo     profile, hence results, and must be validated on their own):
+!dmr&clo       A) drop the loop (keep a single pass) -- identical results, honest;
+!dmr&clo       B) complete the fixed point (GeoHeatFlow inside, add a convergence
+!dmr&clo          test like Implicit_T's) -- physically better, changes results.
+!dmr&clo     Left as-is here so that the Implicit_T convergence work (G3) can be
+!dmr&clo     validated in isolation. See also the hard-coded Kp=2 (G6/G7).
+       do ll = 1,2 !dmr WhatIs ll <- kept as-is, see [TODO G3b] above
 
                                           !Calculation of heat capacity of soil, Cp, porf & pori are intent(out)
           call AppHeatCapacity(z_num,temperature_profvertcl,T_freeze,porosity_profvertcl, organic_ind_loc, Cp_loc, porf, pori)

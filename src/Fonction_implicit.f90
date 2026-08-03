@@ -63,6 +63,17 @@
          integer :: kk, ll
          real, dimension(1:z_max) :: T_last, Kp_m
          real, dimension(1:z_max) :: T_iter
+!dmr&clo --- G3: fixed-point convergence control. The loop iterates on the
+!dmr&clo     Cp(T) non-linearity (latent heat near freezing). Previously it ran
+!dmr&clo     a fixed 5 times ("why doing this 5 times ??"); now it stops once
+!dmr&clo     the solution stops moving. max_iter is kept at 5 so the behaviour
+!dmr&clo     is IDENTICAL to before when convergence is not reached earlier --
+!dmr&clo     the criterion can only save iterations, never change a converged
+!dmr&clo     result. tol is on temperature [same units as T, i.e. degC/K].
+         real, dimension(1:z_max) :: T_prev_sol
+         real, parameter :: tol = 1.0e-4
+         integer, parameter :: max_iter = 10
+         real :: dT_max
          real, dimension(1:z_max) :: DD
          real, dimension(1:z_max-1) :: DL, DU
          integer :: info_lapack
@@ -94,7 +105,10 @@
          endif
 #endif
 
-         do kk=1,5 ! dmr --- why doing this 5 times ??
+!dmr&clo --- G3: iterate to convergence (was a fixed 5 passes)
+         T_prev_sol(1:z_max) = T_last(1:z_max)   !dmr&clo seed for the 1st delta
+
+         do kk=1,max_iter
 
            DD(1:z_max)=0
            DL(1:z_max-1)=0
@@ -216,9 +230,19 @@
              STOP
            endif
 
+!dmr&clo --- G3: convergence on the raw solution. Knows is the freshly solved
+!dmr&clo     temperature; T_iter below is the damped average used to seed the
+!dmr&clo     next pass, so the criterion must compare Knows to the previous
+!dmr&clo     pass's Knows, NOT T_iter to T_last.
+           dT_max = MAXVAL(ABS(Knows(1:z_max) - T_prev_sol(1:z_max)))
+           T_prev_sol(1:z_max) = Knows(1:z_max)
+
            T_iter(1:z_max) = Knows(1:z_max)
 
-         end do !! on kk 1,5
+           if (dT_max < tol) exit    !dmr&clo Cp(T) has stopped moving
+
+         end do !! fixed-point loop on Cp(T), up to max_iter passes
+!!         WRITE(*,*) "kk convergence == ", kk, dT_max
 
 
          Timp(1:z_max) = T_iter(1:z_max)
