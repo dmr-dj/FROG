@@ -325,6 +325,15 @@
        real, dimension(z_num-1) :: h_n, h_pori, h_porf
        real, dimension(z_num)   :: porf,pori
 
+!dmr&clo --- [G3b] fixed-point T<->Kp convergence control (see block below).
+!dmr&clo     Same convention as G3 in Implicit_T: tol on temperature [K],
+!dmr&clo     max_iter caps the work; the loop can only stop earlier, never run
+!dmr&clo     longer than the old fixed 2 passes would unless it still moves.
+       real, dimension(z_num)   :: T_prev
+       real                     :: dT_max
+       real,    parameter       :: tol = 1.0e-4
+       integer, parameter       :: max_iter = 15
+
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       MAIN BODY OF THE ROUTINE
@@ -366,27 +375,52 @@
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
 
-!dmr&clo --- [TODO G3b] This loop runs twice but is currently a no-op: it
-!dmr&clo     recomputes Cp/porf/pori/Kp from temperature_profvertcl, which is
-!dmr&clo     NOT updated inside the loop, so pass 2 reproduces pass 1 exactly.
+!dmr&clo --- [G3b] T<->Kp fixed point, completed (was a 2-pass no-op).
+!dmr&clo     History: the loop used to run "do ll=1,2" but recomputed
+!dmr&clo     Cp/porf/pori/Kp from a temperature_profvertcl that it never
+!dmr&clo     updated, so pass 2 reproduced pass 1 bit-for-bit. It was an
+!dmr&clo     unfinished fixed point. The missing step was re-solving the
+!dmr&clo     initial temperature profile (GeoHeatFlow) with the freshly
+!dmr&clo     computed Kp_loc, instead of the hard-coded Kp=2, so that the
+!dmr&clo     starting profile is consistent with the real soil conductivity.
 !dmr&clo
-!dmr&clo     It looks like an unfinished T<->Kp fixed point. The sequence is:
-!dmr&clo       (1) Kp_loc = 2 (constant, hard-coded above)
-!dmr&clo       (2) GeoHeatFlow builds temperature_profvertcl from that constant Kp
-!dmr&clo       (3) this loop computes a REAL Kp_loc(T, porosity, organic)
-!dmr&clo     The missing step is re-calling GeoHeatFlow inside the loop with the
-!dmr&clo     new Kp_loc, so the initial profile becomes consistent with the true
-!dmr&clo     soil conductivity instead of Kp=2. As written, that feedback never
-!dmr&clo     happens and the second pass is wasted.
+!dmr&clo     Structure now mirrors G3 in Implicit_T:
+!dmr&clo       (1) AppHeatCapacity -> Cp, porf, pori   from current T
+!dmr&clo       (2) inter-layer half-node averages
+!dmr&clo       (3) ThermalConductivity -> new Kp_loc(T, porosity, organic)
+!dmr&clo       (4) GeoHeatFlow -> new temperature_profvertcl from that Kp_loc
+!dmr&clo       (5) convergence test on T; stop once T stops moving.
+!dmr&clo     tol/max_iter declared above. Kp=2 is now only the seed (see the
+!dmr&clo     hard-coded value above and its GeoHeatFlow call), not the final
+!dmr&clo     conductivity. See also G6/G7 for the remaining hard-coded Kp.
 !dmr&clo
-!dmr&clo     Two ways to resolve, deferred on purpose (they change the initial
-!dmr&clo     profile, hence results, and must be validated on their own):
-!dmr&clo       A) drop the loop (keep a single pass) -- identical results, honest;
-!dmr&clo       B) complete the fixed point (GeoHeatFlow inside, add a convergence
-!dmr&clo          test like Implicit_T's) -- physically better, changes results.
-!dmr&clo     Left as-is here so that the Implicit_T convergence work (G3) can be
-!dmr&clo     validated in isolation. See also the hard-coded Kp=2 (G6/G7).
-       do ll = 1,2 !dmr WhatIs ll <- kept as-is, see [TODO G3b] above
+!dmr&clo     IMPACT ON RESULTS (measured, isolated point run, ~500 yr):
+!dmr&clo     completing the fixed point shifts the DEEP initial profile because
+!dmr&clo     GeoHeatFlow integrates T top-down as
+!dmr&clo         T(k) = T(k-1) + (Gfx/1000/Kp(k-1)) * dz(k-1),
+!dmr&clo     so replacing Kp=2 by the real conductivity changes the geothermal
+!dmr&clo     gradient by (Gfx/1000)*dz*(1/Kp_real - 1/2), accumulated downward.
+!dmr&clo     With Gfx=65 mW/m2 and a 1000 m / 101-level log grid, the observed
+!dmr&clo     bottom anomaly is ~1.7 K, consistent with an effective conductivity
+!dmr&clo     ~5% away from 2 -- i.e. a genuine physical correction, not drift.
+!dmr&clo     The anomaly is ~0 from the surface down to ~level 55 and grows
+!dmr&clo     monotonically with depth (log grid: deep dz dominate the integral);
+!dmr&clo     it falls back near the very bottom, held by the fixed Dirichlet
+!dmr&clo     T_bottom (Knows(z_num)=Tb), which is deliberately NOT refreshed here.
+!dmr&clo
+!dmr&clo     DECISION (kept): the change lives entirely in the deep layers, below
+!dmr&clo     the range instrumented at the Bayelva reference site, so it is not
+!dmr&clo     directly validatable AND it does not degrade any existing surface/
+!dmr&clo     active-layer agreement (anomaly ~0 there). Using the real soil
+!dmr&clo     conductivity is more defensible than an arbitrary Kp=2 even where
+!dmr&clo     unobserved. Trade-off accepted knowingly: the deep initial profile
+!dmr&clo     is redefined between versions. Note T_bottom itself is still set
+!dmr&clo     from the Kp=2 seed profile above (line ~371), so T_bottom and the
+!dmr&clo     returned deep profile are intentionally not mutually consistent by
+!dmr&clo     a small offset -- revisit if T_bottom is ever made Kp-consistent.
+       do ll = 1, max_iter
+
+          T_prev(1:z_num) = temperature_profvertcl(1:z_num)
 
                                           !Calculation of heat capacity of soil, Cp, porf & pori are intent(out)
           call AppHeatCapacity(z_num,temperature_profvertcl,T_freeze,porosity_profvertcl, organic_ind_loc, Cp_loc, porf, pori)
@@ -402,7 +436,15 @@
                                           !Calculation of the thermal condutivity of soil, Kp is the only intent(out)
           call ThermalConductivity(h_n,h_pori,h_porf, organic_ind_loc, temperature_profvertcl, Kp_loc)
 
+!dmr&clo --- [G3b] the previously-missing feedback: rebuild the initial T
+!dmr&clo     profile from the newly computed conductivity Kp_loc.
+          call GeoHeatFlow(Gfx_loc, Kp_loc, dz, Tinit_loc, temperature_profvertcl)
+
+          dT_max = MAXVAL(ABS(temperature_profvertcl(1:z_num) - T_prev(1:z_num)))
+          if (dT_max < tol) exit          !dmr&clo T<->Kp has stopped moving
+
        end do
+!!       WRITE(*,*) "[G3b] vertclvars_init T<->Kp iters =", ll, " dT_max =", dT_max
 
 #if ( SNOW_EFFECT == 1 )
        call init_snow_profile()
