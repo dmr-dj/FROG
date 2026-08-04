@@ -90,6 +90,12 @@
        use grids_more,      only: INIT_maskGRID, nb_unmaskedp, forcing_timelength, INIT_netCDF_output
        use parameter_mod,   only: read_namelist, set_numbergridpoints, set_numberforcingsteps, t_disc, z_disc
        use spatialvars_mod, only: spatialvars_allocate
+#if ( OFFLINE_RUN == 1 )
+       use parameter_mod,   only: forc_tas_file
+       use spatialvars_mod, only: get_forcing_timelength
+#else
+       use parameter_mod,   only: YearType
+#endif
 #if ( CARBON == 1 )
        use carbon,          only: carbon_first_init
 #endif
@@ -114,10 +120,27 @@
         call INIT_maskGRID
 
         call set_numbergridpoints(nb_unmaskedp)
-        call set_numberforcingsteps(forcing_timelength)
 
-        ! Read the namelist to define most global constants
+        ! Read the namelist to define most global constants.
+        ! [moved up] must run before we can query the forcing file path below.
         call read_namelist
+
+!dmr&clo --- Set the forcing time length (timFNoMax = allocation length of the
+!dmr&clo     forcing arrays) from the RIGHT source depending on the run mode.
+!dmr&clo     It used to come unconditionally from forcing_timelength, which
+!dmr&clo     INIT_maskGRID derives from the MASK file -- wrong: the mask need
+!dmr&clo     not have a time axis, and its length need not match the forcing
+!dmr&clo     (real Bayelva: mask=6205 vs tas=6570). A mismatch left the forcing
+!dmr&clo     arrays partly uninitialised (garbage ~1e26 in the read-back range).
+#if ( OFFLINE_RUN == 1 )
+!dmr&clo     Forced run: the tas forcing file itself defines the time length.
+        call set_numberforcingsteps(get_forcing_timelength(forc_tas_file))
+#else
+!dmr&clo     Coupled run: the length comes from the coupling, not from a file.
+!dmr&clo     nb_coupling_steps is set in SET_COUPLING_STEP below; here we seed
+!dmr&clo     timFNoMax from the same yearly coupling basis (YearType).
+        call set_numberforcingsteps(YearType)
+#endif
 
         ! Time initialization
         call t_disc

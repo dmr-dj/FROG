@@ -97,7 +97,7 @@
 
 
      PUBLIC:: spatialvars_allocate, spatialvars_init, UPDATE_climate_forcing, DO_spatialvars_step, SET_coupled_climate_forcing &
-            , WRTE_spatialvars_restart, READ_spatialvars_restart
+            , WRTE_spatialvars_restart, READ_spatialvars_restart, get_forcing_timelength
 #if ( CARBON > 0 )
      PUBLIC :: spatialvars_init_carbon, deepSOM_tot_yr
 #endif
@@ -255,6 +255,9 @@
         call get_clim_forcing(forc_tas_file, name_tas_variable,forcing_surface_temp)
         call fix_Kelvin_or_Celsius(forcing_surface_temp)
 
+          WRITE(*,*) "[INFO ] temperature read from ", TRIM(forc_tas_file)
+          WRITE(*,*) "        variable: ", TRIM(name_tas_variable),               &
+                     ", range [C]: ", MINVAL(forcing_surface_temp), MAXVAL(forcing_surface_temp)
 #if ( SNOW_EFFECT == 1 )
 !dmr&clo --- Snow thickness forcing. Read from file when one is given in the
 !dmr&clo     namelist, otherwise fall back on a constant thickness, which is
@@ -559,6 +562,68 @@
      END FUNCTION get_Spatial_2Dforcing
 
 
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+!dmr&clo --- get_forcing_timelength: return the length of the time (unlimited)
+!dmr&clo     dimension of a forcing file, WITHOUT reading the data.
+!dmr&clo
+!dmr&clo     Why this exists: timFNoMax (the allocation length of the forcing
+!dmr&clo     arrays) used to be taken from forcing_timelength, which INIT_maskGRID
+!dmr&clo     derives from the MASK file. That is wrong: the mask need not carry a
+!dmr&clo     time dimension at all, and even the real Bayelva mask (6205 steps)
+!dmr&clo     does not match the real tas forcing (6570 steps). When mask length
+!dmr&clo     and forcing length differ, get_clim_forcing fills only the forcing's
+!dmr&clo     worth of columns and leaves the rest uninitialised (garbage ~1e26 in
+!dmr&clo     the min/max) or silently truncates. In OFFLINE_RUN==1 the forcing
+!dmr&clo     file itself must set timFNoMax; this function provides that length.
+!dmr&clo     (In OFFLINE_RUN==0 the length comes from the coupling, not from here.)
+!-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
+     INTEGER FUNCTION get_forcing_timelength(forc_file)
+
+        use netcdf
+        use parameter_mod, only: str_len
+
+        CHARACTER(len=str_len), intent(in) :: forc_file
+
+        INTEGER :: ncid, ret_stat, nDims, nVars, nGlobalAtts, unlimdimid
+        CHARACTER(len=NF90_MAX_NAME) :: dname
+        INTEGER :: dlen
+
+        ret_stat = nf90_open(forc_file, nf90_nowrite, ncid)
+        if (ret_stat /= nf90_noerr) then
+          WRITE(*,*) "[ABORT] get_forcing_timelength: cannot open netCDF file:"
+          WRITE(*,*) "        ", TRIM(forc_file)
+          WRITE(*,*) "        ", TRIM(nf90_strerror(ret_stat))
+          STOP
+        endif
+
+        ret_stat = nf90_inquire(ncid, nDims, nVars, nGlobalAtts, unlimdimid)
+        if (ret_stat /= nf90_noerr) then
+          WRITE(*,*) "[ABORT] get_forcing_timelength: nf90_inquire failed on:"
+          WRITE(*,*) "        ", TRIM(forc_file), " -- ", TRIM(nf90_strerror(ret_stat))
+          STOP
+        endif
+
+!dmr&clo --- The forcing time axis is the unlimited (record) dimension. Require
+!dmr&clo     it to exist: a forcing file with no unlimited dimension is not a
+!dmr&clo     valid time series here.
+        if (unlimdimid == -1) then
+          WRITE(*,*) "[ABORT] get_forcing_timelength: no unlimited (time) dimension in:"
+          WRITE(*,*) "        ", TRIM(forc_file)
+          STOP
+        endif
+
+        ret_stat = nf90_inquire_dimension(ncid, unlimdimid, dname, dlen)
+        if (ret_stat /= nf90_noerr) then
+          WRITE(*,*) "[ABORT] get_forcing_timelength: nf90_inquire_dimension failed"
+          STOP
+        endif
+
+        ret_stat = nf90_close(ncid)
+
+        get_forcing_timelength = dlen
+
+     END FUNCTION get_forcing_timelength
+
 
      SUBROUTINE get_clim_forcing(forc_surf_file, name_surf_variable, forcing_surface_var)
 
@@ -710,6 +775,22 @@
 
       ! variable is read in ... now need to check where I have an actual value (not masked)
 
+!dmr&clo --- Guard against a forcing length that does not match the allocated
+!dmr&clo     array. forcing_surface_var was sized with timFNoMax; dim3 is the
+!dmr&clo     forcing file's own time length. If they differ, the section
+!dmr&clo     assignment below would either overflow or leave a tail of the
+!dmr&clo     array uninitialised (the ~1e26 garbage seen in the min/max). With
+!dmr&clo     timFNoMax now taken from the forcing file itself (OFFLINE_RUN==1),
+!dmr&clo     they must match; abort loudly if they ever do not.
+      if (dim3 .NE. SIZE(forcing_surface_var,2)) then
+         WRITE(*,*) "[ABORT] get_clim_forcing: forcing time length /= allocated size"
+         WRITE(*,*) "        file        : ", TRIM(forc_surf_file)
+         WRITE(*,*) "        forcing time : ", dim3
+         WRITE(*,*) "        allocated    : ", SIZE(forcing_surface_var,2), " (timFNoMax)"
+         WRITE(*,*) "        These must be equal. In OFFLINE_RUN==1 timFNoMax"
+         WRITE(*,*) "        must be set from the tas forcing file, not the mask."
+         STOP
+      endif
 
       varunmasked = 0
 
@@ -893,7 +974,15 @@
 
        current_step = compteur_tstep_SV(1)
 
-       start_step = mod(current_step%current_step + 1,timFNoMax)
+!dmr&clo --- [forcing wrap fix 1/2] start_step is the 1-based forcing index of
+!dmr&clo     the first step of this block. The old form mod(current+1,timFNoMax)
+!dmr&clo     was 0-based (missing +1) AND returned 0 whenever current+1 was an
+!dmr&clo     exact multiple of timFNoMax (i.e. at every exact cycle boundary),
+!dmr&clo     giving an out-of-bounds forcing(0:...) access. mod(current,timFNoMax)+1
+!dmr&clo     is 1-based and never 0; it reproduces the old in-range values
+!dmr&clo     (current=0 -> 1, current=1 -> 2, ...), so the first-step guard below
+!dmr&clo     is now redundant but kept as a harmless safety net.
+       start_step = mod(current_step%current_step,timFNoMax) + 1
 
        if (current_step%current_step.EQ.0) then ! first ever time step
            start_step = 1 ! for the forcing index
@@ -919,13 +1008,22 @@
         interim_nb = timFNoMax - start_step + 1
         temperature_forcing_next(:,1:interim_nb) = forcing_surface_temp(:,start_step:timFNoMax)
         ! then loop on the forcing
-        interim_end = stepstoDO - interim_nb + 1
-        temperature_forcing_next(:,interim_nb:stepstoDO) = forcing_surface_temp(:,1:interim_end)
+!dmr&clo --- [forcing wrap fix 2/2] The wrapped slice must start at interim_nb+1.
+!dmr&clo     Column interim_nb already holds the LAST real forcing step (index
+!dmr&clo     timFNoMax) written just above. Restarting the wrapped forcing AT
+!dmr&clo     interim_nb overwrites that last step with forcing(1) and drops one
+!dmr&clo     step: a one-timestep discontinuity injected once per forcing cycle.
+!dmr&clo     Verified on the synthetic cyclic forcing: the old code skips f(N)
+!dmr&clo     and shifts the rest by one (max ~0.09 K artefact per wrap on the
+!dmr&clo     smooth forcing); the fixed form gives ...f(N) -> f(1) continuously.
+!dmr&clo     interim_end is the count of wrapped steps: stepstoDO - interim_nb.
+        interim_end = stepstoDO - interim_nb
+        temperature_forcing_next(:,interim_nb+1:stepstoDO) = forcing_surface_temp(:,1:interim_end)
 
 #if ( SNOW_EFFECT == 1 )
         if (PRESENT(snowthickness_forcing_next)) then
           snowthickness_forcing_next(:,1:interim_nb) = forcing_snow_thick(:,start_step:timFNoMax)
-          snowthickness_forcing_next(:,interim_nb:stepstoDO) = forcing_snow_thick(:,1:interim_end)
+          snowthickness_forcing_next(:,interim_nb+1:stepstoDO) = forcing_snow_thick(:,1:interim_end)
         endif
 #endif
 
