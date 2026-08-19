@@ -141,7 +141,7 @@
 
        real, dimension(nb_unmaskedp,len_time) :: flattened_time_array
 
-       integer :: i,j, t
+       integer :: t   !dmr [I4] removed unused i,j (only t is used in the loop below)
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       MAIN BODY OF THE ROUTINE

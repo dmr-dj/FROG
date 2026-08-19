@@ -221,14 +221,17 @@ contains
     real,dimension(z_num),intent(inout)            :: deepSOM_a, deepSOM_s, deepSOM_p !soil organic matter (g /m^3 )
     real                , intent(in)               :: b4 ! Carbon in litter and soil, should be in g/m2 b3
     real                , intent(in), optional     :: r_leaf ! ratio of carbon in leaf/(wood+leaf)
-    integer                                        :: k, il
+    integer                                        :: il   !dmr [I4] removed unused k
     real                                           :: intdep !depth of integration
     real                                           :: z_lit !e folding depth
     real                                           :: som_input_TS
     real                                           :: dsom_litter
     real, dimension(z_num)                         :: som_profile, dsom_litter_z !  double precision?
     real                                           :: diff, verif_som ! double precision ?
-    real                                           :: totcarbon
+!dmr&clo [I4] totcarbon is only used by the commented-out debug WRITEs in this
+!dmr&clo        routine (carbon-conservation checks). Declaration commented to
+!dmr&clo        match; restore with those WRITEs if the check is re-enabled.
+!~  real                                           :: totcarbon
     real                                           :: fraction_leaf
 
     !write(*,*) 'f_a in carbon_redistribute', f_a
@@ -383,7 +386,12 @@ contains
     REAL                                        :: dC
     REAL                                        :: fpassive = 1617.45                !! convertiing factor to go from active pool turnover to passive pool turnover from Guimberteau et al 2018 GMD
     REAL                                        :: fslow = 37.0                      !! convertiing factor to go from active pool turnover to slow pool turnover from Guimberteau et al 2018 GMD
-    INTEGER                                     :: ij, il, iv, ip
+    INTEGER                                     :: ij, il
+!dmr&clo [I4] iv, ip belong to the commented-out ORCHIDEE decomposition block
+!dmr&clo        below (the per-gridpoint / per-PFT loops, still to be ported).
+!dmr&clo        Declaration commented to match its commented usage and silence
+!dmr&clo        the -Wunused warning; restore both together when porting.
+!~  INTEGER                                     :: iv, ip
     REAL                                        :: temp_local
     REAL, DIMENSION(z_num), intent(inout)       :: deepSOM_a, deepSOM_s, deepSOM_p !soil organic matter (g /m^3 )
     REAL, DIMENSION(ncarb, ncarb)               :: somflux
@@ -557,7 +565,11 @@ contains
     real                                  :: totalcarbon1, totalcarbon2
     real                                  :: altSOM_a_old , altSOM_s_old, altSOM_p_old !soil organic matter (g /m^2 )
     real                                  :: altSOM_a , altSOM_s, altSOM_p !soil organic matter (g /m^2 )
-    real                                  :: surfC_totake_a, surfC_totake_s, surfC_totake_p
+!dmr&clo [I4] surfC_totake_a/s/p belong to the commented-out carbon
+!dmr&clo        cryoturbation block below (surface-carbon redistribution, still
+!dmr&clo        to be ported). Declaration commented to match its commented
+!dmr&clo        usage and silence -Wunused; restore both together when porting.
+!~  real                                  :: surfC_totake_a, surfC_totake_s, surfC_totake_p
     integer                                      :: igrnd
     real                                  :: pool_start, pool_end
 
