@@ -57,7 +57,7 @@
 
                 ! THESE ARE THE TWO MAIN VARIABLES READ IN THE NetCDF files
       INTEGER                                     , PUBLIC      :: nb_unmaskedp
-      INTEGER                                     , PUBLIC      :: forcing_timelength
+!dmr&clo --- [E6] forcing_timelength removed: mask-derived, unused since A6.
 
 
 ! --- temporary file names that will need to be filled in
@@ -653,10 +653,13 @@
 
       endif
 
-      forcing_timelength = dimLEN(unlimdimid)
+!dmr&clo --- [E6] forcing_timelength (derived here from the MASK file) is no
+!dmr&clo     longer used: since A6, timFNoMax is set from the forcing file itself
+!dmr&clo     via get_forcing_timelength (OFFLINE_RUN==1) or from the coupling
+!dmr&clo     (OFFLINE_RUN==0). The old "forcing_timelength = dimLEN(unlimdimid)"
+!dmr&clo     line and its module variable have been removed.
 
       WRITE(*,*) "Currently, FROG seems to be off for a run with", nb_unmaskedp, " datapoints."
-      WRITE(*,*) "Forcing file provides data for ", dimLEN(unlimdimid), "time steps"
 
       END SUBROUTINE INIT_maskGRID
 

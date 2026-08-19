@@ -87,7 +87,7 @@
 
      function INITIALIZE_FROG() result(is_a_success)
 
-       use grids_more,      only: INIT_maskGRID, nb_unmaskedp, forcing_timelength, INIT_netCDF_output
+       use grids_more,      only: INIT_maskGRID, nb_unmaskedp, INIT_netCDF_output
        use parameter_mod,   only: read_namelist, set_numbergridpoints, set_numberforcingsteps, t_disc, z_disc
        use spatialvars_mod, only: spatialvars_allocate
 #if ( OFFLINE_RUN == 1 )
