@@ -88,14 +88,6 @@
   Latent_heat = 333700.0    ! en J/kg
 /
 
-&Tempdata
-  Tempsolinit = "Donnee/Temp_soil_0_z101.txt"   !Entree sol Principal l40
-  Tempairday ="Donnee/Temperature_moyenne_jour.txt"  ! Forcage air t° de surface par mois
-!  Tempairday ="Donnee/Boikedata.txt" !  Forcage data boike sur 20ans à 1cm de profondeur
-  Tempairmonth = "Donnee/Temp_Bayevla.txt"  ! Forcage air t° de surface par jours
-  Tempsnowmonth = "Donnee/Snow_EQ.txt"   !Snow temp par mois
-  Tempsnowday ="Donnee/Snow_fresh_day.txt" !Snow temp par jours
-/
 
 &Carbonite
   fraction_of_b2_in_slow = 0.70

@@ -136,11 +136,13 @@ MODULE parameter_mod
   !dmr spatialisation
   integer :: gridNoMax    !dmr spatial index, no assumption of the spatial arrangement
 
-  character(len=str_len) :: Tempsolinit
-  character(len=str_len) :: Tempairmonth
-  character(len=str_len) :: Tempairday
-  character(len=str_len) :: Tempsnowmonth
-  character(len=str_len) :: Tempsnowday
+!dmr&clo [C7] Removed the dead /Tempdata/ group (Tempsolinit, Tempairmonth,
+!dmr&clo        Tempairday, Tempsnowmonth, Tempsnowday). These pointed at the
+!dmr&clo        deleted Donnee/ .txt files and had zero functional use — the old
+!dmr&clo        text-file forcing path, fully superseded by the netCDF forcing
+!dmr&clo        (forc_tas_file / forc_snow_file). Declaration, NAMELIST group,
+!dmr&clo        its READ, its dump, and the &Tempdata blocks in the .nml configs
+!dmr&clo        all removed together (check_nml_read STOPs on a stray group).
 
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
@@ -393,7 +395,7 @@ CONTAINS
             C_organic,C_dry_soil,K_other_minerals,K_quartz,K_organic,K_ice,K_fluids,T_freeze,freezing_range,           &
             gravity,Latent_heat
 
-    NAMELIST /Tempdata/ Tempsolinit, Tempairmonth, Tempairday, Tempsnowmonth, Tempsnowday
+    !dmr [C7] NAMELIST /Tempdata/ removed (dead text-file forcing path)
 
 #if ( CARBON == 1 )
     NAMELIST /Carbonite/ fraction_of_b2_in_slow
@@ -462,8 +464,7 @@ CONTAINS
     READ (nml=Physique, iostat=rc, unit=fu)
     call check_nml_read(rc, "Physique", file_path)
 
-    READ (nml=Tempdata, iostat=rc, unit=fu)
-    call check_nml_read(rc, "Tempdata", file_path)
+    !dmr [C7] READ of /Tempdata/ removed (dead group)
 
 #if ( CARBON == 1 )
     READ (nml=Carbonite, iostat=rc, unit=fu)
@@ -645,16 +646,7 @@ CONTAINS
     write(fo,*) adjustl(to_print), s_l_max      ! nombre de couche de neige (marche que avec 1)
     write(to_print,'(a30)') "gridNoMax"
     write(fo,*) adjustl(to_print), gridNoMax    !dmr spatial index, no assumption of the spatial arrangement
-    write(to_print,'(a30)') "Tempsolinit"
-    write(fo,*) adjustl(to_print), trim(Tempsolinit)
-    write(to_print,'(a30)') "Tempairmonth"
-    write(fo,*) adjustl(to_print), trim(Tempairmonth)
-    write(to_print,'(a30)') "Tempairday"
-    write(fo,*) adjustl(to_print), trim(Tempairday)
-    write(to_print,'(a30)') "Tempsnowmonth"
-    write(fo,*) adjustl(to_print), trim(Tempsnowmonth)
-    write(to_print,'(a30)') "Tempsnowday"
-    write(fo,*) adjustl(to_print), trim(Tempsnowday)
+    !dmr [C7] dump of /Tempdata/ variables removed (dead group)
 #if ( CARBON == 1 )
     write(to_print,'(a30)') "Fraction_of_b2_in_slow"
     write(fo,*) adjustl(to_print), fraction_of_b2_in_slow
