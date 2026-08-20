@@ -210,7 +210,7 @@
        use vertclvars_mod, only: vertclvars_init
 
            ! Temporary addendum [2025-04-16]
-       use parameter_mod,  only: Gfx, T_init
+       use parameter_mod,  only: Gfx   !dmr [C4] T_init removed (was unused)
        use parameter_mod,  only: forc_tas_file, name_tas_variable
 !dmr&clo --- optional snow thickness forcing for offline runs
        use parameter_mod,  only: forc_snow_file, name_snow_variable, forcing_snow_default
@@ -316,7 +316,8 @@
 #if (SP_Tinit == 1)
         Tinit_SV(:) = get_Spatial_2Dforcing(Tinit_spatial_file,Tinit_variable_name)
 #else
-        !Tinit_SV(:) = T_init
+        !dmr [C4] previously "!Tinit_SV(:) = T_init" (removed); the initial
+        !dmr      surface temperature is the time-mean of the surface forcing:
         Tinit_SV(:) = SUM(forcing_surface_temp(:,:),DIM=2)/UBOUND(forcing_surface_temp,DIM=2)
 #endif
 

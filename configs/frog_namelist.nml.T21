@@ -43,7 +43,6 @@
   z_num = 101               !nombre de couches étudiée
   GridType = 1              !(1) Log-generated, (2) Linear-generated
   Depth = 1000.0            !profondeur de la modélisation
-  T_init = -7.0             !température initiale a la surface
   read_restart = .FALSE.     !should I read the restart file provided?
 
 !jsp où classer ca

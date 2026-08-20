@@ -83,7 +83,11 @@ MODULE parameter_mod
   integer :: Bool_geometric
 
   real :: Depth              !profondeur de la modélisation
-  real :: T_init                !température initiale a la surface
+!dmr&clo [C4] T_init removed: its only use was the commented-out
+!dmr&clo        "!Tinit_SV(:) = T_init" in spatialvars_mod; initial surface
+!dmr&clo        temperature now comes from SP_Tinit (spatial file) or from the
+!dmr&clo        forcing mean. Removed from the /Param/ namelist and from the
+!dmr&clo        config .nml files in the same change.
   real :: T_freeze             !température où l'eau est considérée comme gelée
   real :: freezing_range          ! Temperature at wich the snow start to melt
   real :: Gfx                  ! flux géothermique de la terre (a modifier peut être)
@@ -120,6 +124,11 @@ MODULE parameter_mod
   real :: q_quartz            ! pourcentage de quartz dans le sol
 
   real :: gravity          ! accéleration gravitationnelle
+!dmr&clo [C5] gravity is currently UNUSED in the code. Kept on purpose (read
+!dmr&clo        from the /Physique/ namelist and echoed in the parameter dump)
+!dmr&clo        because it is physically meaningful for features not yet wired in
+!dmr&clo        (snow compaction, water flow). Do not remove; wire it in when
+!dmr&clo        those are implemented.
   real :: Latent_heat    ! en J/kg
 
   integer :: s_l_max      ! nombre de couche de neige (marche que avec 1)
@@ -378,7 +387,7 @@ CONTAINS
     NAMELIST /Param/ namerun,TotTime,nb_day_per_month,nb_mon_per_year, t_fin,YearType,PorosityType, &
                      Bool_Organic,Porosity_soil,organic_depth,n_organic,n_soil_bot, q_quartz,Gfx,Bool_Snow,            &
                      Bool_Swe_Snw,Bool_Model_Snow,Bool_Bessi,s_l_max,z_num,GridType,                                   &
-                     Depth,T_init,read_restart, Bool_delta,Bool_geometric, EQ_Tr, EQ1_EQ2 ! Bool_layer_temp,
+                     Depth,read_restart, Bool_delta,Bool_geometric, EQ_Tr, EQ1_EQ2 ! Bool_layer_temp, T_init removed [C4]
 
     NAMELIST /Physique/ rho_snow_freeze,rho_water,rho_ice,rho_organic,rho_soil,rho_snow_fresh,C_water,C_ice,           &
             C_organic,C_dry_soil,K_other_minerals,K_quartz,K_organic,K_ice,K_fluids,T_freeze,freezing_range,           &
@@ -582,8 +591,6 @@ CONTAINS
     write(fo,*) adjustl(to_print), Bool_geometric
     write(to_print,'(a30)') "Depth"
     write(fo,*) adjustl(to_print), Depth              !profondeur de la modélisation
-    write(to_print,'(a30)') "T_init"
-    write(fo,*) adjustl(to_print), T_init                !température initiale a la surface
     write(to_print,'(a30)') "T_freeze"
     write(fo,*) adjustl(to_print), T_freeze             !température où l'eau est considérée comme gelée
     write(to_print,'(a30)') "freezing_range"

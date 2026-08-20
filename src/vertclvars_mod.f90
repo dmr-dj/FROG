@@ -363,7 +363,7 @@
        end do
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
-!dmr    Computes the initial vertical 1-D profile of temperature in the soil from T_init and Geoheatflow Gfx
+!dmr    Computes the initial vertical 1-D profile of temperature in the soil from Tinit_loc and Geoheatflow Gfx
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
        call GeoHeatFlow(Gfx_loc, Kp_loc, dz, Tinit_loc, temperature_profvertcl)

@@ -160,9 +160,7 @@
         call spatialvars_allocate
 
 !~         ! Initialization of spatial variables (2D : z_num,gridpoints)
-!~         ! [NOTA] spatialvars_init needs a T_init and a GeoHFlux ...
-!~         !        need to read them before if to be spatialized
-!~         !        For now [2025-04-16], fixed to constants in parameter_mod
+!~         ! [C4] (obsolete NOTA about T_init/GeoHFlux removed)
 !~         call spatialvars_init
 
         call INIT_netCDF_output
@@ -198,9 +196,9 @@
 
 
         ! Initialization of spatial variables (2D : z_num,gridpoints)
-        ! [NOTA] spatialvars_init needs a T_init and a GeoHFlux ...
-        !        need to read them before if to be spatialized
-        !        For now [2025-04-16], fixed to constants in parameter_mod
+        !dmr [C4] (was: "needs a T_init and a GeoHFlux, fixed to constants".)
+        !dmr      Initial T now comes from SP_Tinit or the forcing mean, and
+        !dmr      GeoHFlux from SP_GHF or Gfx, inside spatialvars_init.
         call spatialvars_init
 
 #if (OFFLINE_RUN == 1)
