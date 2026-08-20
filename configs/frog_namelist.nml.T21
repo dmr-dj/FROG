@@ -52,7 +52,6 @@
 
 !type de run à supprimer
   EQ_Tr = 0                 ! Equilibrum run (0) or Transient run (1) -> using different forcing Temperature and snow
-  EQ1_EQ2 = 2               ! EQ1(1) initial temperature calculated with the Geothermal heat flux. EQ2 initial temperature read in a file .txt
 
 /
 

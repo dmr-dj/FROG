@@ -72,7 +72,11 @@ MODULE parameter_mod
   integer :: Bool_Snow          ! forçage en neige ou non (1 ou 0)
   integer :: Bool_Organic       ! prise en compte de la couche organique ou non (1 ou 0)
   integer :: EQ_Tr             ! Equilibrum run (0) or Transient run (1) -> using different forcing Temperature and snow
-  integer :: EQ1_EQ2           ! EQ1(1) initial temperature calculated with the Geothermal heat flux. EQ2 initial temperature read in a file .txt
+!dmr&clo [C8] EQ1_EQ2 removed: zero functional use (only namelist + dump). It
+!dmr&clo        described an old switch between geothermal-flux init (EQ1) and
+!dmr&clo        reading the initial temperature from a .txt file (EQ2) — the same
+!dmr&clo        dead text-file path removed in C4/C7. Removed from /Param/ and the
+!dmr&clo        config .nml files together (check_nml_read STOPs on a stray var).
   logical :: read_restart
   integer :: Bool_delta        !
 !~   integer :: Bool_layer_temp       ! Creation of .txt with the temperature of the soil at different layer
@@ -389,7 +393,7 @@ CONTAINS
     NAMELIST /Param/ namerun,TotTime,nb_day_per_month,nb_mon_per_year, t_fin,YearType,PorosityType, &
                      Bool_Organic,Porosity_soil,organic_depth,n_organic,n_soil_bot, q_quartz,Gfx,Bool_Snow,            &
                      Bool_Swe_Snw,Bool_Model_Snow,Bool_Bessi,s_l_max,z_num,GridType,                                   &
-                     Depth,read_restart, Bool_delta,Bool_geometric, EQ_Tr, EQ1_EQ2 ! Bool_layer_temp, T_init removed [C4]
+                     Depth,read_restart, Bool_delta,Bool_geometric, EQ_Tr ! Bool_layer_temp, T_init [C4] & EQ1_EQ2 [C8] removed
 
     NAMELIST /Physique/ rho_snow_freeze,rho_water,rho_ice,rho_organic,rho_soil,rho_snow_fresh,C_water,C_ice,           &
             C_organic,C_dry_soil,K_other_minerals,K_quartz,K_organic,K_ice,K_fluids,T_freeze,freezing_range,           &
@@ -576,8 +580,6 @@ CONTAINS
     write(fo,*) adjustl(to_print), Bool_Organic       ! prise en compte de la couche organique ou non (1 ou 0)
     write(to_print,'(a30)') "EQ_Tr"
     write(fo,*) adjustl(to_print), EQ_Tr             ! Equilibrum run (0) or Transient run (1) -> using different forcing Temperature and snow
-    write(to_print,'(a30)') "EQ1_EQ2"
-    write(fo,*) adjustl(to_print), EQ1_EQ2           ! EQ1(1) initial temperature calculated with the Geothermal heat flux. EQ2 initial temperature read in a file .txt
     write(to_print,'(a30)') "Bool_delta"
     write(fo,*) adjustl(to_print), Bool_delta        !
 !~     write(to_print,'(a30)') "Bool_layer_temp"
