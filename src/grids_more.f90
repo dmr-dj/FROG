@@ -27,7 +27,7 @@
 
       use, intrinsic :: iso_fortran_env, only: stdin=>input_unit, stdout=>output_unit, stderr=>error_unit
 !dmr&clo --- shared namelist-read error handler, defined once in parameter_mod
-      use parameter_mod, only: check_nml_read, missing_required
+      use parameter_mod, only: check_nml_read, missing_required, namerun
 
       IMPLICIT NONE
 
@@ -1191,16 +1191,22 @@
 
         !dmr&clo --- CF discovery attributes (see CF conventions, ACDD) -------
         call handle_err( nf90_put_att(ncid, NF90_GLOBAL, "Conventions",  "CF-1.8"),                    __LINE__ )
-        call handle_err( nf90_put_att(ncid, NF90_GLOBAL, "title",        "FROG permafrost model output"), __LINE__ )
+        !dmr&clo [C3] title carries the run name (namerun, from /Param/) so each
+        !dmr&clo      output file is self-identifying.
+        call handle_err( nf90_put_att(ncid, NF90_GLOBAL, "title",        "FROG permafrost model output: "//TRIM(namerun)), __LINE__ )
         call handle_err( nf90_put_att(ncid, NF90_GLOBAL, "source",       "FROG (FORTRAN FROzen Ground model)"), __LINE__ )
         call handle_err( nf90_put_att(ncid, NF90_GLOBAL, "history",      TRIM(timestamp)//": created by FROG"), __LINE__ )
+
+        !dmr&clo [C3] run name as its own attribute for easy programmatic access.
+        call handle_err( nf90_put_att(ncid, NF90_GLOBAL, "run_name",     TRIM(namerun)),                __LINE__ )
 
         !dmr&clo --- provenance placeholders: EDIT these, or promote to namelist
         call handle_err( nf90_put_att(ncid, NF90_GLOBAL, "institution",  "EDIT: your institution"),     __LINE__ )
         call handle_err( nf90_put_att(ncid, NF90_GLOBAL, "author",       "EDIT: your name"),            __LINE__ )
         call handle_err( nf90_put_att(ncid, NF90_GLOBAL, "contact",      "EDIT: your.email@example.org"), __LINE__ )
         call handle_err( nf90_put_att(ncid, NF90_GLOBAL, "references",   "EDIT: model description DOI"), __LINE__ )
-        call handle_err( nf90_put_att(ncid, NF90_GLOBAL, "comment",      "EDIT: free-text run description"), __LINE__ )
+        !dmr&clo [C3] comment now defaults to the run name instead of a placeholder.
+        call handle_err( nf90_put_att(ncid, NF90_GLOBAL, "comment",      "run: "//TRIM(namerun)),        __LINE__ )
 
         !dmr&clo --- traceability: which mask this grid came from -------------
         call handle_err( nf90_put_att(ncid, NF90_GLOBAL, "grid_source",  TRIM(source_file)),            __LINE__ )
