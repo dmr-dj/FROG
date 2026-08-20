@@ -63,27 +63,27 @@ MODULE parameter_mod
   character(len=str_len) :: namerun
   integer :: TotTime         !temps total en année
   integer :: nb_day_per_month           !
-  integer :: nb_mon_per_year
-  integer :: t_fin
+!dmr&clo [C2] nb_mon_per_year, t_fin removed (dead: namelist+dump only).
   integer :: YearType         !nombre de jour par an
   integer :: z_num            !nombre de couches étudiée
   integer :: GridType           !(1) Log-generated, (2) Linear-generated
   integer :: PorosityType       !(1) linéaire, (autre) exponentiellement décroissante en fonction de la profondeur
-  integer :: Bool_Snow          ! forçage en neige ou non (1 ou 0)
+!dmr&clo [C2] Bool_Snow removed (dead & misleading: snow is a compile-time
+!dmr&clo        choice via SNOW_EFFECT, this namelist flag did nothing).
   integer :: Bool_Organic       ! prise en compte de la couche organique ou non (1 ou 0)
-  integer :: EQ_Tr             ! Equilibrum run (0) or Transient run (1) -> using different forcing Temperature and snow
+!dmr&clo [C2] EQ_Tr removed (dead: namelist+dump only).
 !dmr&clo [C8] EQ1_EQ2 removed: zero functional use (only namelist + dump). It
 !dmr&clo        described an old switch between geothermal-flux init (EQ1) and
 !dmr&clo        reading the initial temperature from a .txt file (EQ2) — the same
 !dmr&clo        dead text-file path removed in C4/C7. Removed from /Param/ and the
 !dmr&clo        config .nml files together (check_nml_read STOPs on a stray var).
   logical :: read_restart
-  integer :: Bool_delta        !
+!dmr&clo [C2] Bool_delta removed (dead: namelist+dump only).
 !~   integer :: Bool_layer_temp       ! Creation of .txt with the temperature of the soil at different layer
 !~   integer :: Forcage_Month_day     ! (1) Daily or (0) monthly forcing
-  integer :: Bool_Swe_Snw          ! (1) Snow forcing, (0) Swe forcing
-  integer :: Bool_Model_Snow       ! (1) Using snow model to find snow_depth, (0) Forcing with snow_depth
-  integer :: Bool_Bessi
+!dmr&clo [C2] Bool_Swe_Snw, Bool_Model_Snow, Bool_Bessi removed (dead &
+!dmr&clo        misleading: snow behaviour is a compile-time choice, these
+!dmr&clo        namelist flags did nothing).
   integer :: Bool_geometric
 
   real :: Depth              !profondeur de la modélisation
@@ -99,6 +99,10 @@ MODULE parameter_mod
   real :: organic_depth     ! profondeur de la couche organique
   real :: n_organic           ! porosité de la couche organique
   real :: n_soil_bot         ! porosité en bas de la couche de sol
+!dmr&clo [C2] n_soil_bot is currently UNUSED but kept on purpose, like gravity
+!dmr&clo        [C5] / rho_snow_fresh: it is a physical parameter (bottom-of-soil
+!dmr&clo        porosity), sibling of the used n_organic, meant for a
+!dmr&clo        depth-varying porosity profile not yet wired in. Do not remove.
 
   !       DENSITÉ DE DIFFÉRENTES MATIÈRES (en kg/m³) !
 
@@ -108,6 +112,10 @@ MODULE parameter_mod
   real :: rho_organic        ! densité de la matière organique
   real :: rho_soil           ! densité du sol
   real :: rho_snow_fresh            ! densité de la neige fraiche
+!dmr&clo [C2] rho_snow_fresh is currently UNUSED but kept on purpose (read from
+!dmr&clo        /Physique/ and echoed in the dump), like gravity [C5]: physically
+!dmr&clo        meaningful for a snow-densification/compaction scheme not yet
+!dmr&clo        wired in. Do not remove; wire it in when that is implemented.
 
   !      Capacité thermique massique  (en J/(K*kg))    !
 
@@ -390,10 +398,10 @@ CONTAINS
 !dmr&clo --- optional snow forcing, see the defaults set just below
                         , forc_snow_file, name_snow_variable, forcing_snow_default
 
-    NAMELIST /Param/ namerun,TotTime,nb_day_per_month,nb_mon_per_year, t_fin,YearType,PorosityType, &
-                     Bool_Organic,Porosity_soil,organic_depth,n_organic,n_soil_bot, q_quartz,Gfx,Bool_Snow,            &
-                     Bool_Swe_Snw,Bool_Model_Snow,Bool_Bessi,s_l_max,z_num,GridType,                                   &
-                     Depth,read_restart, Bool_delta,Bool_geometric, EQ_Tr ! Bool_layer_temp, T_init [C4] & EQ1_EQ2 [C8] removed
+    NAMELIST /Param/ namerun,TotTime,nb_day_per_month,YearType,PorosityType,                                          &
+                     Bool_Organic,Porosity_soil,organic_depth,n_organic,n_soil_bot, q_quartz,Gfx,                      &
+                     s_l_max,z_num,GridType,                                                                            &
+                     Depth,read_restart,Bool_geometric   ! [C2] removed: nb_mon_per_year,t_fin,Bool_Snow,Bool_Swe_Snw,Bool_Model_Snow,Bool_Bessi,Bool_delta,EQ_Tr ; [C4]T_init [C8]EQ1_EQ2 [earlier]Bool_layer_temp
 
     NAMELIST /Physique/ rho_snow_freeze,rho_water,rho_ice,rho_organic,rho_soil,rho_snow_fresh,C_water,C_ice,           &
             C_organic,C_dry_soil,K_other_minerals,K_quartz,K_organic,K_ice,K_fluids,T_freeze,freezing_range,           &
@@ -564,8 +572,6 @@ CONTAINS
     write(fo,*) adjustl(to_print), TotTime                    !temps total en année
     write(to_print,'(a30)') "nb_day_per_month"
     write(fo,*) adjustl(to_print), nb_day_per_month           !nombre de jour entre chaque pas de temps
-    write(to_print,'(a30)') "t_fin"
-    write(fo,*) adjustl(to_print), t_fin
     write(to_print,'(a30)') "YearType"
     write(fo,*) adjustl(to_print), YearType         !nombre de jour par an
     write(to_print,'(a30)') "z_num"
@@ -574,22 +580,10 @@ CONTAINS
     write(fo,*) adjustl(to_print), GridType           !(1) Log-generated, (2) Linear-generated
     write(to_print,'(a30)') "PorosityType"
     write(fo,*) adjustl(to_print), PorosityType       !(1) linéaire, (autre) exponentiellement décroissante en fonction de la profondeur
-    write(to_print,'(a30)') "Bool_Snow"
-    write(fo,*) adjustl(to_print), Bool_Snow          ! forçage en neige ou non (1 ou 0)
     write(to_print,'(a30)') "Bool_Organic"
     write(fo,*) adjustl(to_print), Bool_Organic       ! prise en compte de la couche organique ou non (1 ou 0)
-    write(to_print,'(a30)') "EQ_Tr"
-    write(fo,*) adjustl(to_print), EQ_Tr             ! Equilibrum run (0) or Transient run (1) -> using different forcing Temperature and snow
-    write(to_print,'(a30)') "Bool_delta"
-    write(fo,*) adjustl(to_print), Bool_delta        !
-!~     write(to_print,'(a30)') "Bool_layer_temp"
-!~     write(fo,*) adjustl(to_print), Bool_layer_temp       ! Creation of .txt with the temperature of the soil at different layer
-    write(to_print,'(a30)') "Bool_Swe_Snw"
-    write(fo,*) adjustl(to_print), Bool_Swe_Snw          ! (1) Snow forcing, (0) Swe forcing
-    write(to_print,'(a30)') "Bool_Model_Snow"
-    write(fo,*) adjustl(to_print), Bool_Model_Snow       ! (1) Usinsg snow model to find snow_depth, (0) Forcing with snow_depth
-    write(to_print,'(a30)') "Bool_Bessi"
-    write(fo,*) adjustl(to_print), Bool_Bessi
+    !dmr [C2] removed dumps of t_fin, Bool_Snow, EQ_Tr, Bool_delta,
+    !dmr      Bool_Swe_Snw, Bool_Model_Snow, Bool_Bessi (all dead).
     write(to_print,'(a30)') "Bool_geometric"
     write(fo,*) adjustl(to_print), Bool_geometric
     write(to_print,'(a30)') "Depth"
