@@ -46,6 +46,15 @@
 
        logical :: success
 
+!dmr&clo [I6] success was declared as the result but never assigned -> the
+!dmr&clo        function returned an uninitialised value (-Wreturn-type). It now
+!dmr&clo        returns .true. on the normal path. The only failure case
+!dmr&clo        (unknown YearType) still STOPs, so we never return from it; kept
+!dmr&clo        as-is to preserve behaviour. Caller (vertclvars_mod:165) captures
+!dmr&clo        success but does not test it yet; turning the STOP into a
+!dmr&clo        testable ".false. + return" would be a separate behaviour change.
+       success = .true.
+
        cell_time_var%current_step = cell_time_var%current_step + 1
 
        remainder_year = MOD(cell_time_var%current_step,YearType)

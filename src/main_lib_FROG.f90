@@ -49,8 +49,13 @@
       END TYPE cpl_fields
 
       TYPE cpl_feedback
+!dmr&clo [I6] 'valid' is always present (even with CARBON==0) so the type is
+!dmr&clo        never an empty derived type: an empty result triggers a spurious
+!dmr&clo        -Wreturn-type in the coupled/no-carbon build. Default-initialised
+!dmr&clo        so the returned value is always defined.
+        LOGICAL :: valid = .false.
 #if ( CARBON == 1 )
-        REAL :: deep_C_sumtot
+        REAL :: deep_C_sumtot = 0.0
 #endif
       END TYPE cpl_feedback
 
@@ -277,10 +282,17 @@
 !       MAIN BODY OF THE ROUTINE
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 #if ( OFFLINE_RUN == 0 )
+       feedback_vars_toCLIM%valid = .true.   !dmr [I6] result always defined
 #if ( CARBON == 1 )
 !~           feedback_vars_toCLIM%deep_C_sumtot = la_jolie_valeur_a_ajouter !!!
            feedback_vars_toCLIM%deep_C_sumtot = deepSOM_tot_yr !!!
 #endif
+#else
+!dmr&clo [I6] Offline: the result is an unused dummy logical. It was never
+!dmr&clo        assigned -> returned an uninitialised value (-Wreturn-type).
+!dmr&clo        FEEDBACK_FROG is PUBLIC (a coupling entry point) but not called
+!dmr&clo        in the offline path; still, give the dummy a defined value.
+       feedback_vars_toCLIM = .false.
 #endif
 
      end function FEEDBACK_FROG
