@@ -390,6 +390,7 @@ CONTAINS
 !déclaration des variables
 
     INTEGER :: rc,fu
+    CHARACTER(len=512) :: nmlmsg   !dmr [D4] holds the compiler iomsg on a failed namelist READ
     CHARACTER(len= 19)  :: file_path ="frog_namelist.nml"
 
 
@@ -459,8 +460,8 @@ CONTAINS
        STOP
     ENDIF
 
-    READ (nml=inputFiles, iostat=rc, unit=fu)
-    call check_nml_read(rc, "inputFiles", file_path)
+    READ (nml=inputFiles, iostat=rc, iomsg=nmlmsg, unit=fu)
+    call check_nml_read(rc, "inputFiles", file_path, nmlmsg)
 
 !dmr&clo --- D3: presence check for the climate forcing file. Offline only:
 !dmr&clo     in coupled mode the forcing comes from the coupler and these
@@ -470,17 +471,17 @@ CONTAINS
     if (name_tas_variable == "UNSET") call missing_required("name_tas_variable", "inputFiles", file_path)
 #endif
 
-    READ (nml=Param, iostat=rc, unit=fu)
-    call check_nml_read(rc, "Param", file_path)
+    READ (nml=Param, iostat=rc, iomsg=nmlmsg, unit=fu)
+    call check_nml_read(rc, "Param", file_path, nmlmsg)
 
-    READ (nml=Physique, iostat=rc, unit=fu)
-    call check_nml_read(rc, "Physique", file_path)
+    READ (nml=Physique, iostat=rc, iomsg=nmlmsg, unit=fu)
+    call check_nml_read(rc, "Physique", file_path, nmlmsg)
 
     !dmr [C7] READ of /Tempdata/ removed (dead group)
 
 #if ( CARBON == 1 )
-    READ (nml=Carbonite, iostat=rc, unit=fu)
-    call check_nml_read(rc, "Carbonite", file_path)
+    READ (nml=Carbonite, iostat=rc, iomsg=nmlmsg, unit=fu)
+    call check_nml_read(rc, "Carbonite", file_path, nmlmsg)
 #endif
 
     CLOSE (fu)
@@ -497,17 +498,31 @@ CONTAINS
 !dmr&clo   misspelled variable name in the file (an unknown name in a group is
 !dmr&clo   rejected), or a group missing entirely. Naming the group and the
 !dmr&clo   file turns an opaque failure into an actionable one.
+!dmr&clo
+!dmr&clo   [D4] The optional io_message is the compiler's own iomsg from the READ.
+!dmr&clo   On a stray/misspelled name gfortran fills it with e.g. "Cannot match
+!dmr&clo   namelist object name <x>", which pinpoints the offending variable —
+!dmr&clo   far better than re-parsing the file ourselves. The exact wording is
+!dmr&clo   compiler-dependent (and less precise for type mismatches), but any
+!dmr&clo   native message beats none, so we just surface it verbatim.
 !dmr&clo -----------------------------------------------------------------------
-  subroutine check_nml_read(iostat_code, group_name, nml_file)
+  subroutine check_nml_read(iostat_code, group_name, nml_file, io_message)
 
-    integer,          intent(in) :: iostat_code
-    character(len=*), intent(in) :: group_name, nml_file
+    integer,          intent(in)           :: iostat_code
+    character(len=*), intent(in)           :: group_name, nml_file
+    character(len=*), intent(in), optional :: io_message
 
     if (iostat_code /= 0) then
        WRITE (stderr, '("Error: failed to read namelist group &", a)') TRIM(group_name)
        WRITE (stderr, '("       from file: ", a)') TRIM(nml_file)
-       WRITE (stderr, '("       iostat = ", i0, ". Likely a misspelled or stray")') iostat_code
-       WRITE (stderr, '("       variable name in that group, or the group is absent.")')
+       WRITE (stderr, '("       iostat = ", i0)') iostat_code
+       if (present(io_message)) then
+          if (len_trim(io_message) > 0) then
+             WRITE (stderr, '("       compiler message: ", a)') TRIM(io_message)
+          endif
+       endif
+       WRITE (stderr, '("       Likely a misspelled or stray variable name in")')
+       WRITE (stderr, '("       that group, a wrong value type, or the group is absent.")')
        STOP
     endif
 

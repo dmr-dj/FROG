@@ -229,6 +229,7 @@
 
        ! Local variables
        INTEGER                       :: rc,fu
+       CHARACTER(len=512)            :: nmlmsg   !dmr [D4] compiler iomsg on failed READ
        NAMELIST /outputDimSetup_1/ output_aktiv, nb_dim_vars, nb_out_vars
        NAMELIST /outputDimSetup_2/ output_dim_names, output_var_names
        NAMELIST /outputDimSetup_3/ output_time_fraction
@@ -252,8 +253,8 @@
          STOP
       ENDIF
 
-      READ (nml=outputDimSetup_1, iostat=rc, unit=fu)
-      call check_nml_read(rc, "outputDimSetup_1", file_path)
+      READ (nml=outputDimSetup_1, iostat=rc, iomsg=nmlmsg, unit=fu)
+      call check_nml_read(rc, "outputDimSetup_1", file_path, nmlmsg)
 
       if ( output_aktiv ) then
 
@@ -266,11 +267,11 @@
         ALLOCATE(output_lng_names(nb_out_vars))
         ALLOCATE(output_dms_names(nb_out_vars))
 
-        READ (nml=outputDimSetup_2, iostat=rc, unit=fu)
-        call check_nml_read(rc, "outputDimSetup_2", file_path)
+        READ (nml=outputDimSetup_2, iostat=rc, iomsg=nmlmsg, unit=fu)
+        call check_nml_read(rc, "outputDimSetup_2", file_path, nmlmsg)
 
-        READ (nml=outputDimSetup_3, iostat=rc, unit=fu)
-        call check_nml_read(rc, "outputDimSetup_3", file_path)
+        READ (nml=outputDimSetup_3, iostat=rc, iomsg=nmlmsg, unit=fu)
+        call check_nml_read(rc, "outputDimSetup_3", file_path, nmlmsg)
 
       endif
 
@@ -369,6 +370,7 @@
 
        ! Local variables
        INTEGER                       :: rc,fu
+       CHARACTER(len=512)            :: nmlmsg   !dmr [D4] compiler iomsg on failed READ
        CHARACTER(len=str_len)        :: out_var_name, out_unt_name, out_std_name, out_lng_name, out_dms_name
 
        NAMELIST /VAROUTPUT/ out_var_name, out_unt_name, out_std_name, out_lng_name, out_dms_name
@@ -389,8 +391,8 @@
       OPEN (action='read', file=file_path, iostat=rc, newunit=fu)
       IF (rc /= 0) WRITE (stderr, '("Error: Cannot open namelist file")')
 
-      READ (nml=VAROUTPUT, iostat=rc, unit=fu)
-      call check_nml_read(rc, "VAROUTPUT", file_path)
+      READ (nml=VAROUTPUT, iostat=rc, iomsg=nmlmsg, unit=fu)
+      call check_nml_read(rc, "VAROUTPUT", file_path, nmlmsg)
 
       CLOSE (fu)
 
@@ -448,6 +450,7 @@
         CHARACTER(len=str_len), PARAMETER                         :: file_path_out ="output_namelists/frog_outputsSetup.nml"
 
         INTEGER                                                   :: rc,fu,n
+        CHARACTER(len=512)                                        :: nmlmsg   !dmr [D4] compiler iomsg on failed READ
         NAMELIST /inputsGrid/ mask_file, typology_file, netCDFout_file_base, netCDFout_dir_base
 
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
@@ -483,8 +486,8 @@
          STOP
       ENDIF
 
-      READ (nml=inputsGrid, iostat=rc, unit=fu)
-      call check_nml_read(rc, "inputsGrid", file_path_inp)
+      READ (nml=inputsGrid, iostat=rc, iomsg=nmlmsg, unit=fu)
+      call check_nml_read(rc, "inputsGrid", file_path_inp, nmlmsg)
 
 !dmr&clo --- D3: presence checks for required grid/output fields (both modes).
       if (mask_file           == "UNSET") call missing_required("mask_file",           "inputsGrid", file_path_inp)
