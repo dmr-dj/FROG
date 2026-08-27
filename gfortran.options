@@ -53,3 +53,9 @@ CMP_SPECF     =
 OPENMP        =
 
 # The End of All Things (op. cit.)
+
+# [build-portability fix] Compiler-specific flags the Makefile reads via ?=.
+# Kept here so each compiler .options is the single source of truth.
+FCSYNTAX      = -fsyntax-only
+FCMODDIR      = -J
+MODDIR        = .mod

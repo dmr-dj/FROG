@@ -38,11 +38,10 @@ else ifeq ($(COMPILER),intel)
   FC = ifort
   include ifort19.options
 else ifeq ($(COMPILER),intel-llvm)
-  #~ ifx -- LLVM-based Intel compiler. Flag syntax is close to ifort19 but
-  #~ NOT identical; a dedicated ifx.options file should be created when this
-  #~ toolchain becomes the primary Intel target.
+  #~ ifx -- LLVM-based Intel compiler. Uses ifx.options (its flag syntax is
+  #~ close to ifort but not identical, e.g. reporting/vectorization flags).
   FC = ifx
-  include ifort19.options
+  include ifx.options
 else ifeq ($(COMPILER),nvidia)
   FC = nvfortran
   include nvfortran.options

@@ -7,9 +7,15 @@ include make.macros
 ## FCMODREADDIR=flag to set write-only .mod and .smod directory
 ## MODDIR=.mod and .smod directory (leave blank for root)
 # FC:=gfortran
-FCSYNTAX:=-fsyntax-only
-FCMODDIR:=-J
-MODDIR:=.mod
+# [build-portability fix] These three are compiler-specific. They are now set
+# with ?= so a compiler .options file (included via make.macros) can override
+# them; the values below are the gfortran defaults kept as a fallback. ifort
+# needs -syntax-only (not -fsyntax-only) and -module (not -J): without the
+# override, ifort's syntax-only step used the gfortran flag, silently did a
+# compile+link, and failed with "undefined reference to MAIN__".
+FCSYNTAX?=-fsyntax-only
+FCMODDIR?=-J
+MODDIR?=.mod
 # FC:=ifort
 # FCSYNTAX:=-syntax-only
 # FCMODDIR:=-module

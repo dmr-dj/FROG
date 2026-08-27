@@ -56,3 +56,8 @@ INCNETCDF     = -I${inc_netcdf_path}
 endif
 
 # The End of All Things (op. cit.)
+
+# [build-portability fix] Compiler-specific flags the Makefile reads via ?=.
+FCSYNTAX      = -syntax-only
+FCMODDIR      = -module
+MODDIR        = .mod

@@ -35,44 +35,23 @@ DBG_FLAGS     = -traceback -C -warn all -fpe0
 CMP_SPECF     = -fp-model precise -gen-interface -vec_report0 -diag-disable 10246 -diag-disable 10212
 OPENMP        = -openmp -openmp-link static -auto-scalar -norecursive
 
-ifeq ($(strip $(lib_netcdff_path)),)
-LIBNETCDF     = -Wl,-rpath=${lib_netcdf_path} -L${lib_netcdf_path} -lnetcdf -lnetcdff
-INCNETCDF     = -I${inc_netcdf_path}
-else
-LIBNETCDFF    = -Wl,-rpath=${lib_netcdff_path} -L${lib_netcdff_path} -lnetcdff
-INCNETCDFF    = -I${inc_netcdff_path}
-LIBNETCDF     = -Wl,-rpath=${lib_netcdf_path} -L${lib_netcdf_path} -lnetcdf
-INCNETCDF     = -I${inc_netcdf_path}
-endif
-
-LIBNCIO       = -Wl,-rpath=${lib_ncio_path} -L${lib_ncio_path} -lncio
-INCNCIO       = -I${inc_ncio_path}
-
-LIBUDUNITS    = -Wl,-rpath=${lib_udunits_path} -L${lib_udunits_path} -lncio
-INCUDUNITS    = -I${inc_udunits_path}
-
-LIBUUID       = -Wl,-rpath=${lib_uuid_path} -L${lib_uuid_path} -luuid-fortran
-INCUUID       = -I${inc_uuid_path}
-
-LIBMODMXM     = -Wl,-rpath=${lib_modmxm_path} -L${lib_modmxm_path} -lmodmxm
-INCMODMXM     = -I${inc_modmxm_path}
-
-LIBMEDUSA     = -Wl,-rpath=${lib_medusa_path} -L${lib_medusa_path} -lmedusa
-INCMEDUSA     = -I${inc_medusa_path}
-
-LIBTHDYCT     = -Wl,-rpath=${lib_thdyct_path} -L${lib_thdyct_path} -lthdyct
-INCTHDYCT     = -I${inc_thdyct_path}
-
-LIBGRISLI     = -Wl,-rpath=${lib_grisli_path} -L${lib_grisli_path} -lgrisli
-INCGRISLI     = -I${inc_grisli_path}
-
-LIBCARAIB     = -Wl,-rpath=${lib_caraib_path} -L${lib_caraib_path} -lcaraib
-INCCARAIB     = -I${inc_caraib_path} -I${com_caraib_path}
-
-LIBDINSOL     = -Wl,-rpath=${lib_dinsol_path} -L${lib_dinsol_path} -ldinsol
-INCDINSOL     = -I${inc_dinsol_path}
-
-INC_F_DIR     = -I${objdir}
-MOD_F_DIR     = -module ${objdir}
+# ---------------------------------------------------------------------------
+# NOTE: this file must contain COMPILER FLAGS ONLY, not library/include paths.
+#
+# It used to also carry a block of iLOVECLIM library definitions (INCNETCDF,
+# LIBNETCDF, INCNCIO, LIBUDUNITS, ... INC_F_DIR, MOD_F_DIR), each built from a
+# ${..._path} variable that only exists inside the iLOVECLIM environment. In a
+# standalone FROG build those paths are empty, so e.g. "INCNETCDF = -I${inc_netcdf_path}"
+# expanded to a bare "-I". Worse, because a local make.macros includes this
+# file AFTER FROG.libinc, that bare "-I" OVERWROTE the correct INCNETCDF from
+# FROG.libinc. The dangling "-I" then swallowed the following "-c" in the
+# object rule (ifort read "-I -c" as "add directory named -c to the include
+# path"), dropped compile-only mode, tried to link, and failed with
+# "undefined reference to MAIN__". gfortran was unaffected only because its
+# options file never redefined these variables.
+#
+# Include/library paths belong in FROG.libinc / make.macros (standalone) or in
+# the iLOVECLIM build system (coupled), never here. Block removed.
+# ---------------------------------------------------------------------------
 
 # The End of All Things (op. cit.)
