@@ -73,13 +73,41 @@
 ! --- for output generation / netCDF
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
-      INTEGER         :: spat_dim2, spat_dim1, time_id
+      INTEGER         :: spat_dim2, spat_dim1
       REAL, PUBLIC    :: undefined_value
       CHARACTER(LEN=str_len) :: typology_file  ! ="file_typology-r128x64.nc"
-      CHARACTER(LEN=str_len) :: netCDFout_file_base ! ="FROG-output"
       CHARACTER(LEN=str_len) :: netCDFout_dir_base ! ="outputdata/permafrost" in coupled mode
-      CHARACTER(LEN=str_len) :: netCDFout_file ! ="actual name in use, such as FROG-output000.nc"
-      INTEGER         :: future_file_nb = 0
+!dmr&clo [output streams #1] Scalars used ONLY to read the namelists (a derived-
+!dmr&clo     type component cannot appear in a NAMELIST group). Their values are
+!dmr&clo     copied into the stream (strm%file_base, strm%time_fraction) right
+!dmr&clo     after the READ.
+      CHARACTER(LEN=str_len) :: netCDFout_file_base ! namelist scratch -> strm%file_base
+      INTEGER                :: output_time_fraction ! namelist scratch -> strm%time_fraction
+
+!dmr&clo --- [output streams #1] All per-output-file state is grouped in one
+!dmr&clo     derived type so that several output files (e.g. yearly + monthly)
+!dmr&clo     can coexist, each with its own record counter, file name, and
+!dmr&clo     netCDF handles. netCDF var/dim ids are file-local by definition, so
+!dmr&clo     they MUST be per-stream once there is more than one file.
+!dmr&clo     This socle keeps a single instance (strm) -> behaviour unchanged;
+!dmr&clo     the monthly stream is added in a later step. Shared, model-level
+!dmr&clo     state (dimensions, variable metadata, mask undef) stays module-wide.
+      TYPE ncoutput_stream
+        CHARACTER(LEN=str_len)             :: file_base = "UNSET" ! e.g. "FROG-output"
+        CHARACTER(LEN=str_len)             :: file      = ""      ! current name, "FROG-output000.nc"
+        INTEGER                            :: future_file_nb      = 0
+        INTEGER                            :: current_time_record = 0
+        INTEGER                            :: time_fraction       = 0 ! split size (unit == years)
+        INTEGER                            :: time_id             = -1
+        INTEGER, DIMENSION(:), ALLOCATABLE :: var_dimid
+        INTEGER, DIMENSION(:), ALLOCATABLE :: dim_len, dim_dimid
+      END TYPE ncoutput_stream
+
+!dmr&clo Single output stream for now (yearly). Replaces the former scattered
+!dmr&clo globals netCDFout_file(_base), future_file_nb, current_time_record,
+!dmr&clo output_time_fraction, time_id, output_var_dimid, output_dim_len/dimid.
+      TYPE(ncoutput_stream) :: strm
+
 !dmr --- / Bloc related to namelist reading for variable output generation ...
 
       INTEGER                :: nb_out_vars, nb_dim_vars
@@ -87,13 +115,6 @@
 
       CHARACTER(LEN=str_len), DIMENSION(:), ALLOCATABLE:: output_dim_names, output_var_names, output_unt_names      &
                             , output_std_names, output_lng_names, output_dms_names
-
-      INTEGER, DIMENSION(:), ALLOCATABLE :: output_dim_len, output_dim_dimid
-
-      INTEGER :: output_time_fraction ! variable to split the output in pieces (unit == years)
-      INTEGER :: current_time_record
-
-      INTEGER, DIMENSION(:), ALLOCATABLE :: output_var_dimid
 
       !dmr [TODO] These fixed indexes are not compatible with the allocatable philosophy of the rest
       !dmr        Need to create a special type that would hold the different variables names above
@@ -276,6 +297,9 @@
       endif
 
       CLOSE (fu)
+
+!dmr&clo [output streams #1] copy namelist scratch into the (single) stream.
+      strm%time_fraction = output_time_fraction
 
       WRITE(stdout,*) "VALUES for namelist output: ", output_aktiv, nb_dim_vars, nb_out_vars, output_time_fraction
 
@@ -495,6 +519,9 @@
 
       CLOSE (fu)
 
+!dmr&clo [output streams #1] copy namelist scratch into the (single) stream.
+      strm%file_base = netCDFout_file_base
+
       CALL read_base_namelist(file_path_out)
 
       do n=1,nb_out_vars
@@ -516,7 +543,10 @@
       ! Hence I should get nDims = 3, nVars = 3,  time, hence unlimdimid != -1
 
 
-      time_id = unlimdimid
+!dmr&clo [output streams #1] removed dead "time_id = unlimdimid" here: it was
+!dmr&clo     the MASK's unlimited-dim id, never read before being overwritten by
+!dmr&clo     the output file's own time varid (nf90_inq_varid below). Not part of
+!dmr&clo     the output stream state.
 
       ! debug WRITE(*,*) "info file", nDims, nVars, unlimdimid
 
@@ -698,9 +728,9 @@
 
 
        !dmr ALLOCATE the required arrays
-       if (.NOT. ALLOCATED(output_dim_len)) then
-         ALLOCATE(output_dim_len(0:nb_dim_vars))
-         ALLOCATE(output_dim_dimid(0:nb_dim_vars))
+       if (.NOT. ALLOCATED(strm%dim_len)) then
+         ALLOCATE(strm%dim_len(0:nb_dim_vars))
+         ALLOCATE(strm%dim_dimid(0:nb_dim_vars))
        endif
 
        ALLOCATE(dim_exists_file(nb_dim_vars))
@@ -711,22 +741,22 @@
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
 #if ( OFFLINE_RUN == 1 )
-       netCDFout_file = generate_fileName(netCDFout_file_base, future_file_nb, ncExt)
+       strm%file = generate_fileName(strm%file_base, strm%future_file_nb, ncExt)
 #else
-       netCDFout_file = generate_fileName(netCDFout_file_base, future_file_nb, ncExt, dirlocationname=netCDFout_dir_base)
+       strm%file = generate_fileName(strm%file_base, strm%future_file_nb, ncExt, dirlocationname=netCDFout_dir_base)
 #endif
 !dmr&clo --- Build the output grid directly from the mask, replacing the old
 !dmr&clo     "cp -f typology_file output_file" (unchecked return, shell
 !dmr&clo     dependency, redundant typology file). See
 !dmr&clo     netCDF_init_output_from_mask above.
-       call netCDF_init_output_from_mask(mask_file, netCDFout_file)
+       call netCDF_init_output_from_mask(mask_file, strm%file)
 
        ! Now need to check and define the dimension if needed (levels for sure)
 
        dim_exists_file(:) = .FALSE.
 
        call handle_err(                                                                                &
-            nf90_open(path = TRIM(netCDFout_file), mode = NF90_WRITE, ncid = ncid)                     & ! open existing netCDF dataset
+            nf90_open(path = TRIM(strm%file), mode = NF90_WRITE, ncid = ncid)                     & ! open existing netCDF dataset
                       , __LINE__)
 
        ! Check that lat and lon already exist in the file ...
@@ -735,7 +765,7 @@
            nf90_inquire(ncid, nDims, nVars, nGlobalAtts, unlimdimid)                                   & ! inquire existing dimensions in the file
                       , __LINE__)
 
-       output_dim_dimid(0) = unlimdimid
+       strm%dim_dimid(0) = unlimdimid
 
 !dmr [TODO] ici a creer : editer la variable "units" du temps pour modifier years/months/days en fonction du type d'output
 
@@ -751,9 +781,9 @@
           if (TRIM(dimNAMES_loc(d)) == TRIM(output_dim_names(n))) then
              dim_exists_file(n) = .TRUE.
              call handle_err(                                                                          &
-                  nf90_inq_dimid(ncid, TRIM(dimNAMES_loc(d)), output_dim_dimid(n))                     &
+                  nf90_inq_dimid(ncid, TRIM(dimNAMES_loc(d)), strm%dim_dimid(n))                     &
                       , __LINE__)
-             output_dim_len(n) = dimLEN_loc(d)
+             strm%dim_len(n) = dimLEN_loc(d)
           endif
        ENDDO
 
@@ -766,7 +796,7 @@
          if (.NOT.dim_exists_file(n)) then
 
          if (n.eq.3) then ! lev
-           output_dim_len(n) = z_num
+           strm%dim_len(n) = z_num
          endif
 
          call handle_err(                                                                              &
@@ -774,7 +804,7 @@
                       , __LINE__)
 
          call handle_err(                                                                              &
-              nf90_def_dim(ncid, output_dim_names(n), output_dim_len(n), output_dim_dimid(n))          & ! define additional dimensions
+              nf90_def_dim(ncid, output_dim_names(n), strm%dim_len(n), strm%dim_dimid(n))          & ! define additional dimensions
                       , __LINE__)
 
          endif
@@ -792,7 +822,7 @@
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 
        call handle_err(                                                                                &
-            nf90_def_var(ncid, "depth", NF90_FLOAT, output_dim_dimid(3), depth_varid)                  &  ! define additional variables
+            nf90_def_var(ncid, "depth", NF90_FLOAT, strm%dim_dimid(3), depth_varid)                  &  ! define additional variables
                       , __LINE__)
 
        call handle_err(                                                                                &
@@ -811,8 +841,8 @@
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
        ! define the variables iteratively
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
-        if (.NOT. ALLOCATED(output_var_dimid)) then
-          ALLOCATE(output_var_dimid(nb_out_vars))
+        if (.NOT. ALLOCATED(strm%var_dimid)) then
+          ALLOCATE(strm%var_dimid(nb_out_vars))
         endif
         DO indx_var=1, nb_out_vars
 
@@ -821,13 +851,13 @@
            SELECT CASE (c)
              CASE (4)
                call handle_err(                                                                                           &
-                  nf90_def_var(ncid, output_var_names(indx_var), NF90_FLOAT, output_dim_dimid(3:0:-1)                     &
-                            , output_var_dimid(indx_var))                                                                 &
+                  nf90_def_var(ncid, output_var_names(indx_var), NF90_FLOAT, strm%dim_dimid(3:0:-1)                     &
+                            , strm%var_dimid(indx_var))                                                                 &
                             , __LINE__)
              CASE (3)
                call handle_err(                                                                                           &
-                  nf90_def_var(ncid, output_var_names(indx_var), NF90_FLOAT, output_dim_dimid(2:0:-1)                     &
-                            , output_var_dimid(indx_var))                                                                 &
+                  nf90_def_var(ncid, output_var_names(indx_var), NF90_FLOAT, strm%dim_dimid(2:0:-1)                     &
+                            , strm%var_dimid(indx_var))                                                                 &
                             , __LINE__)
              CASE DEFAULT
                WRITE(*,*) "NetCDF init is not setup for a variable with ", c, " axes"
@@ -835,22 +865,22 @@
            END SELECT
 
            call handle_err(                                                                                               &
-              nf90_put_att(ncid, output_var_dimid(indx_var), "units", output_unt_names(indx_var))                         &
+              nf90_put_att(ncid, strm%var_dimid(indx_var), "units", output_unt_names(indx_var))                         &
                         , __LINE__)
 
            call handle_err(                                                                                               &
-              nf90_put_att(ncid, output_var_dimid(indx_var), "standard_name", output_std_names(indx_var))                 &
+              nf90_put_att(ncid, strm%var_dimid(indx_var), "standard_name", output_std_names(indx_var))                 &
                         , __LINE__)
 
 
            if (output_lng_names(indx_var) /= "") then
              call handle_err(                                                                                             &
-                nf90_put_att(ncid, output_var_dimid(indx_var), "long_name", output_lng_names(indx_var))                   &
+                nf90_put_att(ncid, strm%var_dimid(indx_var), "long_name", output_lng_names(indx_var))                   &
                           , __LINE__)
            endif
 
            call handle_err(                                                                                               &
-              nf90_put_att(ncid, output_var_dimid(indx_var), "_FillValue", undefined_value)                               &
+              nf90_put_att(ncid, strm%var_dimid(indx_var), "_FillValue", undefined_value)                               &
                         , __LINE__)
 
         ENDDO
@@ -873,9 +903,9 @@
                       , __LINE__)
 
 
-       current_time_record = 0
+       strm%current_time_record = 0
 
-       future_file_nb = future_file_nb + 1
+       strm%future_file_nb = strm%future_file_nb + 1
 
       END SUBROUTINE INIT_netCDF_output
 
@@ -895,12 +925,12 @@
 
        if (indx_var.EQ.indx_var_tmean_ig) then
 
-         current_time_record = current_time_record + 1
+         strm%current_time_record = strm%current_time_record + 1
 
-         if (current_time_record .GT.output_time_fraction) then ! need to increment to a new file
+         if (strm%current_time_record .GT.output_time_fraction) then ! need to increment to a new file
            call INIT_netCDF_output()
-           ! Variable current_time_record is set to zero in INIT_netCDF_output
-           current_time_record = 1
+           ! Variable strm%current_time_record is set to zero in INIT_netCDF_output
+           strm%current_time_record = 1
          endif
 
        endif
@@ -910,16 +940,16 @@
        enddo
 
 !~        WRITE(*,*) "VARIABLE TO NC WRITE: ", MINVAL(nc_vartowrite), MAXVAL(nc_vartowrite)
-!~        WRITE(*,*) "dims :: ", z_num, spat_dim1, spat_dim2, current_time_record, __LINE__
+!~        WRITE(*,*) "dims :: ", z_num, spat_dim1, spat_dim2, strm%current_time_record, __LINE__
 
        call handle_err(                                                                                &
-            nf90_open(path = TRIM(netCDFout_file), mode = NF90_WRITE, ncid = ncid)                     & ! open existing netCDF dataset
+            nf90_open(path = TRIM(strm%file), mode = NF90_WRITE, ncid = ncid)                     & ! open existing netCDF dataset
                       , __LINE__)
 
        call handle_err(                                                                                &
-            nf90_put_var(ncid, output_var_dimid(indx_var) ,                                            &
+            nf90_put_var(ncid, strm%var_dimid(indx_var) ,                                            &
                          nc_vartowrite(1:z_num,1:spat_dim1,1:spat_dim2),                               &
-                         start=(/1,1,1,current_time_record/), count=(/z_num, spat_dim1, spat_dim2,1/)) &  ! provide new variable values
+                         start=(/1,1,1,strm%current_time_record/), count=(/z_num, spat_dim1, spat_dim2,1/)) &  ! provide new variable values
                       , __LINE__)
 
 
@@ -929,14 +959,14 @@
 
        if (indx_var.EQ.indx_var_tmean_ig) then
           call handle_err(                                                                                &
-               nf90_open(path = TRIM(netCDFout_file), mode = NF90_WRITE, ncid = ncid)                     & ! open existing netCDF dataset
+               nf90_open(path = TRIM(strm%file), mode = NF90_WRITE, ncid = ncid)                     & ! open existing netCDF dataset
                          , __LINE__)
           call handle_err(                                                                                &
-               nf90_inq_varid(ncid, "time", time_id)                                                      &
+               nf90_inq_varid(ncid, "time", strm%time_id)                                                      &
                          , __LINE__)
 
           call handle_err(                                                                                &
-!dmr&clo current_time_record counts output records (one per year, cf.
+!dmr&clo strm%current_time_record counts output records (one per year, cf.
 !dmr&clo output_time_fraction in years); the time axis is in days, so the value
 !dmr&clo is record * (days per year). Was hard-coded to 365, which drifted by
 !dmr&clo 5 days/year against a 360-day run. YearType now carries the right
@@ -944,7 +974,8 @@
 !dmr&clo the mask (e.g. 'days since 2002-1-1'), which is wrong whenever the run
 !dmr&clo does not start in that year -- to be reconciled with the run's own
 !dmr&clo reference date, ideally from the namelist.
-               nf90_put_var(ncid, time_id,real(current_time_record)*real(YearType), start=(/current_time_record/))    &  ! provide new variable values
+               nf90_put_var(ncid, strm%time_id, real(strm%current_time_record)*real(YearType),        &
+                            start=(/strm%current_time_record/))                                       &  ! provide new variable values
                         , __LINE__)
 
           call handle_err(                                                                                & ! close netcdf dataset
@@ -965,7 +996,7 @@
        INTEGER, INTENT(in) :: indx_var
        REAL, DIMENSION(spat_dim1,spat_dim2) :: nc_vartowrite ! lon, lat, time
 
-!~        current_time_record = current_time_record + 1
+!~        strm%current_time_record = strm%current_time_record + 1
 
 !~        do z=1,z_num
          nc_vartowrite(:,:) = un_flatten_it(var_to_write(:))
@@ -975,13 +1006,13 @@
        !WRITE(*,*) "dims :: ", spat_dim1, spat_dim2
 
        call handle_err(                                                                                &
-            nf90_open(path = TRIM(netCDFout_file), mode = NF90_WRITE, ncid = ncid)                     & ! open existing netCDF dataset
+            nf90_open(path = TRIM(strm%file), mode = NF90_WRITE, ncid = ncid)                     & ! open existing netCDF dataset
                       , __LINE__)
 
        call handle_err(                                                                                &
-            nf90_put_var(ncid, output_var_dimid(indx_var) ,                                            &
+            nf90_put_var(ncid, strm%var_dimid(indx_var) ,                                            &
                          nc_vartowrite(1:spat_dim1,1:spat_dim2),                                       &
-                         start=(/1,1,current_time_record/), count=(/spat_dim1, spat_dim2,1/))          & ! provide new variable values
+                         start=(/1,1,strm%current_time_record/), count=(/spat_dim1, spat_dim2,1/))          & ! provide new variable values
                       , __LINE__)
 
        call handle_err(                                                                                & ! close netcdf dataset
