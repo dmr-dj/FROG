@@ -130,7 +130,16 @@
         REAL, DIMENSION(1:z_num) :: T_old
         LOGICAL                  :: success
         LOGICAL                  :: end_year
+        LOGICAL                  :: end_month
         REAL                     :: altmax_thisyear
+!dmr&clo [output #2a] Accumulate raw SUMS + a step counter, and normalise once
+!dmr&clo        at the end, instead of adding Temp/nb_steps_toDo each step. This
+!dmr&clo        is bit-identical for the yearly mean (sum/N == mean) but does not
+!dmr&clo        hard-wire "the window == the output unit", which is what let the
+!dmr&clo        monthly accumulator (#2b) reuse the very same pattern with the
+!dmr&clo        correct per-month divisor. n_win counts the steps in the window.
+        REAL, DIMENSION(1:z_num) :: Tsum_win
+        INTEGER                  :: n_win
 
 #if ( SNOW_EFFECT == 1 )
 !dmr&clo no initialiser here: it would give nb_snowlayers the SAVE attribute
@@ -152,6 +161,11 @@
 
         altmax_thisyear=0.0
 
+!dmr&clo [output #2a] window accumulators (raw sum + step count), normalised
+!dmr&clo        into Tmean_col at the end of the routine.
+        Tsum_win(1:z_num) = 0.0
+        n_win             = 0
+
 #if ( SNOW_EFFECT == 1 )
         nb_snowlayers = 0
 #endif
@@ -164,6 +178,9 @@
 
          success = update_time_cell(compteur_time_step)
          end_year = compteur_time_step%end_year
+!dmr&clo [output #2] end_month is computed by the timer (calendar-aware, 360 &
+!dmr&clo        365 day years); consumed by the monthly accumulator (step #2b).
+         end_month = compteur_time_step%end_month
 
 
          T_soil = T_air(ll)
@@ -274,7 +291,9 @@
 
         !dmr OUTPUT preparation section
 
-         Tmean_col(1:z_num) = Tmean_col(1:z_num) + Temp(1:z_num) / nb_steps_toDo
+!dmr&clo [output #2a] raw accumulation (no division here); normalised below.
+         Tsum_win(1:z_num) = Tsum_win(1:z_num) + Temp(1:z_num)
+         n_win             = n_win + 1
          where (Temp(1:z_num) .LT. Tmmin_col(1:z_num))
             Tmmin_col = Temp
          endwhere
@@ -287,6 +306,15 @@
          endwhere
 
         enddo ! boucle temporelle
+
+!dmr&clo [output #2a] normalise the window mean once. n_win == nb_steps_toDO in
+!dmr&clo        practice, so this is bit-identical to the former per-step
+!dmr&clo        "Temp/nb_steps_toDo" accumulation for the yearly output.
+        if (n_win > 0) then
+          Tmean_col(1:z_num) = Tsum_win(1:z_num) / real(n_win)
+        else
+          Tmean_col(1:z_num) = 0.0
+        endif
 
      END SUBROUTINE DO_vertclvars_step
 
