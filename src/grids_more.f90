@@ -260,8 +260,13 @@
        INTEGER                       :: rc,fu
        CHARACTER(len=512)            :: nmlmsg   !dmr [D4] compiler iomsg on failed READ
        NAMELIST /outputDimSetup_1/ output_aktiv, nb_dim_vars, nb_out_vars, nb_out_vars_mon
-       NAMELIST /outputDimSetup_2/ output_dim_names, output_var_names, output_var_names_mon
+       NAMELIST /outputDimSetup_2/ output_dim_names, output_var_names
        NAMELIST /outputDimSetup_3/ output_time_fraction
+!dmr&clo [output #3 / group _mon] monthly output lives in its own namelist group,
+!dmr&clo        read ONLY when nb_out_vars_mon > 0. This keeps the monthly path
+!dmr&clo        fully optional (an empty/absent list no longer allocates or reads
+!dmr&clo        anything) and leaves room for more monthly settings later.
+       NAMELIST /outputDimSetup_mon/ output_var_names_mon
 
        ! Start of the subroutine
 
@@ -295,18 +300,26 @@
         ALLOCATE(output_std_names(nb_out_vars))
         ALLOCATE(output_lng_names(nb_out_vars))
         ALLOCATE(output_dms_names(nb_out_vars))
-!dmr&clo [output #3b] allocate the monthly variable-name list. nb_out_vars_mon
-!dmr&clo        defaults to 0 (no monthly output) if the namelist omits it, so
-!dmr&clo        old namelists stay valid. Allocate at least size 1 to keep the
-!dmr&clo        array associated for the READ of outputDimSetup_2.
-        ALLOCATE(output_var_names_mon(max(nb_out_vars_mon,1)))
-        output_var_names_mon(:) = ""
-
         READ (nml=outputDimSetup_2, iostat=rc, iomsg=nmlmsg, unit=fu)
         call check_nml_read(rc, "outputDimSetup_2", file_path, nmlmsg)
 
         READ (nml=outputDimSetup_3, iostat=rc, iomsg=nmlmsg, unit=fu)
         call check_nml_read(rc, "outputDimSetup_3", file_path, nmlmsg)
+
+!dmr&clo [output #3 / group _mon] monthly output is fully optional: only when
+!dmr&clo        nb_out_vars_mon > 0 do we allocate and read the monthly variable
+!dmr&clo        list. If it is 0 or absent, output_var_names_mon stays
+!dmr&clo        unallocated and the _mon group is never read -> no monthly file,
+!dmr&clo        and an empty list can no longer cause a namelist read error.
+        if (nb_out_vars_mon > 0) then
+          ALLOCATE(output_var_names_mon(nb_out_vars_mon))
+          output_var_names_mon(:) = ""
+!dmr&clo REWIND so the _mon group can sit anywhere in the file (namelist reads
+!dmr&clo are sequential from the current position otherwise).
+          REWIND(fu)
+          READ (nml=outputDimSetup_mon, iostat=rc, iomsg=nmlmsg, unit=fu)
+          call check_nml_read(rc, "outputDimSetup_mon", file_path, nmlmsg)
+        endif
 
       endif
 

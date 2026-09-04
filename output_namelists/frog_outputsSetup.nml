@@ -2,13 +2,15 @@
   output_aktiv = T
   nb_dim_vars = 3
   nb_out_vars = 14
-  nb_out_vars_mon = 0
+  nb_out_vars_mon = 1
 /
 &outputDimSetup_2
   output_dim_names = "lat", "lon", "lev"
   output_var_names = "tempmean_ig", "tempmin_ig", "tempmax_ig", "palt", "plt", "carb", "frac", "carba", "carbs", "carbp", "Fv", "r_leaf" , "snow", "temppositnot"
-  output_var_names_mon = "tempmean_ig"
 /
 &outputDimSetup_3
   output_time_fraction = 100
+/
+&outputDimSetup_mon
+  output_var_names_mon = "tempmean_ig"
 /
