@@ -829,6 +829,8 @@
         use vertclvars_mod, only: DO_vertclvars_step
         use grids_more,     only: WRITE_netCDF_output, indx_var_tmean_ig, indx_var_tmin_ig, indx_var_tmax_ig,       &
                                   indx_var_palt, indx_var_plt, indx_var_tposnot
+!dmr&clo [output #3] monthly writer + monthly var count: used unconditionally
+        use grids_more,     only: WRITE_netCDF_output_monthly, nb_out_vars_mon
 
 #if ( CARBON == 1 )
         use grids_more,     only: indx_var_carb, indx_var_frac, indx_var_Fv, indx_var_r_leaf
@@ -935,13 +937,11 @@
 !$omp end do
 !$omp end parallel
 
-!dmr&clo [output #2b] monthly buffer now holds n_months_blk months of tmean per
-!dmr&clo        cell in temp_mean_mon_SV(:, 1:n_months_blk, :). Diagnostic for
-!dmr&clo        now; the actual monthly file write is wired in the next layer (#3
-!dmr&clo        second output stream). Then this block becomes a WRITE call.
-       WRITE(*,*) "[output #2b] months completed this block:", n_months_blk, &
-                  " surface tmean month1/last cell1:",                        &
-                  temp_mean_mon_SV(1,1,1), temp_mean_mon_SV(1,max(n_months_blk,1),1)
+!dmr&clo [output #3b] write the monthly file: n_months_blk records of tmean.
+!dmr&clo        indx 1 = first (and, for now, only) variable of output_var_names_mon.
+       if (nb_out_vars_mon > 0 .AND. n_months_blk > 0) then
+         CALL WRITE_netCDF_output_monthly(temp_mean_mon_SV, n_months_blk, 1)
+       endif
        deallocate(temp_mean_mon_SV)
 
 #if ( CARBON > 0 )
