@@ -43,6 +43,7 @@
        type(cell_time), intent(inout) :: cell_time_var
 
        integer :: remainder_year
+       integer :: day_in_year   !dmr [end_month fix] remainder_year with 0 mapped to YearType
 
        logical :: success
 
@@ -65,15 +66,23 @@
          cell_time_var%end_year = .false.
        endif
 
+!dmr&clo [end_month fix] The last day of the year gives remainder_year == 0
+!dmr&clo        (MOD(YearType,YearType)==0), NOT YearType, so December's end
+!dmr&clo        (day 365, absent from list_endmonth365) was never flagged -> 11
+!dmr&clo        months per year instead of 12. Map the 0 back to YearType for the
+!dmr&clo        monthly test: the year's last day is also a month end.
+       day_in_year = remainder_year
+       if (day_in_year.EQ.0) day_in_year = YearType
+
        if (cell_time_var%is_daily) then
          if (YearType.EQ.Year360) then
-           if (MOD(remainder_year,Month_30days).EQ.0) then
+           if (MOD(day_in_year,Month_30days).EQ.0) then
              cell_time_var%end_month = .true.
            else
              cell_time_var%end_month = .false.
            endif
          elseif (YearType.EQ.Year365) then
-           if (FINDLOC(list_endmonth365,remainder_year,1).NE.0) then
+           if (FINDLOC(list_endmonth365,day_in_year,1).NE.0) then
              cell_time_var%end_month = .true.
            else
              cell_time_var%end_month = .false.

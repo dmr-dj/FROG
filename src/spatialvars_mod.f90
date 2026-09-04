@@ -825,7 +825,7 @@
 
      SUBROUTINE DO_spatialvars_step(stepstoDO,forcage_temperature_surface, forcage_epaisseurneige)
 
-        use parameter_mod,  only: gridNoMax
+        use parameter_mod,  only: gridNoMax, z_num
         use vertclvars_mod, only: DO_vertclvars_step
         use grids_more,     only: WRITE_netCDF_output, indx_var_tmean_ig, indx_var_tmin_ig, indx_var_tmax_ig,       &
                                   indx_var_palt, indx_var_plt, indx_var_tposnot
@@ -855,6 +855,13 @@
 !       LOCAL VARIABLES
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
        integer :: gridp
+!dmr&clo [output #2b] monthly mean buffer. Sized here because stepstoDO (the
+!dmr&clo        block length, = parallelisation grain) is only known now, not at
+!dmr&clo        spatialvars_allocate time. max_months bounds the months in a
+!dmr&clo        block (28 = shortest possible month). n_months_blk is the actual
+!dmr&clo        count returned by the cells (identical across cells: same timer).
+       real, dimension(:,:,:), allocatable :: temp_mean_mon_SV
+       integer :: max_months, n_months_blk, imon
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
 !       MAIN BODY OF THE ROUTINE
 !-----|--1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9----+----0----+----1----+----2----+----3-|
@@ -865,6 +872,12 @@
        temp_mean_SV(:,:) = 0.0
        temp_mmin_SV(:,:) = 100.0
        temp_mmax_SV(:,:) = -100.0
+
+!dmr&clo [output #2b] size and zero the monthly buffer for this block.
+       max_months = stepstoDO/28 + 1
+       allocate(temp_mean_mon_SV(1:z_num, 1:max_months, 1:gridNoMax))
+       temp_mean_mon_SV(:,:,:) = 0.0
+       n_months_blk = 0
 
        ! This is where the parallelization could find place ...
 !$omp parallel
@@ -899,6 +912,12 @@
                                , Tmmin_col = temp_mmin_SV(:,gridp)                                                            &
                                , Tmmax_col = temp_mmax_SV(:,gridp)                                                            &
                                , temp_positive_or_not = temppositnot(:,gridp)                                                 &
+!dmr&clo [output #2b] monthly mean out, per-cell slice (no race: gridp is the
+!dmr&clo        private loop index). n_months_out is identical for every cell
+!dmr&clo        (same timer), so writing the shared n_months_blk is a benign
+!dmr&clo        same-value store; harmless under OpenMP.
+                               , Tmean_mon = temp_mean_mon_SV(:,:,gridp)                                                      &
+                               , n_months_out = n_months_blk                                                                  &
                                )
 
 #if ( CARBON > 0 )
@@ -915,6 +934,15 @@
        enddo
 !$omp end do
 !$omp end parallel
+
+!dmr&clo [output #2b] monthly buffer now holds n_months_blk months of tmean per
+!dmr&clo        cell in temp_mean_mon_SV(:, 1:n_months_blk, :). Diagnostic for
+!dmr&clo        now; the actual monthly file write is wired in the next layer (#3
+!dmr&clo        second output stream). Then this block becomes a WRITE call.
+       WRITE(*,*) "[output #2b] months completed this block:", n_months_blk, &
+                  " surface tmean month1/last cell1:",                        &
+                  temp_mean_mon_SV(1,1,1), temp_mean_mon_SV(1,max(n_months_blk,1),1)
+       deallocate(temp_mean_mon_SV)
 
 #if ( CARBON > 0 )
           write(*,*) 'deepSOM_tot_yr', deepSOM_tot_yr

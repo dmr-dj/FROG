@@ -46,7 +46,12 @@
                                    , snowlayer_thick_forcing, Temp_snow_col                                                      &
                                    , snowlayer_depth, snowlayer_nb                                                               &
 #endif
-                                   , Tmean_col, Tmmin_col, Tmmax_col, temp_positive_or_not)
+                                   , Tmean_col, Tmmin_col, Tmmax_col, temp_positive_or_not                                     &
+!dmr&clo [output #2b] optional monthly mean output: Tmean_mon(z_num, max_months)
+!dmr&clo        filled slice by slice on each end_month, n_months_out = number of
+!dmr&clo        completed months in this block. Optional -> callers that only want
+!dmr&clo        yearly output pass nothing (zero overhead, back-compatible).
+                                   , Tmean_mon, n_months_out)
 
 
 
@@ -83,6 +88,11 @@
         REAL, DIMENSION(1:z_num)        , INTENT(OUT)       :: Tmmin_col
         REAL, DIMENSION(1:z_num)        , INTENT(OUT)       :: Tmmax_col
         REAL, DIMENSION(1:z_num)        , INTENT(OUT)       :: temp_positive_or_not
+!dmr&clo [output #2b] optional monthly mean. Second dim sized by the caller
+!dmr&clo        (it knows nb_steps_toDO). n_months_out reports how many months
+!dmr&clo        were actually completed and written into Tmean_mon.
+        REAL, DIMENSION(:,:), OPTIONAL  , INTENT(OUT)       :: Tmean_mon
+        INTEGER,              OPTIONAL  , INTENT(OUT)       :: n_months_out
         REAL                            , INTENT(inout)     :: ALT, altmax_lastyear             ! Active Layer Thickness
         TYPE(cell_time)                 , INTENT(inout)     :: compteur_time_step
         INTEGER                         , INTENT(in)        :: organic_indd                     ! index of the end of the organic layer
@@ -140,6 +150,12 @@
 !dmr&clo        correct per-month divisor. n_win counts the steps in the window.
         REAL, DIMENSION(1:z_num) :: Tsum_win
         INTEGER                  :: n_win
+!dmr&clo [output #2b] monthly accumulator: raw sum + step count for the current
+!dmr&clo        month, plus imonth = index of the month being filled. All local
+!dmr&clo        -> automatically thread-private under the OpenMP cell loop.
+        REAL, DIMENSION(1:z_num) :: Tsum_mon
+        INTEGER                  :: n_mon, imonth
+        LOGICAL                  :: do_monthly
 
 #if ( SNOW_EFFECT == 1 )
 !dmr&clo no initialiser here: it would give nb_snowlayers the SAVE attribute
@@ -165,6 +181,14 @@
 !dmr&clo        into Tmean_col at the end of the routine.
         Tsum_win(1:z_num) = 0.0
         n_win             = 0
+
+!dmr&clo [output #2b] arm the monthly accumulator only if the caller asked for
+!dmr&clo        monthly output (both optional args present). imonth counts the
+!dmr&clo        months completed so far in this block.
+        do_monthly = PRESENT(Tmean_mon) .AND. PRESENT(n_months_out)
+        Tsum_mon(1:z_num) = 0.0
+        n_mon             = 0
+        imonth            = 0
 
 #if ( SNOW_EFFECT == 1 )
         nb_snowlayers = 0
@@ -305,6 +329,29 @@
             temp_positive_or_not = temp_positive_or_not + 1.0
          endwhere
 
+!dmr&clo [output #2b] monthly accumulation, same "raw sum + normalise at flag"
+!dmr&clo        pattern as the window/ALT. The end-of-month step IS part of the
+!dmr&clo        month it closes (list_endmonth365: day 31 == end of January),
+!dmr&clo        so we accumulate first, then freeze on end_month.
+         if (do_monthly) then
+            Tsum_mon(1:z_num) = Tsum_mon(1:z_num) + Temp(1:z_num)
+            n_mon             = n_mon + 1
+            if (end_month) then
+               imonth = imonth + 1
+               if (imonth <= SIZE(Tmean_mon,2)) then
+                  Tmean_mon(1:z_num,imonth) = Tsum_mon(1:z_num) / real(n_mon)
+               else
+!dmr&clo           overflow guard: caller under-sized Tmean_mon. Should not happen
+!dmr&clo           if it used max_months = nb_steps_toDO/28 + 1. Fail loudly.
+                  WRITE(*,*) "[ABORT] DO_vertclvars_step: monthly output overflow,"
+                  WRITE(*,*) "        imonth=", imonth, " > size=", SIZE(Tmean_mon,2)
+                  STOP
+               endif
+               Tsum_mon(1:z_num) = 0.0
+               n_mon             = 0
+            endif
+         endif
+
         enddo ! boucle temporelle
 
 !dmr&clo [output #2a] normalise the window mean once. n_win == nb_steps_toDO in
@@ -315,6 +362,12 @@
         else
           Tmean_col(1:z_num) = 0.0
         endif
+
+!dmr&clo [output #2b] report how many whole months were completed in this block.
+!dmr&clo        A trailing partial month (n_mon>0 but no end_month yet) is NOT
+!dmr&clo        emitted here -- it would be double-counted next block. Left for a
+!dmr&clo        later refinement if partial-month handling is ever needed.
+        if (do_monthly) n_months_out = imonth
 
      END SUBROUTINE DO_vertclvars_step
 
